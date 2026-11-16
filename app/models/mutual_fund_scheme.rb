@@ -86,7 +86,41 @@ class MutualFundScheme < ApplicationRecord
         where.not(scheme_code: records.map { |r| r[:scheme_code] }).update_all(active: false) if deactivate_missing
       end
 
+      relink_offline_securities!
+
       records.size
+    end
+
+    # A CAS import keeps a fund AMFI did not know yet under an offline security whose ticker is the
+    # ISIN. Once the scheme shows up in AMFI data, switch that security over to the scheme code (so
+    # NAVs are fetched), or, when a security for the scheme code exists already, merge into it.
+    # Returns the number of securities relinked.
+    def relink_offline_securities!
+      relinked = 0
+
+      Security.where(exchange_operating_mic: Security::AMFI_MIC, offline: true).find_each do |offline|
+        scheme = where(isin_growth: offline.ticker).or(where(isin_reinvestment: offline.ticker)).first
+        next unless scheme
+
+        target = Security.find_by(ticker: scheme.scheme_code, exchange_operating_mic: Security::AMFI_MIC)
+
+        if target && target.id != offline.id
+          merge_security!(offline, into: target, scheme: scheme)
+        else
+          offline.update!(
+            ticker: scheme.scheme_code,
+            offline: false,
+            failed_fetch_count: 0,
+            failed_fetch_at: nil,
+            name: offline.name.presence || scheme.name,
+            isin: offline.isin.presence || offline.ticker
+          )
+        end
+
+        relinked += 1
+      end
+
+      relinked
     end
 
     # Imports an AMFI NAVAll.txt that was downloaded by hand (offline fallback for the nightly job).
@@ -121,6 +155,31 @@ class MutualFundScheme < ApplicationRecord
 
     def last_nav_date
       maximum(:nav_date)
+    end
+
+    def merge_security!(offline, into:, scheme:)
+      affected_accounts = Account.where(id: Trade.joins(:entry).where(security_id: offline.id).select("entries.account_id")).to_a
+
+      transaction do
+        into.update!(isin: scheme.isin_growth.presence || offline.isin) if into.isin.blank?
+
+        Trade.where(security_id: offline.id).update_all(security_id: into.id)
+        Holding.where(security_id: offline.id).delete_all # rebuilt by the account sync below
+
+        GoalAllocation.where(security_id: offline.id).find_each do |allocation|
+          duplicate = GoalAllocation.exists?(goal_id: allocation.goal_id, account_id: allocation.account_id, security_id: into.id)
+          duplicate ? allocation.destroy! : allocation.update_columns(security_id: into.id)
+        end
+
+        FamilySecurityOverride.where(security_id: offline.id).find_each do |override|
+          duplicate = FamilySecurityOverride.exists?(family_id: override.family_id, security_id: into.id)
+          duplicate ? override.destroy! : override.update_columns(security_id: into.id)
+        end
+
+        offline.reload.destroy!
+      end
+
+      affected_accounts.each(&:sync_later)
     end
 
     # ---- Classification from AMFI names and categories ----

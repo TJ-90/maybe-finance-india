@@ -1,6 +1,9 @@
 require "test_helper"
+require "ostruct"
 
 class MutualFundSchemeTest < ActiveSupport::TestCase
+  include ActiveJob::TestHelper
+
   test "scheme code is unique" do
     duplicate = MutualFundScheme.new(scheme_code: "100001", name: "Dup")
 
@@ -36,6 +39,60 @@ class MutualFundSchemeTest < ActiveSupport::TestCase
     mutual_fund_schemes(:nifty_index).update!(active: false)
 
     assert_equal 2, MutualFundScheme.discover(plan: "bogus", option: "bogus").count
+  end
+
+  test "relinks an offline security from a CAS import once AMFI knows the scheme" do
+    MutualFundScheme.find_by!(scheme_code: "100001") # fixture with ISIN INF000A01001
+    offline = Security.create!(ticker: "INF000A01001", exchange_operating_mic: "AMFI", name: "Alpha Bluechip", kind: "mutual_fund",
+                               isin: "INF000A01001", offline: true, failed_fetch_count: 6)
+
+    assert_equal 1, MutualFundScheme.relink_offline_securities!
+
+    offline.reload
+    assert_equal "100001", offline.ticker
+    assert_not offline.offline?
+    assert_equal 0, offline.failed_fetch_count
+    assert_equal "Alpha Bluechip", offline.name
+  end
+
+  test "relinking merges into an existing scheme-code security and moves its trades" do
+    account = accounts(:investment)
+    offline = Security.create!(ticker: "INF000A01002", exchange_operating_mic: "AMFI", kind: "mutual_fund", offline: true) # reinvestment ISIN
+    target = Security.create!(ticker: "100001", exchange_operating_mic: "AMFI", kind: "mutual_fund")
+    entry = account.entries.create!(name: "Buy", date: 1.month.ago.to_date, amount: 1000, currency: "INR",
+                                    entryable: Trade.new(qty: 10, price: 100, currency: "INR", security: offline, folio_number: "123"))
+    goal_allocation = goals(:home).goal_allocations.create!(account: account, security: offline, percentage: 50)
+
+    assert_enqueued_with(job: SyncJob) do
+      assert_equal 1, MutualFundScheme.relink_offline_securities!
+    end
+
+    assert_not Security.exists?(offline.id)
+    assert_equal target.id, entry.entryable.reload.security_id
+    assert_equal target.id, goal_allocation.reload.security_id
+    assert_equal "INF000A01001", target.reload.isin
+  end
+
+  test "relinking leaves unknown ISINs and online securities alone" do
+    unknown = Security.create!(ticker: "INF999Z99999", exchange_operating_mic: "AMFI", kind: "mutual_fund", offline: true)
+    online = Security.create!(ticker: "INF000A01001", exchange_operating_mic: "XNSE", kind: "etf", offline: true)
+
+    assert_equal 0, MutualFundScheme.relink_offline_securities!
+    assert unknown.reload.offline?
+    assert_equal "INF000A01001", online.reload.ticker
+  end
+
+  test "import_rows! relinks offline securities" do
+    offline = Security.create!(ticker: "INF000A01001", exchange_operating_mic: "AMFI", kind: "mutual_fund", offline: true)
+
+    MutualFundScheme.import_rows!([ OpenStruct.new(
+      scheme_code: "100001", name: "Alpha Bluechip Fund - Direct Plan - Growth", amc: "Alpha", category: "Equity Scheme - Large Cap Fund",
+      scheme_type: "Open Ended", plan: "direct", option: "growth", isin_growth: "INF000A01001", isin_reinvestment: nil,
+      nav: 250, nav_date: Date.current, asset_class: "equity", tax_category: "equity"
+    ) ], deactivate_missing: false)
+
+    assert_equal "100001", offline.reload.ticker
+    assert_not offline.offline?
   end
 
   test "import_rows! upserts schemes from a parsed NAVAll file" do

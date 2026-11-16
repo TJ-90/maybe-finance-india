@@ -2,6 +2,7 @@
 #
 # 1. Downloads AMFI's NAVAll.txt and upserts every scheme with its latest NAV (powers fund discovery and search)
 # 2. Records the latest NAV as a price for mutual fund securities we already track
+#    (MutualFundScheme.import_rows! also relinks offline securities that a CAS import created under an ISIN)
 class ImportMutualFundSchemesJob < ApplicationJob
   queue_as :scheduled
 

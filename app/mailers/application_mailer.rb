@@ -1,5 +1,5 @@
 class ApplicationMailer < ActionMailer::Base
-  default from: email_address_with_name(ENV.fetch("EMAIL_SENDER", "sender@maybe.local"), Rails.application.config.x.product_name)
+  default from: email_address_with_name(ENV.fetch("EMAIL_SENDER", "sender@example.com"), Rails.application.config.x.product_name)
   layout "mailer"
 
   helper_method :product_name

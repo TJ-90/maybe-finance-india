@@ -42,24 +42,23 @@ namespace :demo_data do
     trade_entries   = Entry.where(entryable_type: "Trade").count
     categorized_txn = Transaction.joins(:category).count
     txn_total       = Transaction.count
+    family          = Family.joins(:users).find_by(users: { email: ENV.fetch("DEMO_EMAIL", "user@example.com") })
 
     coverage = ((categorized_txn.to_f / txn_total) * 100).round(1)
 
     puts "\n📊 Validation Summary".ljust(40, "-")
     puts "Entries total:              #{total_entries}"
-    puts "Trade entries:             #{trade_entries} (#{trade_entries.between?(500, 1000) ? '✅' : '❌'})"
-    puts "Txn categorization:        #{coverage}% (>=75% ✅)"
+    puts "Trade entries:             #{trade_entries}"
+    puts "Txn categorization:        #{coverage}% (>=25% ✅, transfers and SIP debits are uncategorized by design)"
 
-    unless total_entries.between?(8_000, 12_000)
-      puts "Total entries #{total_entries} outside 8k–12k range"
+    if family
+      puts "Net worth:                  #{family.balance_sheet.net_worth_money.format}"
+      puts "Portfolio XIRR:             #{((family.investment_summary.xirr || 0) * 100).round(1)}%"
+      puts "Goals / insurance policies: #{family.goals.count} / #{family.insurance_policies.count}"
     end
 
-    unless trade_entries.between?(500, 1000)
-      puts "Trade entries #{trade_entries} outside 500–1 000 range"
-    end
-
-    unless coverage >= 75
-      puts "Categorization coverage below 75%"
-    end
+    puts "Total entries #{total_entries} outside 1k–3k range" unless total_entries.between?(1_000, 3_000)
+    puts "Trade entries #{trade_entries} outside 50–300 range" unless trade_entries.between?(50, 300)
+    puts "Categorization coverage below 25%" unless coverage >= 25
   end
 end

@@ -15,21 +15,41 @@ export function formatAmount(value, { currency = "USD", symbol = "" } = {}) {
 }
 
 // Compact tick labels: K / L / Cr for INR (lakh, crore) and K / M / B otherwise.
+// A value that rounds up to the next unit's size moves to that unit (999,999.999 is "1.00M", not "1000K").
+const trim = (n, digits) => Number(n.toFixed(digits)).toString();
+const fixed = (n) => n.toFixed(2);
+
+const INR_SCALES = [
+  { divisor: 1, suffix: "", digits: 0, format: (n) => trim(n, 0) },
+  { divisor: 1000, suffix: "K", digits: 1, format: (n) => trim(n, 1) },
+  { divisor: INR_LAKH, suffix: " L", digits: 2, format: fixed },
+  { divisor: INR_CRORE, suffix: " Cr", digits: 2, format: fixed }
+];
+
+const INTERNATIONAL_SCALES = [
+  { divisor: 1, suffix: "", digits: 0, format: (n) => trim(n, 0) },
+  { divisor: 1000, suffix: "K", digits: 1, format: (n) => trim(n, 1) },
+  { divisor: 1e6, suffix: "M", digits: 2, format: fixed },
+  { divisor: 1e9, suffix: "B", digits: 2, format: fixed }
+];
+
 export function formatCompactAmount(value, { currency = "USD", symbol = "" } = {}) {
   const sign = value < 0 ? "-" : "";
   const abs = Math.abs(value);
-  const trim = (n, digits) => Number(n.toFixed(digits)).toString();
+  const scales = currency === "INR" ? INR_SCALES : INTERNATIONAL_SCALES;
 
-  let text;
-  if (currency === "INR") {
-    if (abs >= INR_CRORE) text = `${(abs / INR_CRORE).toFixed(2)} Cr`;
-    else if (abs >= INR_LAKH) text = `${(abs / INR_LAKH).toFixed(2)} L`;
-    else if (abs >= 1000) text = `${trim(abs / 1000, 1)}K`;
-    else text = trim(abs, 0);
-  } else if (abs >= 1e9) text = `${(abs / 1e9).toFixed(2)}B`;
-  else if (abs >= 1e6) text = `${(abs / 1e6).toFixed(2)}M`;
-  else if (abs >= 1000) text = `${trim(abs / 1000, 1)}K`;
-  else text = trim(abs, 0);
+  let index = 0;
+  scales.forEach((scale, i) => {
+    if (abs >= scale.divisor) index = i;
+  });
 
-  return `${sign}${symbol}${text}`;
+  while (index + 1 < scales.length) {
+    const scale = scales[index];
+    const rounded = Number((abs / scale.divisor).toFixed(scale.digits)) * scale.divisor;
+    if (rounded < scales[index + 1].divisor) break;
+    index += 1;
+  }
+
+  const scale = scales[index];
+  return `${sign}${symbol}${scale.format(abs / scale.divisor)}${scale.suffix}`;
 }

@@ -124,6 +124,22 @@ class MoneyTest < ActiveSupport::TestCase
     assert_equal "$1.50B", Money.new(1500000000, "USD").format_compact
   end
 
+  test "compact format moves to the next unit when rounding reaches it" do
+    assert_equal "$1.00M", Money.new(BigDecimal("999999.999"), "USD").format_compact
+    assert_equal "$1.00M", Money.new(1_000_000, "USD").format_compact
+    assert_equal "$999.9K", Money.new(999_900, "USD").format_compact
+    assert_equal "$1K", Money.new(BigDecimal("999.5"), "USD").format_compact
+    assert_equal "$1.00B", Money.new(BigDecimal("999999999.9"), "USD").format_compact
+    assert_equal "-$1.00M", Money.new(BigDecimal("-999999.999"), "USD").format_compact
+
+    assert_equal "₹1.00 L", Money.new(BigDecimal("99999.5"), "INR").format_compact
+    assert_equal "₹1.00 Cr", Money.new(BigDecimal("9999999.5"), "INR").format_compact
+    assert_equal "₹99.99 L", Money.new(BigDecimal("9999000"), "INR").format_compact
+    assert_equal "₹99.9K", Money.new(BigDecimal("99940"), "INR").format_compact
+    assert_equal "₹1K", Money.new(BigDecimal("999.5"), "INR").format_compact
+    assert_equal "₹999", Money.new(BigDecimal("999.4"), "INR").format_compact
+  end
+
   test "converts currency when rate available" do
     ExchangeRate.expects(:find_or_fetch_rate).returns(OpenStruct.new(rate: 1.2))
 

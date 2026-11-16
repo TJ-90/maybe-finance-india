@@ -48,22 +48,34 @@ module Money::Formatting
       currency.indian_grouping? ? { delimiter_pattern: INDIAN_DELIMITER_PATTERN } : {}
     end
 
+    COMPACT_BASE = { divisor: 1, suffix: "", precision: 0 }.freeze
+    COMPACT_THOUSANDS = { divisor: 1_000, suffix: "K", precision: 1, strip_zeros: true }.freeze
+    INDIAN_COMPACT_SCALES = [
+      COMPACT_BASE, COMPACT_THOUSANDS,
+      { divisor: 100_000, suffix: " L", precision: 2 },
+      { divisor: 10_000_000, suffix: " Cr", precision: 2 }
+    ].freeze
+    INTERNATIONAL_COMPACT_SCALES = [
+      COMPACT_BASE, COMPACT_THOUSANDS,
+      { divisor: 1_000_000, suffix: "M", precision: 2 },
+      { divisor: 1_000_000_000, suffix: "B", precision: 2 }
+    ].freeze
+
+    # The unit to display `absolute` in, or nil when it is shown in full (below 1,000). A value that
+    # rounds up to the next unit's size moves to that unit, so 999,999.999 reads "1.00M", not "1000K".
     def compact_scale(absolute)
-      if currency.indian_grouping?
-        if absolute >= 10_000_000
-          { divisor: 10_000_000, suffix: " Cr", precision: 2 }
-        elsif absolute >= 100_000
-          { divisor: 100_000, suffix: " L", precision: 2 }
-        elsif absolute >= 1_000
-          { divisor: 1_000, suffix: "K", precision: 1, strip_zeros: true }
-        end
-      elsif absolute >= 1_000_000_000
-        { divisor: 1_000_000_000, suffix: "B", precision: 2 }
-      elsif absolute >= 1_000_000
-        { divisor: 1_000_000, suffix: "M", precision: 2 }
-      elsif absolute >= 1_000
-        { divisor: 1_000, suffix: "K", precision: 1, strip_zeros: true }
+      scales = currency.indian_grouping? ? INDIAN_COMPACT_SCALES : INTERNATIONAL_COMPACT_SCALES
+      index = scales.rindex { |scale| absolute >= scale[:divisor] } || 0
+
+      while (larger = scales[index + 1])
+        scale = scales[index]
+        rounded = (absolute / scale[:divisor]).round(scale[:precision]) * scale[:divisor]
+        break if rounded < larger[:divisor]
+
+        index += 1
       end
+
+      index.zero? ? nil : scales[index]
     end
 
     def get_symbol

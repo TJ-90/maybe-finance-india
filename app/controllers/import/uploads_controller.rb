@@ -33,7 +33,10 @@ class Import::UploadsController < ApplicationController
     end
 
     def csv_str
-      @csv_str ||= upload_params[:csv_file]&.read || upload_params[:raw_file_str]
+      @csv_str ||= begin
+        raw = upload_params[:csv_file]&.read || upload_params[:raw_file_str]
+        raw.nil? ? raw : @import.prepare_raw_csv(raw, col_sep: upload_params[:col_sep].presence || ",")
+      end
     end
 
     def csv_valid?(str)

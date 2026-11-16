@@ -1,6 +1,8 @@
 class Transaction < ApplicationRecord
   include Entryable, Transferable, Ruleable
 
+  PAYMENT_MODES = %w[upi neft imps rtgs card atm nach cheque cash other].freeze
+
   belongs_to :category, optional: true
   belongs_to :merchant, optional: true
 
@@ -16,6 +18,15 @@ class Transaction < ApplicationRecord
     loan_payment: "loan_payment", # A payment to a Loan account, treated as an expense in budgets
     one_time: "one_time" # A one-time expense/income, excluded from budget analytics
   }
+
+  validates :payment_mode, inclusion: { in: PAYMENT_MODES }, allow_nil: true
+
+  # Short label for the payment-mode badge (UPI, NEFT, ... Other)
+  def payment_mode_label
+    return if payment_mode.blank?
+
+    payment_mode == "other" ? "Other" : payment_mode.upcase
+  end
 
   # Overarching grouping method for all transfer-type transactions
   def transfer?

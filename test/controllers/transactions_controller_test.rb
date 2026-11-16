@@ -96,6 +96,27 @@ class TransactionsControllerTest < ActionDispatch::IntegrationTest
     assert_dom "#total-transactions", count: 1, text: "1"
   end
 
+  test "shows payment mode badge and filters by payment mode" do
+    account = @user.family.accounts.create!(name: "Test", balance: 0, currency: "USD", accountable: Depository.new)
+
+    upi = Entry.create!(account: account, name: "Swiggy", date: Date.current, currency: "USD", amount: 100,
+                        entryable: Transaction.new(payment_mode: "upi", reference_number: "412345678901"))
+    plain = Entry.create!(account: account, name: "Cash coffee", date: Date.current, currency: "USD", amount: 5,
+                          entryable: Transaction.new)
+
+    get transactions_url
+    assert_response :success
+    assert_dom "##{dom_id(upi.entryable)}", text: /UPI/
+
+    get transactions_url(q: { payment_modes: [ "upi" ] })
+    assert_dom "##{dom_id(upi)}", count: 1
+    assert_dom "##{dom_id(plain)}", count: 0
+
+    get entry_url(upi)
+    assert_response :success
+    assert_match "412345678901", response.body
+  end
+
   test "can paginate" do
   family = families(:empty)
   sign_in users(:empty)

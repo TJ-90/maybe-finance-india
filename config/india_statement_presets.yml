@@ -1,0 +1,184 @@
+# Bank / credit-card statement presets for CSV imports (Import::StatementPreset).
+#
+# Verify each financial year: banks change their export layouts without notice.
+#
+# How a preset is applied: on the import configuration step the user picks a bank and the form
+# is pre-filled. For every column role below, the FIRST candidate that matches a header in the
+# uploaded file is used (matching ignores case, spaces and punctuation). Roles with no match
+# are left for the user to choose. Nothing is saved until the user submits the form, so a
+# wrong guess costs one dropdown change.
+#
+# Confidence (shown to the user as a hint on the form):
+#   confirmed:  column names taken from the exports named in plan.md
+#   unverified: best-effort recollection of the bank's export. No sample statement could be
+#               checked offline, so treat headers, date format and sign handling as a guess.
+#
+# Keys per preset
+#   label, kind (savings | credit_card | generic), confidence
+#   date_format:     strptime format of the date column
+#   number_format:   one of Import::NUMBER_FORMATS (Indian 1,23,456.78 grouping parses as "1,234.56")
+#   strategy:        debit_credit_columns (separate withdrawal/deposit columns) or
+#                    custom_column (one amount column plus a Dr/Cr indicator column)
+#   columns:         role => ordered list of candidate header names
+#   inflow_value:    (custom_column only) indicator value that marks money coming in
+presets:
+  hdfc_savings:
+    label: HDFC Bank (savings / current)
+    kind: savings
+    confidence: confirmed
+    date_format: "%d/%m/%y"
+    number_format: "1,234.56"
+    strategy: debit_credit_columns
+    columns:
+      date: ["Date"]
+      name: ["Narration"]
+      debit: ["Withdrawal Amt.", "Withdrawal Amount"]
+      credit: ["Deposit Amt.", "Deposit Amount"]
+
+  icici_savings:
+    label: ICICI Bank (savings / current)
+    kind: savings
+    confidence: unverified
+    date_format: "%d/%m/%Y"
+    number_format: "1,234.56"
+    strategy: debit_credit_columns
+    columns:
+      date: ["Transaction Date", "Value Date"]
+      name: ["Transaction Remarks", "Narration", "Description"]
+      debit: ["Withdrawal Amount (INR )", "Withdrawal Amount (INR)", "Withdrawal Amount"]
+      credit: ["Deposit Amount (INR )", "Deposit Amount (INR)", "Deposit Amount"]
+
+  sbi_savings:
+    label: State Bank of India (savings / current)
+    kind: savings
+    confidence: confirmed # headers per plan.md; the "1 Apr 2024" date format is unverified
+    date_format: "%d %b %Y"
+    number_format: "1,234.56"
+    strategy: debit_credit_columns
+    columns:
+      date: ["Txn Date", "Date"]
+      name: ["Description", "Narration"]
+      debit: ["Debit"]
+      credit: ["Credit"]
+
+  axis_savings:
+    label: Axis Bank (savings / current)
+    kind: savings
+    confidence: unverified
+    date_format: "%d-%m-%Y"
+    number_format: "1,234.56"
+    strategy: debit_credit_columns
+    columns:
+      date: ["Tran Date", "Transaction Date", "Date"]
+      name: ["PARTICULARS", "Narration", "Description"]
+      debit: ["DR", "Debit", "Withdrawal"]
+      credit: ["CR", "Credit", "Deposit"]
+
+  kotak_savings:
+    label: Kotak Mahindra Bank (savings / current)
+    kind: savings
+    confidence: unverified
+    date_format: "%d-%m-%Y"
+    number_format: "1,234.56"
+    strategy: debit_credit_columns
+    columns:
+      date: ["Transaction Date", "Date"]
+      name: ["Description", "Narration"]
+      debit: ["Debit", "Withdrawal (Dr)", "Withdrawal Amt."]
+      credit: ["Credit", "Deposit (Cr)", "Deposit Amt."]
+
+  idfc_first_savings:
+    label: IDFC FIRST Bank (savings / current)
+    kind: savings
+    confidence: unverified
+    date_format: "%d-%b-%Y"
+    number_format: "1,234.56"
+    strategy: debit_credit_columns
+    columns:
+      date: ["Transaction Date", "Date"]
+      name: ["Particulars", "Narration", "Description"]
+      debit: ["Debit", "Withdrawal"]
+      credit: ["Credit", "Deposit"]
+
+  yes_savings:
+    label: Yes Bank (savings / current)
+    kind: savings
+    confidence: unverified
+    date_format: "%d/%m/%Y"
+    number_format: "1,234.56"
+    strategy: debit_credit_columns
+    columns:
+      date: ["Transaction Date", "Date"]
+      name: ["Description", "Narration", "Particulars"]
+      debit: ["Withdrawals", "Debit", "Withdrawal Amount"]
+      credit: ["Deposits", "Credit", "Deposit Amount"]
+
+  hdfc_credit_card:
+    label: HDFC Bank credit card
+    kind: credit_card
+    confidence: unverified
+    date_format: "%d/%m/%Y"
+    number_format: "1,234.56"
+    strategy: custom_column
+    inflow_value: "Cr"
+    columns:
+      date: ["Date", "Transaction Date"]
+      name: ["Description", "Transaction Description"]
+      amount: ["Amount", "AMT"]
+      type: ["Debit / Credit", "Dr / Cr", "Dr/Cr"]
+
+  icici_credit_card:
+    label: ICICI Bank credit card
+    kind: credit_card
+    confidence: unverified
+    date_format: "%d/%m/%Y"
+    number_format: "1,234.56"
+    strategy: custom_column
+    inflow_value: "CR"
+    columns:
+      date: ["Date", "Transaction Date"]
+      name: ["Transaction Details", "Description"]
+      amount: ["Amount (in Rs.)", "Amount(in Rs)", "Amount"]
+      type: ["BillingAmountSign", "Dr/Cr", "Dr / Cr"]
+
+  sbi_card:
+    label: SBI Card
+    kind: credit_card
+    confidence: unverified
+    date_format: "%d %b %y"
+    number_format: "1,234.56"
+    strategy: custom_column
+    inflow_value: "C"
+    columns:
+      date: ["Date", "Transaction Date"]
+      name: ["Transaction Details", "Description"]
+      amount: ["Amount", "Amount (in Rs.)"]
+      type: ["Dr/Cr", "Dr / Cr", "Type"]
+
+  axis_credit_card:
+    label: Axis Bank credit card
+    kind: credit_card
+    confidence: unverified
+    date_format: "%d/%m/%Y"
+    number_format: "1,234.56"
+    strategy: custom_column
+    inflow_value: "Credit"
+    columns:
+      date: ["Date", "Transaction Date"]
+      name: ["Transaction Details", "Description"]
+      amount: ["Amount", "Amount (INR)"]
+      type: ["Debit/Credit", "Dr/Cr"]
+
+  # Tries common header spellings from any bank. Use when your bank is not listed.
+  generic:
+    label: Generic bank statement (separate debit / credit columns)
+    kind: generic
+    confidence: unverified
+    date_format: "%d/%m/%Y"
+    number_format: "1,234.56"
+    strategy: debit_credit_columns
+    columns:
+      date: ["Date", "Txn Date", "Transaction Date", "Tran Date", "Value Date", "Value Dt"]
+      name: ["Narration", "Description", "Particulars", "Transaction Remarks", "Transaction Details"]
+      debit: ["Withdrawal Amt.", "Withdrawal Amount", "Withdrawals", "Withdrawal", "Debit", "Debit Amount", "DR"]
+      credit: ["Deposit Amt.", "Deposit Amount", "Deposits", "Deposit", "Credit", "Credit Amount", "CR"]

@@ -88,6 +88,23 @@
             <% end %>
           <% end %>
 
+          <% if @entry.transaction.payment_mode.present? %>
+            <dl class="text-sm space-y-1 pb-2">
+              <div class="flex items-center justify-between">
+                <dt class="text-secondary">Payment mode</dt>
+                <dd>
+                  <span class="px-1.5 py-0.5 rounded text-xs font-medium bg-container-inset text-secondary"><%= @entry.transaction.payment_mode_label %></span>
+                </dd>
+              </div>
+              <% if @entry.transaction.reference_number.present? %>
+                <div class="flex items-center justify-between">
+                  <dt class="text-secondary">Reference no.</dt>
+                  <dd class="text-primary font-mono"><%= @entry.transaction.reference_number %></dd>
+                </div>
+              <% end %>
+            </dl>
+          <% end %>
+
           <%= f.text_area :notes,
                   label: t(".note_label"),
                   placeholder: t(".note_placeholder"),

@@ -46,6 +46,9 @@ class Import::Row < ApplicationRecord
     def apply_transaction_signage_convention(value)
       if import.amount_type_strategy == "signed_amount"
         value * (import.signage_convention == "inflows_positive" ? -1 : 1)
+      elsif import.amount_type_strategy == "debit_credit_columns"
+        # Row amounts are derived as credit - debit, i.e. inflows positive
+        value * -1
       elsif import.amount_type_strategy == "custom_column"
         inflow_value = import.amount_type_inflow_value
 

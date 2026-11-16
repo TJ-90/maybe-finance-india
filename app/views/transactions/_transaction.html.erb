@@ -59,6 +59,12 @@
                   </div>
 
                   <div class="flex items-center gap-1 flex-shrink-0">
+                    <% if transaction.payment_mode.present? %>
+                      <span class="px-1.5 py-0.5 rounded text-xs font-medium bg-container-inset text-secondary" title="Payment mode">
+                        <%= transaction.payment_mode_label %>
+                      </span>
+                    <% end %>
+
                     <% if transaction.one_time? %>
                       <span class="text-orange-500" title="One-time <%= entry.amount.negative? ? "income" : "expense" %> (excluded from averages)">
                         <%= icon "asterisk", size: "sm", color: "current" %>

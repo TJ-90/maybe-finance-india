@@ -74,6 +74,24 @@ bundle exec brakeman --no-pager -q --no-exit-on-warn   # bin/brakeman fails here
   - Use `format_money_compact` for tight spaces.
   - FY periods: `Period.current_financial_year`, `Period.last_financial_year`, `Period.financial_year_for(date)`.
   - `Family#india?` exists.
+- **Lint:** run rubocop as `bin/rubocop -f github -a app test config db/migrate lib`. Running it with no paths reformats `db/schema.rb`; don't commit that.
+- **Fresh worktrees:**
+  - Copy the gitignored `app/assets/builds/tailwind.css` from `/home/user/maybe-finance-india/app/assets/builds/` (read-only) if it's missing.
+  - Check that `git log -1` is the latest commit of `claude/peaceful-darwin-s89wtn`. If it isn't, and you have no commits yet, run `git reset --hard claude/peaceful-darwin-s89wtn`.
+- **Wave 2 integration surface (merged on the branch; use these names):**
+  - **Phase 2:**
+    - `Security::KINDS` / `ASSET_CLASSES` / `TAX_CATEGORIES` enums use prefixes (`kind_mutual_fund?`, `asset_class_equity?`, `tax_category_debt?`). `TAX_CATEGORIES = %w[equity debt other_listed other_unlisted exempt]`.
+    - `Security::AMFI_MIC` / `NSE_MIC` / `BSE_MIC`, `Security#display_name`, and `#effective_tax_category(family)` / `#effective_asset_class(family)`, which honour the `FamilySecurityOverride` model.
+    - `MutualFundScheme` (`.search`, `.discover`, `.import_navall!`; columns include `isin_growth`, `isin_reinvestment`, `tax_category`, `asset_class`).
+    - `trades.folio_number`, `Provider::Registry#first_provider`.
+    - `test/test_helper.rb` sets `DISABLE_INDIAN_MARKET_DATA=true` and loads `webmock/minitest`. Tests that need the providers wrap with `with_env_overrides DISABLE_INDIAN_MARKET_DATA: nil`.
+  - **Phase 3:**
+    - Accountables `FixedDeposit`, `ProvidentFund`, `PreciousMetal`.
+    - The generated-entries mechanism: `entries.generated_by` / `generated_user_edited` and `Account#replace_generated_entries!(source, specs)`, called from `Account::Syncer` via `generate_auto_entries!`.
+    - `BalanceSheet::IndiaBreakdown` (`balance_sheet.india_breakdown`), and `InsurancePolicy`.
+  - **Phase 4:**
+    - `transactions.payment_mode` / `reference_number`, `Transaction::NarrationParser`, and `Transaction::MerchantHint`.
+    - `Import` amount strategy `debit_credit_columns`, `Import.strip_preamble`, and `Import::StatementPreset` over `config/india_statement_presets.yml`. Use this preset pattern for broker presets.
 
 - Never commit anything under `/home/user/.maybe-dev/`. Never change the `ruby file: ".ruby-version"` line in the repo `Gemfile`.
 - **Adding a gem (Phase 5 only):** add it to the repo `Gemfile` *and* to `/home/user/.maybe-dev/Gemfile`, then run `bundle install`. Copy only the new gem's lines from `/home/user/.maybe-dev/Gemfile.lock` into the repo `Gemfile.lock`. `git diff Gemfile.lock` must show nothing but the new gem and its dependencies; the `RUBY VERSION` stays `ruby 3.4.4p34`.

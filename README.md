@@ -1,25 +1,27 @@
+# Kosh: personal finance for Indian households
 
-<img width="1190" alt="maybe_hero" src="https://github.com/user-attachments/assets/5ed08763-a9ee-42b2-a436-e05038fcf573" />
+> [!NOTE]
+> "Kosh" is a placeholder product name. Set the `PRODUCT_NAME` environment variable to change the name shown in the app.
 
-# Maybe: The personal finance app for everyone
+Kosh is a self-hostable personal finance app for Indian households. It tracks accounts, transactions, budgets, net worth and investments in rupees, with lakh/crore number formatting, the April to March financial year, Indian account types and Indian default categories. Everything runs on your own infrastructure, so your financial data stays with you.
 
-> [!IMPORTANT]
-> This repository is no longer actively maintained. You can read more about this in our [final release](https://github.com/maybe-finance/maybe/releases/tag/v0.6.0).
+## Fork notice
 
-## Maybe Hosting
+This project is a fork of [Maybe Finance](https://github.com/maybe-finance/maybe), an open source personal finance app that is no longer actively maintained. It is **not affiliated with or endorsed by** Maybe Finance Inc.
 
-Maybe is a fully working personal finance app that can be [self hosted with Docker](docs/hosting/docker.md).
+"Maybe" is a trademark of Maybe Finance Inc. This fork does not use the Maybe name or logo in the product. Internal code identifiers (such as the `Maybe` Ruby module) are kept only to keep the codebase mergeable and are not user-facing.
 
-## Forking and Attribution
+## License
 
-This repo is no longer maintained. You’re free to fork it under the AGPLv3. To stay compliant and avoid trademark issues:
+Distributed under the [GNU AGPLv3 license](LICENSE), the same license as the upstream project. The original copyright notice is retained in `LICENSE`.
 
-- Be sure to include the original [AGPLv3 license](https://github.com/maybe-finance/maybe/blob/main/LICENSE) and clearly state in your README that your fork is based on Maybe Finance but is **not affiliated with or endorsed by** Maybe Finance Inc.
-- "Maybe" is a trademark of Maybe Finance Inc. and therefore, use of it is NOT allowed in forked repositories (or the logo)
+## Hosting
+
+Kosh can be [self hosted with Docker](docs/hosting/docker.md).
 
 ## Local Development Setup
 
-**If you are trying to _self-host_ the Maybe app, stop here. You
+**If you are trying to _self-host_ the app, stop here. You
 should [read this guide to get started](docs/hosting/docker.md).**
 
 The instructions below are for developers to get started with contributing to the app.
@@ -32,7 +34,7 @@ The instructions below are for developers to get started with contributing to th
 After cloning the repo, the basic setup commands are:
 
 ```sh
-cd maybe
+cd <your-clone-directory>
 cp .env.local.example .env.local
 bin/setup
 bin/dev
@@ -55,9 +57,3 @@ For further instructions, see guides below.
 - [Linux dev setup guide](https://github.com/maybe-finance/maybe/wiki/Linux-Dev-Setup-Guide)
 - [Windows dev setup guide](https://github.com/maybe-finance/maybe/wiki/Windows-Dev-Setup-Guide)
 - Dev containers - visit [this guide](https://code.visualstudio.com/docs/devcontainers/containers) to learn more
-
-## Copyright & license
-
-Maybe is distributed under
-an [AGPLv3 license](https://github.com/maybe-finance/maybe/blob/main/LICENSE). "
-Maybe" is a trademark of Maybe Finance, Inc.

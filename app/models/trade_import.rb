@@ -25,7 +25,7 @@ class TradeImport < Import
             account: mapped_account,
             date: row.date_iso,
             amount: row.signed_amount,
-            name: row.name,
+            name: trade_entry_name(row, security),
             currency: row.currency.presence || mapped_account.currency,
             import: self
           ),
@@ -76,6 +76,14 @@ class TradeImport < Import
   end
 
   private
+    # A name from the file wins; otherwise the entry is named after the security, never its raw ticker
+    def trade_entry_name(row, security)
+      return row.name if name_col_label.present? && row.name.present?
+      return row.name if security.nil?
+
+      Trade.build_name(row.qty.to_d.negative? ? "sell" : "buy", row.qty, security)
+    end
+
     def find_or_create_security(ticker: nil, exchange_operating_mic: nil)
       return nil unless ticker.present?
 

@@ -92,6 +92,10 @@ class BrokerTradebookImportTest < ActiveSupport::TestCase
     unknown = Security.find_by!(isin: "INF999Z01ZZ9")
     assert unknown.offline?
     assert_equal 40, Trade.find_by!(security: unknown).qty
+
+    # Entries are named after the fund, never its AMFI code
+    assert_equal "Buy 25.0 units of #{bluechip.display_name}", Trade.find_by!(security: bluechip).entry.name
+    assert_equal "Sell 10.0 units of Orchid Flexi Cap Fund", Trade.find_by!(security: flexi).entry.name
   end
 
   test "mutual fund template is idempotent" do

@@ -35,7 +35,7 @@ class Trade::CreateForm
       signed_amount = signed_qty * price.to_d
 
       trade_entry = account.entries.new(
-        name: Trade.build_name(type, qty, security.amfi? ? security.display_name : security.ticker),
+        name: Trade.build_name(type, qty, security),
         date: date,
         amount: signed_amount,
         currency: currency,

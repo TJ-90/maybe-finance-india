@@ -1,0 +1,12 @@
+CAMS Consolidated Account Summary
+As on 31-Mar-2024
+Synthetic summary statement for tests only.
+
+Name: ASHA KUMAR
+PAN: ABCDE1234F   KYC: OK   PAN: OK
+
+Mutual Fund   Folio No   ISIN   Scheme Name   Cost Value   Unit Balance   NAV Date   NAV   Market Value   Registrar
+Orchid Mutual Fund
+12345678/90   INF000A01AB1   Orchid Flexi Cap Fund - Direct Plan - Growth   25,000.00   120.960   31-Mar-2024   300.00   36,288.00   CAMS
+Lotus Mutual Fund
+7000123/45   INF000B01CD2   Lotus Liquid Fund - Direct Plan - Growth   21,000.00   21.000   31-Mar-2024   1,000.00   21,000.00   KFINTECH

@@ -1,0 +1,47 @@
+<%# locals: (import:) %>
+
+<div class="space-y-4">
+  <div class="space-y-4 mx-auto max-w-md">
+    <div class="text-center space-y-2">
+      <h1 class="text-3xl text-primary font-medium">Import a mutual fund statement</h1>
+      <p class="text-secondary text-sm">
+        Upload a detailed or summary CAS (consolidated account statement) PDF from CAMS or KFintech.
+        The PDF is read once, right here, and neither the file nor its password is saved.
+      </p>
+    </div>
+
+    <%= styled_form_with model: import, scope: :import, url: import_upload_path(import), multipart: true, class: "space-y-2" do |form| %>
+      <div class="flex flex-col items-center justify-center w-full h-48 border border-secondary border-dashed rounded-xl cursor-pointer" data-controller="file-upload" data-action="click->file-upload#triggerFileInput" data-file-upload-target="uploadArea">
+        <div class="flex flex-col items-center justify-center pt-5 pb-6">
+          <div data-file-upload-target="uploadText" class="flex flex-col items-center">
+            <%= icon("plus", size: "lg", class: "mb-4 mx-auto") %>
+            <p class="mb-2 text-md text-gray text-center">
+              <span class="font-medium text-primary">Browse</span> to add your statement PDF here
+            </p>
+          </div>
+
+          <div class="flex flex-col gap-4 items-center hidden mb-2" data-file-upload-target="fileName">
+            <span class="text-primary">
+              <%= icon("file-text", size: "lg", color: "current") %>
+            </span>
+            <p class="text-md font-medium text-primary"></p>
+          </div>
+
+          <%= form.file_field :pdf_file, accept: "application/pdf,.pdf", class: "hidden", required: true, "data-file-upload-target": "input" %>
+        </div>
+      </div>
+
+      <%= form.password_field :pdf_password,
+            label: "PDF password",
+            placeholder: "Usually your PAN in capitals, if the PDF is locked",
+            autocomplete: "off" %>
+
+      <%= form.submit "Read statement" %>
+    <% end %>
+
+    <p class="text-xs text-secondary">
+      Where to get one: request a "Consolidated Account Statement" with all transactions from CAMS or KFintech (or MFCentral).
+      The PDF password is the one you chose while requesting it, which is often your PAN.
+    </p>
+  </div>
+</div>

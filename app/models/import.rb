@@ -1,7 +1,7 @@
 class Import < ApplicationRecord
   MaxRowCountExceededError = Class.new(StandardError)
 
-  TYPES = %w[TransactionImport TradeImport AccountImport MintImport].freeze
+  TYPES = %w[TransactionImport TradeImport AccountImport MintImport CasImport BrokerTradebookImport].freeze
   SIGNAGE_CONVENTIONS = %w[inflows_positive inflows_negative]
   SEPARATORS = [ [ "Comma (,)", "," ], [ "Semicolon (;)", ";" ] ].freeze
 
@@ -229,6 +229,11 @@ class Import < ApplicationRecord
 
   def uploaded?
     raw_file_str.present?
+  end
+
+  # Imports that read something other than a CSV (e.g. a CAS PDF) skip the column configuration step
+  def csv_based?
+    true
   end
 
   def configured?

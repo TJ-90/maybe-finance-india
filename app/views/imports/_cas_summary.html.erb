@@ -1,0 +1,30 @@
+<%# locals: (import:) %>
+
+<% counts = import.dry_run %>
+
+<div class="bg-container-inset rounded-xl p-4 space-y-3 text-sm">
+  <p class="text-primary font-medium">
+    <%= counts[:new_trades] %> new, <%= counts[:already_imported] %> already imported
+  </p>
+
+  <% import.investors.each do |investor| %>
+    <div class="flex items-center justify-between gap-2">
+      <span class="text-primary"><%= investor[:name] %></span>
+      <span class="text-secondary font-mono"><%= investor[:pan_masked] || "PAN not shown" %></span>
+    </div>
+    <p class="text-xs text-secondary">
+      <%= pluralize(investor[:folios].size, "folio") %>,
+      <%= pluralize(investor[:folios].sum { |folio| folio[:schemes].size }, "scheme") %>
+    </p>
+  <% end %>
+
+  <% if import.summary_statement? %>
+    <p class="text-xs text-warning">
+      This is a summary statement with no transaction history. One opening position per scheme is imported at cost value, so XIRR and tax lots will be approximate.
+    </p>
+  <% end %>
+
+  <% import.statement_warnings.each do |warning| %>
+    <p class="text-xs text-warning"><%= warning %></p>
+  <% end %>
+</div>

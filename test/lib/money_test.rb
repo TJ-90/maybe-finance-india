@@ -85,9 +85,43 @@ class MoneyTest < ActiveSupport::TestCase
   end
 
   test "can format" do
-    assert_equal "$1,000.90", Money.new(1000.899).to_s
+    assert_equal "$1,000.90", Money.new(1000.899, :usd).to_s
     assert_equal "€1,000.12", Money.new(1000.12, :eur).to_s
     assert_equal "€ 1.000,12", Money.new(1000.12, :eur).format(locale: :nl)
+  end
+
+  test "formats INR with lakh and crore grouping" do
+    assert_equal "₹1,23,45,678.90", Money.new(12345678.9, "INR").format
+    assert_equal "₹12,34,567.00", Money.new(1234567, "INR").format
+    assert_equal "₹1,00,000.00", Money.new(100000, "INR").format
+    assert_equal "₹45,600.00", Money.new(45600, "INR").format
+    assert_equal "₹950.00", Money.new(950, "INR").format
+    assert_equal "-₹1,23,456.00", Money.new(-123456, "INR").format
+  end
+
+  test "USD formatting is unchanged by Indian grouping" do
+    assert_equal "$12,345,678.90", Money.new(12345678.9, "USD").format
+  end
+
+  test "defaults to INR" do
+    assert_equal "INR", Money.new(100).currency.iso_code
+  end
+
+  test "formats compact INR" do
+    assert_equal "₹950", Money.new(950, "INR").format_compact
+    assert_equal "₹45.6K", Money.new(45600, "INR").format_compact
+    assert_equal "₹45K", Money.new(45000, "INR").format_compact
+    assert_equal "₹12.35 L", Money.new(1234567, "INR").format_compact
+    assert_equal "₹1.23 Cr", Money.new(12345678.9, "INR").format_compact
+    assert_equal "₹1.20 Cr", Money.new(12000000, "INR").format_compact
+    assert_equal "-₹45.6K", Money.new(-45600, "INR").format_compact
+  end
+
+  test "formats compact for other currencies with K M B" do
+    assert_equal "$950", Money.new(950, "USD").format_compact
+    assert_equal "$45.6K", Money.new(45600, "USD").format_compact
+    assert_equal "$1.23M", Money.new(1234567, "USD").format_compact
+    assert_equal "$1.50B", Money.new(1500000000, "USD").format_compact
   end
 
   test "converts currency when rate available" do

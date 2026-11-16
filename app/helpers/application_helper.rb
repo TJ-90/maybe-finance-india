@@ -68,6 +68,12 @@ module ApplicationHelper
     Money.new(number_or_money).format(options)
   end
 
+  def format_money_compact(number_or_money, options = {})
+    return nil unless number_or_money
+
+    Money.new(number_or_money).format_compact(options)
+  end
+
   def totals_by_currency(collection:, money_method:, separator: " | ", negate: false)
     collection.group_by(&:currency)
               .transform_values { |item| calculate_total(item, money_method, negate) }

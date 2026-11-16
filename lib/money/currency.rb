@@ -48,7 +48,7 @@ class Money::Currency
 
   attr_reader :name, :priority, :iso_code, :iso_numeric, :html_code,
               :symbol, :minor_unit, :minor_unit_conversion, :smallest_denomination,
-              :separator, :delimiter, :default_format, :default_precision
+              :separator, :delimiter, :number_grouping, :default_format, :default_precision
 
   def initialize(iso_code)
     currency_data = self.class.all[iso_code]
@@ -65,8 +65,13 @@ class Money::Currency
     @smallest_denomination = currency_data["smallest_denomination"]
     @separator = currency_data["separator"]
     @delimiter = currency_data["delimiter"]
+    @number_grouping = currency_data["number_grouping"]
     @default_format = currency_data["default_format"]
     @default_precision = currency_data["default_precision"]
+  end
+
+  def indian_grouping?
+    number_grouping == "indian"
   end
 
   def step

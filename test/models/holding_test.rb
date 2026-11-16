@@ -26,8 +26,8 @@ class HoldingTest < ActiveSupport::TestCase
     create_trade(@nvda.security, account: @account, qty: 5, price: 128.00, date: 1.day.ago.to_date)
     create_trade(@nvda.security, account: @account, qty: 30, price: 124.00, date: Date.current)
 
-    assert_equal Money.new((212.00 + 216.00).to_d / 2), @amzn.avg_cost
-    assert_equal Money.new((128.00 + 124.00).to_d / 2), @nvda.avg_cost
+    assert_equal Money.new((212.00 + 216.00).to_d / 2, "USD"), @amzn.avg_cost
+    assert_equal Money.new((128.00 + 124.00).to_d / 2, "USD"), @nvda.avg_cost
   end
 
   test "calculates average cost basis from another currency" do
@@ -42,15 +42,15 @@ class HoldingTest < ActiveSupport::TestCase
   end
 
   test "calculates total return trend" do
-    @amzn.stubs(:avg_cost).returns(Money.new(214.00))
-    @nvda.stubs(:avg_cost).returns(Money.new(126.00))
+    @amzn.stubs(:avg_cost).returns(Money.new(214.00, "USD"))
+    @nvda.stubs(:avg_cost).returns(Money.new(126.00, "USD"))
 
     # Gained $30, or 0.93%
-    assert_equal Money.new(30), @amzn.trend.value
+    assert_equal Money.new(30, "USD"), @amzn.trend.value
     assert_in_delta 0.9, @amzn.trend.percent, 0.001
 
     # Lost $60, or -1.59%
-    assert_equal Money.new(-60), @nvda.trend.value
+    assert_equal Money.new(-60, "USD"), @nvda.trend.value
     assert_in_delta -1.6, @nvda.trend.percent, 0.001
   end
 

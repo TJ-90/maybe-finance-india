@@ -34,6 +34,19 @@ class MarketDataImporter
     end
   end
 
+  # After the NSE/BSE close: re-fetch the last few days for held exchange-listed securities and overwrite
+  # what is stored (today's row may be an intraday price from Security::IntradayRefresh)
+  def import_exchange_close_prices(days: 5)
+    unless Security.provider
+      Rails.logger.warn("No provider configured for MarketDataImporter.import_exchange_close_prices, skipping sync")
+      return
+    end
+
+    Security::IntradayRefresh.held_securities.find_each do |security|
+      security.import_provider_prices(start_date: days.days.ago.to_date, end_date: end_date, clear_cache: true)
+    end
+  end
+
   def import_exchange_rates
     unless ExchangeRate.provider
       Rails.logger.warn("No provider configured for MarketDataImporter.import_exchange_rates, skipping sync")

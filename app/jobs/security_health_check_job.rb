@@ -2,7 +2,7 @@ class SecurityHealthCheckJob < ApplicationJob
   queue_as :scheduled
 
   def perform
-    return if Rails.env.development?
+    return unless MarketData.jobs_enabled?
 
     Security::HealthChecker.check_all
   end

@@ -82,4 +82,31 @@ class MarketDataImporterTest < ActiveSupport::TestCase
 
     assert_equal 1, Security::Price.where(security: security, date: SNAPSHOT_START_DATE).count
   end
+
+  test "exchange close import replaces today's intraday price for held NSE/BSE securities only" do
+    family = families(:dylan_family)
+    account = family.accounts.create!(name: "Demat", balance: 0, cash_balance: 0, currency: "INR", accountable: Investment.new)
+    held = Security.create!(ticker: "RELIANCE", exchange_operating_mic: "XNSE")
+    sold = Security.create!(ticker: "TCS", exchange_operating_mic: "XNSE")
+    fund = Security.create!(ticker: "900001", exchange_operating_mic: "AMFI")
+
+    [ held, fund ].each do |security|
+      account.entries.create!(name: "Buy", date: 10.days.ago.to_date, amount: 100, currency: "INR",
+                              entryable: Trade.new(qty: 1, price: 100, currency: "INR", security: security))
+    end
+
+    today = Date.current.in_time_zone("America/New_York").to_date
+    (today - 6.days..today).each { |date| Security::Price.create!(security: held, date: date, price: 2900, currency: "INR") }
+
+    close = (today - 6.days..today).map { |date| OpenStruct.new(security: held, date: date, price: date == today ? 2950 : 2900, currency: "INR") }
+    @provider.expects(:fetch_security_prices)
+             .with(symbol: "RELIANCE", exchange_operating_mic: "XNSE", start_date: today - 5.days - PROVIDER_BUFFER, end_date: today)
+             .returns(provider_success_response(close))
+
+    MarketDataImporter.new(mode: :full).import_exchange_close_prices
+
+    assert_equal BigDecimal("2950"), held.prices.find_by!(date: today).price
+    assert_equal 0, sold.prices.count
+    assert_equal 0, fund.prices.count
+  end
 end

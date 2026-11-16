@@ -34,6 +34,26 @@ class Provider::YahooFinanceTest < ActiveSupport::TestCase
     assert_not response.success?
   end
 
+  test "latest price comes from the chart meta and is dated by the IST day of the last trade" do
+    traded_at = Time.utc(2026, 11, 18, 5, 30).to_i # 11:00 IST
+    body = { chart: { result: [ { meta: { currency: "INR", regularMarketPrice: 2931.25, regularMarketTime: traded_at } } ] } }.to_json
+    stub = stub_request(:get, @chart_url).with(query: hash_including("range" => "1d", "interval" => "1d")).to_return(status: 200, body: body)
+
+    response = @provider.fetch_latest_price(symbol: "RELIANCE", exchange_operating_mic: "XNSE")
+
+    assert response.success?
+    assert_requested stub
+    assert_equal Date.new(2026, 11, 18), response.data.date
+    assert_equal BigDecimal("2931.25"), response.data.price
+    assert_equal "INR", response.data.currency
+  end
+
+  test "latest price fails when Yahoo has no quote" do
+    stub_request(:get, @chart_url).to_return(status: 200, body: { chart: { result: [ { meta: {} } ] } }.to_json)
+
+    assert_not @provider.fetch_latest_price(symbol: "RELIANCE", exchange_operating_mic: "XNSE").success?
+  end
+
   test "latest price on or before a date" do
     stub_request(:get, @chart_url).to_return(status: 200, body: file_fixture("yahoo_chart_reliance.json").read)
 

@@ -7,6 +7,9 @@ class ImportMutualFundSchemesJob < ApplicationJob
   queue_as :scheduled
 
   def perform
+    return unless MarketData.jobs_enabled?
+
+    started_at = Time.current
     amfi = Provider::Registry.get_provider(:amfi)
 
     if amfi.nil?
@@ -24,5 +27,8 @@ class ImportMutualFundSchemesJob < ApplicationJob
 
     MutualFundScheme.import_rows!(response.data)
     MutualFundScheme.record_latest_prices!
+
+    # Re-value the accounts holding a fund whose NAV moved
+    RefreshInvestmentValuesJob.perform_later(since: started_at.iso8601(6))
   end
 end

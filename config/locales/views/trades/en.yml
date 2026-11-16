@@ -5,11 +5,11 @@ en:
       account: Transfer account (optional)
       account_prompt: Search account
       amount: Amount
-      holding: Ticker symbol
+      holding: Stock, ETF or mutual fund
       price: Price per share
       qty: Quantity
       submit: Add transaction
-      ticker_placeholder: AAPL
+      ticker_placeholder: Search by name or symbol (NSE, BSE, mutual funds)
       type: Type
     header:
       buy: Buy

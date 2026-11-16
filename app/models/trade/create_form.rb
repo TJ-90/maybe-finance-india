@@ -2,7 +2,7 @@ class Trade::CreateForm
   include ActiveModel::Model
 
   attr_accessor :account, :date, :amount, :currency, :qty,
-                :price, :ticker, :manual_ticker, :type, :transfer_account_id
+                :price, :ticker, :manual_ticker, :type, :transfer_account_id, :folio_number
 
   # Either creates a trade, transaction, or transfer based on type
   # Returns the model, regardless of success or failure
@@ -18,14 +18,16 @@ class Trade::CreateForm
   end
 
   private
-    # Users can either look up a ticker from our provider (Synth) or enter a manual, "offline" ticker (that we won't fetch prices for)
+    # Users can either look up a ticker from our providers (AMFI/Yahoo/Synth) or enter a manual, "offline" ticker (that we won't fetch prices for)
     def security
-      ticker_symbol, exchange_operating_mic = ticker.present? ? ticker.split("|") : [ manual_ticker, nil ]
+      @security ||= begin
+        ticker_symbol, exchange_operating_mic = ticker.present? ? ticker.split("|") : [ manual_ticker, nil ]
 
-      Security::Resolver.new(
-        ticker_symbol,
-        exchange_operating_mic: exchange_operating_mic
-      ).resolve
+        Security::Resolver.new(
+          ticker_symbol,
+          exchange_operating_mic: exchange_operating_mic
+        ).resolve
+      end
     end
 
     def create_trade
@@ -33,7 +35,7 @@ class Trade::CreateForm
       signed_amount = signed_qty * price.to_d
 
       trade_entry = account.entries.new(
-        name: Trade.build_name(type, qty, security.ticker),
+        name: Trade.build_name(type, qty, security.amfi? ? security.display_name : security.ticker),
         date: date,
         amount: signed_amount,
         currency: currency,
@@ -41,7 +43,8 @@ class Trade::CreateForm
           qty: signed_qty,
           price: price,
           currency: currency,
-          security: security
+          security: security,
+          folio_number: folio_number.presence
         )
       )
 

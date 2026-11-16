@@ -1,0 +1,78 @@
+<%# locals: (goal:, emergency_months: nil) %>
+
+<div class="space-y-4">
+  <% if goal.emergency_fund? %>
+    <%# A separate GET form: it reloads this dialog with the target filled in from recent spending %>
+    <%= form_with url: (goal.persisted? ? edit_goal_path(goal) : new_goal_path), method: :get, class: "flex items-end gap-2 rounded-lg bg-container-inset p-3" do |helper_form| %>
+      <%= helper_form.hidden_field :kind, value: "emergency_fund" %>
+      <%= helper_form.hidden_field :use_average_expenses, value: 1 %>
+      <div class="grow">
+        <%= helper_form.label :months, "Months of expenses to cover", class: "block text-xs text-secondary mb-1" %>
+        <%= helper_form.number_field :months, value: emergency_months || Goal::DEFAULT_EMERGENCY_MONTHS, min: 1, max: 60, class: "form-field__input border border-secondary rounded-lg px-3 py-2 w-full" %>
+      </div>
+      <%= render DS::Button.new(text: "Use my average expenses", variant: "outline", type: "submit") %>
+    <% end %>
+  <% end %>
+
+  <%= styled_form_with model: goal, class: "space-y-4" do |form| %>
+    <% if goal.errors.any? %>
+      <%= render "shared/form_errors", model: goal %>
+    <% end %>
+
+    <div class="space-y-2">
+      <%= form.text_field :name, label: "Goal name", placeholder: "Child's education, Home down payment...", required: true %>
+
+      <div class="flex items-center gap-2">
+        <%= form.select :kind, Goal::KINDS.map { |key, label| [ label, key ] }, { label: "Type" } %>
+        <%= form.date_field :target_date, label: "Target date", required: true %>
+      </div>
+
+      <div class="flex items-center gap-2">
+        <%= form.money_field :target_amount, label: "Target (today's money)", default_currency: Current.family.currency %>
+        <%= form.money_field :monthly_sip, label: "Current monthly SIP", default_currency: Current.family.currency, hide_currency: true %>
+      </div>
+      <p class="text-xs text-secondary">
+        Enter the target at today's prices. We add inflation. For retirement the target is worked out from your expenses.
+      </p>
+    </div>
+
+    <details class="rounded-lg border border-primary p-3" <%= "open" if goal.retirement? %>>
+      <summary class="cursor-pointer text-sm font-medium text-primary">Retirement details</summary>
+
+      <div class="space-y-2 mt-3">
+        <div class="flex items-center gap-2">
+          <%= form.number_field :current_age, label: "Current age", min: 18, max: 100 %>
+          <%= form.number_field :retirement_age, label: "Retirement age", min: 18, max: 100 %>
+          <%= form.number_field :life_expectancy, label: "Plan until age", min: 30, max: 120 %>
+        </div>
+        <div class="flex items-center gap-2">
+          <%= form.money_field :monthly_expenses_today, label: "Monthly expenses today", default_currency: Current.family.currency, hide_currency: true %>
+          <%= form.number_field :post_retirement_return, label: "Return after retirement (%)", step: 0.1, min: 0, max: 50 %>
+        </div>
+      </div>
+    </details>
+
+    <details class="rounded-lg border border-primary p-3">
+      <summary class="cursor-pointer text-sm font-medium text-primary">Advanced assumptions</summary>
+
+      <div class="space-y-2 mt-3">
+        <div class="flex items-center gap-2">
+          <%= form.number_field :inflation_rate, label: "Inflation (% a year)", step: 0.1, min: 0, max: 50 %>
+          <%= form.number_field :sip_step_up_pct, label: "Yearly SIP step-up (%)", step: 0.1, min: 0, max: 100 %>
+        </div>
+        <div class="flex items-center gap-2">
+          <%= form.number_field :expected_equity_return, label: "Equity return (% a year)", step: 0.1, min: 0, max: 50 %>
+          <%= form.number_field :expected_debt_return, label: "Debt return (% a year)", step: 0.1, min: 0, max: 50 %>
+        </div>
+        <div class="flex items-center gap-2">
+          <%= form.number_field :initial_equity_pct, label: "Starting equity (%)", step: 1, min: 0, max: 100 %>
+          <%= form.number_field :final_equity_pct, label: "Equity at target date (%)", step: 1, min: 0, max: 100 %>
+          <%= form.number_field :glide_path_years, label: "De-risk over (years)", step: 1, min: 0, max: 50 %>
+        </div>
+        <%= form.text_area :notes, label: "Notes", rows: 3 %>
+      </div>
+    </details>
+
+    <%= form.submit %>
+  <% end %>
+</div>

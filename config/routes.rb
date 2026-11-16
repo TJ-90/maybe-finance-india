@@ -190,6 +190,9 @@ Rails.application.routes.draw do
   resources :fixed_deposits, only: %i[new create edit update]
   resources :provident_funds, only: %i[new create edit update]
   resources :precious_metals, only: %i[new create edit update]
+  resources :goals do
+    resources :goal_allocations, only: %i[create destroy]
+  end
   resources :insurance_policies, except: %i[show] do
     patch :mark_premium_paid, on: :member
   end

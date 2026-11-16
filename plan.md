@@ -454,3 +454,28 @@ Every phase agent ends with:
 | Tax rules change every Budget | Rules in effective-dated YAML, disclaimer on every screen, "verify each FY" comments |
 | Interest rates (PPF/EPF/FD) change quarterly | Effective-dated YAML, overridable per account |
 | Parallel worktrees conflict | Timestamp blocks per phase; orchestrator merges in a fixed order (2→3→4, 5→6→7) |
+
+---
+
+## 7. Status (2026-11-16)
+
+All 8 phases are implemented and merged on `claude/peaceful-darwin-s89wtn`.
+
+| Check | Result |
+|---|---|
+| `bin/rails test` | 1404 runs, 0 failures, 7 errors (the 7 known Plaid-credential errors, unchanged from baseline) |
+| `bin/rails test:system` | 60 runs, 0 failures (run locally with the pre-installed chromedriver and `--disable-build-check`) |
+| `bin/rubocop -f github`, `erb_lint`, `npm run lint` | clean |
+| brakeman | 1 warning, pre-existing: Rails 7.2 end-of-life. CI's `bin/brakeman` also fails `--ensure-latest` because Brakeman 8.1 exists. |
+
+**Owner to-dos**
+- Run `bin/rails db:migrate`. Migrations were written and `db/schema.rb` was edited by hand; per `CLAUDE.md`, no migration was run.
+- Choose the product name (`PRODUCT_NAME`; the placeholder is "Kosh") and replace the placeholder ₹ logo.
+- Verify against real data. See `docs/india.md` for the full list:
+  - CAS layouts (CAMS/KFintech, including AES-encrypted PDFs)
+  - bank and credit-card CSV presets (only HDFC/SBI savings headers are from known layouts)
+  - broker formats other than Zerodha
+  - live AMFI, mfapi.in, Yahoo and Frankfurter responses
+  - the interest rates in `config/india_small_savings_rates.yml`
+  - the tax rules in `config/india_capital_gains.yml`, especially `other_listed` before 2024-07-23
+- Upgrade Rails off 7.2 (EOL) and bump Brakeman to clear the CI security step.

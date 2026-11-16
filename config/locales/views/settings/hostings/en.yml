@@ -23,11 +23,11 @@ en:
           body: Are you sure you want to clear the data cache? This will remove all exchange rates, security prices, account balances, and other data. This action cannot be undone.
       synth_settings:
         api_calls_used: "%{used} / %{limit} API calls used (%{percentage})"
-        description: Input the API key provided by Synth
+        description: Optional. Indian mutual fund NAVs, NSE and BSE prices and exchange rates work without a key. Add a Synth API key only for exchanges outside India.
         label: API Key
         placeholder: Enter your API key here
         plan: "%{plan} plan"
-        title: Synth Settings
+        title: Synth (optional, for non-Indian markets)
       update:
         failure: Invalid setting value
         success: Settings updated

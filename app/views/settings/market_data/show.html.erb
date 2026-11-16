@@ -1,0 +1,47 @@
+<%= content_for :page_title, "Market data" %>
+
+<%= settings_section title: "Data sources", subtitle: "Prices, NAVs and exchange rates are fetched from free public sources. No API key is needed." do %>
+  <dl class="divide-y divide-alpha-black-100">
+    <% [
+      { name: "AMFI NAVAll.txt", description: "Mutual fund schemes and latest NAVs (refreshed nightly)", active: @indian_market_data_enabled, latest: @last_scheme_sync ? "#{@scheme_count} schemes, NAV date #{@last_nav_date ? l(@last_nav_date, format: :long) : 'unknown'}" : "Not imported yet" },
+      { name: "MFAPI", description: "Historical mutual fund NAVs", active: @indian_market_data_enabled, latest: nil },
+      { name: "Yahoo Finance (unofficial)", description: "NSE and BSE stock, ETF and SGB prices. This source is unofficial and may stop working.", active: @indian_market_data_enabled, latest: nil },
+      { name: "Frankfurter (ECB)", description: "Foreign exchange rates", active: @indian_market_data_enabled, latest: @last_rate_date ? "Latest rate #{l(@last_rate_date, format: :long)}" : nil },
+      { name: "Synth", description: "Optional. Prices for exchanges outside India", active: @synth_configured, latest: nil }
+    ].each do |source| %>
+      <div class="py-3 flex items-start justify-between gap-4">
+        <div>
+          <dt class="text-sm font-medium text-primary"><%= source[:name] %></dt>
+          <dd class="text-sm text-secondary"><%= source[:description] %></dd>
+          <% if source[:latest].present? %>
+            <dd class="text-xs text-secondary mt-1"><%= source[:latest] %></dd>
+          <% end %>
+        </div>
+        <span class="text-xs font-medium rounded-sm px-1.5 py-1 shrink-0 <%= source[:active] ? "bg-container-inset text-primary" : "bg-container-inset text-secondary" %>">
+          <%= source[:active] ? "Configured" : "Off" %>
+        </span>
+      </div>
+    <% end %>
+  </dl>
+
+  <% unless @indian_market_data_enabled %>
+    <p class="text-sm text-secondary mt-2">Indian market data is turned off (<code>DISABLE_INDIAN_MARKET_DATA</code> is set).</p>
+  <% end %>
+<% end %>
+
+<%= settings_section title: "Upload NAVAll.txt", subtitle: "Use this if the server cannot reach AMFI. Download NAVAll.txt from amfiindia.com and upload it here." do %>
+  <div class="space-y-4">
+    <% if @last_nav_date.present? %>
+      <p class="text-sm text-secondary">Last NAV date: <span class="text-primary font-medium"><%= l(@last_nav_date, format: :long) %></span> (<%= number_with_delimiter(@scheme_count) %> active schemes)</p>
+    <% end %>
+
+    <% if Current.user.admin? %>
+      <%= styled_form_with url: settings_market_data_path, method: :patch, multipart: true, class: "space-y-3" do |form| %>
+        <%= file_field_tag :nav_file, accept: ".txt,text/plain", required: true, class: "block w-full text-sm text-primary" %>
+        <%= form.submit "Import schemes" %>
+      <% end %>
+    <% else %>
+      <p class="text-sm text-secondary">Only an admin can import market data.</p>
+    <% end %>
+  </div>
+<% end %>

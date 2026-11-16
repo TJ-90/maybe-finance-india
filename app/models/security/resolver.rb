@@ -107,6 +107,13 @@ class Security::Resolver
       )
 
       security.country_code = match.country_code
+
+      # Indian providers know the instrument type and name up front; use them to classify new securities
+      if security.new_record?
+        security.kind = match.kind if match.kind.present?
+        security.name = match.name if match.name.present? && Security.exchange_badge_for(match.exchange_operating_mic).present?
+      end
+
       security.save!
 
       security

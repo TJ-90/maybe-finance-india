@@ -1,12 +1,18 @@
+import_mutual_fund_schemes:
+  cron: "0 18 * * *" # 11:30 PM IST every day (AMFI publishes the day's NAVs in the evening)
+  class: "ImportMutualFundSchemesJob"
+  queue: "scheduled"
+  description: "Imports AMFI mutual fund schemes and latest NAVs daily at 11:30 PM IST"
+
 import_market_data:
-  cron: "0 22 * * 1-5" # 5:00 PM EST / 6:00 PM EDT (NY time) Monday through Friday
+  cron: "30 18 * * *" # 12:00 AM IST every day (after AMFI NAVs are in, before the Indian trading day)
   class: "ImportMarketDataJob"
   queue: "scheduled"
-  description: "Imports market data daily at 5:00 PM EST (1 hour after market close)"
+  description: "Imports market data daily at 12:00 AM IST (after AMFI NAVs and NSE/BSE close)"
   args:
     mode: "full"
     clear_cache: false
-  
+
 clean_syncs:
   cron: "0 * * * *" # every hour
   class: "SyncCleanerJob"
@@ -14,7 +20,7 @@ clean_syncs:
   description: "Cleans up stale syncs"
 
 run_security_health_checks:
-  cron: "0 2 * * 1-5" # 2:00 AM EST / 3:00 AM EDT (NY time) Monday through Friday
+  cron: "0 2 * * 1-5" # 7:30 AM IST (2:00 AM UTC) Monday through Friday
   class: "SecurityHealthCheckJob"
   queue: "scheduled"
-  description: "Runs security health checks to detect issues with security data"
+  description: "Runs security health checks at 7:30 AM IST Monday through Friday to detect issues with security data"

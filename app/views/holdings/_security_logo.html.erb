@@ -1,0 +1,10 @@
+<%# locals: (security:) %>
+
+<%# Indian instruments (mutual funds, NSE/BSE) have no logo service, so show an initial avatar for them %>
+<% if security.exchange_badge.present? %>
+  <div class="w-9 h-9 shrink-0 rounded-full bg-container-inset flex items-center justify-center text-sm font-medium text-secondary">
+    <%= security.display_name.to_s.first(1).upcase %>
+  </div>
+<% else %>
+  <%= image_tag "https://logo.synthfinance.com/ticker/#{security.ticker}", class: "w-9 h-9 rounded-full", loading: "lazy" %>
+<% end %>

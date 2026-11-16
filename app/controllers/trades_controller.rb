@@ -9,6 +9,7 @@ class TradesController < ApplicationController
       currency: @account ? @account.currency : Current.family.currency,
       entryable: Trade.new
     )
+    @prefill_security_option = prefill_security_option
   end
 
   # Can create a trade, transaction (e.g. "fees"), or transfer (e.g. "withdrawal")
@@ -51,6 +52,14 @@ class TradesController < ApplicationController
   end
 
   private
+    # Fund discovery links here with ?ticker=<scheme code>|AMFI to pre-select a mutual fund
+    def prefill_security_option
+      code, mic = params[:ticker].to_s.split("|")
+      return nil unless code.present? && mic.to_s.upcase == Security::AMFI_MIC
+
+      MutualFundScheme.find_by(scheme_code: code)&.to_combobox_option
+    end
+
     def entry_params
       params.require(:entry).permit(
         :name, :date, :amount, :currency, :excluded, :notes, :nature,
@@ -60,7 +69,7 @@ class TradesController < ApplicationController
 
     def create_params
       params.require(:model).permit(
-        :date, :amount, :currency, :qty, :price, :ticker, :manual_ticker, :type, :transfer_account_id
+        :date, :amount, :currency, :qty, :price, :ticker, :manual_ticker, :type, :transfer_account_id, :folio_number
       )
     end
 

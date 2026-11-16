@@ -32,6 +32,30 @@ class Provider::Registry
         Provider::Stripe.new(secret_key:, webhook_secret:)
       end
 
+      # Free Indian market data sources (AMFI/MFAPI for mutual funds, Yahoo for NSE/BSE). On by default.
+      # Set DISABLE_INDIAN_MARKET_DATA=true to turn them off. Synth, when configured, handles other exchanges.
+      def indian_markets
+        return nil if indian_market_data_disabled?
+
+        Provider::IndianMarkets.new(fallback: synth)
+      end
+
+      def frankfurter
+        return nil if indian_market_data_disabled?
+
+        Provider::Frankfurter.new
+      end
+
+      def amfi
+        return nil if indian_market_data_disabled?
+
+        Provider::Amfi.new
+      end
+
+      def indian_market_data_disabled?
+        ActiveModel::Type::Boolean.new.cast(ENV["DISABLE_INDIAN_MARKET_DATA"]) == true
+      end
+
       def synth
         api_key = ENV.fetch("SYNTH_API_KEY", Setting.synth_api_key)
 
@@ -78,6 +102,16 @@ class Provider::Registry
     available_providers.map { |p| self.class.send(p) }
   end
 
+  # The first provider for this concept that is configured (e.g. Indian markets before Synth), or nil
+  def first_provider
+    available_providers.each do |name|
+      provider = self.class.send(name)
+      return provider if provider.present?
+    end
+
+    nil
+  end
+
   def get_provider(name)
     provider_method = available_providers.find { |p| p == name.to_sym }
 
@@ -92,9 +126,9 @@ class Provider::Registry
     def available_providers
       case concept
       when :exchange_rates
-        %i[synth]
+        %i[frankfurter synth]
       when :securities
-        %i[synth]
+        %i[indian_markets synth]
       when :llm
         %i[openai]
       else

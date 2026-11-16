@@ -15,7 +15,7 @@ class Holding < ApplicationRecord
   delegate :ticker, to: :security
 
   def name
-    security.name || ticker
+    security.display_name
   end
 
   def weight

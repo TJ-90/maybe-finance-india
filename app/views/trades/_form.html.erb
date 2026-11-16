@@ -31,6 +31,8 @@
                             name_when_new: "entry[manual_ticker]",
                             label: t(".holding"),
                             placeholder: t(".ticker_placeholder"),
+                            value: @prefill_security_option&.id,
+                            input: { value: @prefill_security_option&.to_combobox_display },
                             required: true %>
           </div>
         <% else %>
@@ -51,6 +53,7 @@
       <% if %w[buy sell].include?(type) %>
         <%= form.number_field :qty, label: t(".qty"), placeholder: "10", min: 0.000000000000000001, step: "any", required: true %>
         <%= form.money_field :price, label: t(".price"), required: true %>
+        <%= form.text_field :folio_number, label: "Folio number (optional)", placeholder: "For mutual funds" %>
       <% end %>
     </div>
 

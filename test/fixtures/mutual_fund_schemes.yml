@@ -1,0 +1,43 @@
+bluechip_direct:
+  scheme_code: "100001"
+  name: Alpha Bluechip Fund - Direct Plan - Growth
+  amc: Alpha Sample Mutual Fund
+  category: Equity Scheme - Large Cap Fund
+  scheme_type: Open Ended
+  plan: direct
+  option: growth
+  isin_growth: INF000A01001
+  isin_reinvestment: INF000A01002
+  latest_nav: 245.1234
+  nav_date: 2026-11-01
+  asset_class: equity
+  tax_category: equity
+  active: true
+
+bluechip_regular_idcw:
+  scheme_code: "100003"
+  name: Alpha Bluechip Fund - Regular Plan - IDCW
+  amc: Alpha Sample Mutual Fund
+  category: Equity Scheme - Large Cap Fund
+  scheme_type: Open Ended
+  plan: regular
+  option: idcw
+  latest_nav: 35.41
+  nav_date: 2026-11-01
+  asset_class: equity
+  tax_category: equity
+  active: true
+
+nifty_index:
+  scheme_code: "300001"
+  name: Gamma Nifty 50 Index Fund - Direct Plan - Growth
+  amc: Gamma Sample Mutual Fund
+  category: Other Scheme - Index Funds
+  scheme_type: Open Ended
+  plan: direct
+  option: growth
+  latest_nav: 150.33
+  nav_date: 2026-11-01
+  asset_class: equity
+  tax_category: equity
+  active: true

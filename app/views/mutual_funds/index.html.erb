@@ -1,0 +1,95 @@
+<%= content_for :page_title, "Mutual funds" %>
+
+<div class="space-y-4 pb-20 flex flex-col">
+  <header class="flex justify-between items-center text-primary font-medium">
+    <h1 class="text-xl">Find mutual funds</h1>
+    <% if @last_nav_date.present? %>
+      <p class="text-sm text-secondary font-normal">NAVs as of <%= l(@last_nav_date, format: :long) %></p>
+    <% end %>
+  </header>
+
+  <div class="flex flex-col bg-container rounded-xl shadow-border-xs p-4 space-y-4">
+    <%= form_with url: mutual_funds_path, scope: :q, method: :get, id: "mutual-fund-search", data: { controller: "auto-submit-form" }, class: "space-y-3" do |form| %>
+      <%= hidden_field_tag :per_page, params[:per_page] %>
+
+      <div class="flex items-center px-3 py-2 gap-2 border border-secondary rounded-lg focus-within:ring-secondary focus-within:border-secondary">
+        <%= icon("search") %>
+        <%= form.text_field :q,
+                            placeholder: "Search by fund name, AMC, scheme code or ISIN ...",
+                            value: @q["q"],
+                            class: "form-field__input placeholder:text-sm placeholder:text-secondary",
+                            "data-auto-submit-form-target": "auto" %>
+      </div>
+
+      <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2">
+        <%= form.select :amc,
+                        options_for_select(@amcs, @q["amc"]),
+                        { include_blank: "All AMCs" },
+                        { class: "form-field__input text-sm border border-secondary rounded-lg", "data-auto-submit-form-target": "auto", "aria-label": "AMC" } %>
+        <%= form.select :category,
+                        options_for_select(@categories, @q["category"]),
+                        { include_blank: "All categories" },
+                        { class: "form-field__input text-sm border border-secondary rounded-lg", "data-auto-submit-form-target": "auto", "aria-label": "Category" } %>
+        <%= form.select :plan,
+                        options_for_select([ [ "Direct", "direct" ], [ "Regular", "regular" ] ], @q["plan"]),
+                        { include_blank: "Direct and regular" },
+                        { class: "form-field__input text-sm border border-secondary rounded-lg", "data-auto-submit-form-target": "auto", "aria-label": "Plan" } %>
+        <%= form.select :option,
+                        options_for_select([ [ "Growth", "growth" ], [ "IDCW (dividend)", "idcw" ] ], @q["option"]),
+                        { include_blank: "Growth and IDCW" },
+                        { class: "form-field__input text-sm border border-secondary rounded-lg", "data-auto-submit-form-target": "auto", "aria-label": "Option" } %>
+        <%= form.select :style,
+                        options_for_select([ [ "Active funds", "active" ], [ "Index funds and ETFs", "passive" ] ], @q["style"]),
+                        { include_blank: "Active and passive" },
+                        { class: "form-field__input text-sm border border-secondary rounded-lg", "data-auto-submit-form-target": "auto", "aria-label": "Management style" } %>
+        <%= link_to "Clear filters", mutual_funds_path, class: "text-sm text-secondary underline self-center" %>
+      </div>
+    <% end %>
+
+    <% if @pagy.count > 0 %>
+      <div class="bg-container-inset rounded-xl p-1">
+        <div class="hidden md:grid grid-cols-12 items-center uppercase text-xs font-medium text-secondary px-4 py-2">
+          <p class="col-span-5">Fund</p>
+          <p class="col-span-2">AMC</p>
+          <p class="col-span-3">Category</p>
+          <p class="col-span-2 justify-self-end">Latest NAV</p>
+        </div>
+
+        <div class="bg-container rounded-lg shadow-border-xs">
+          <% @schemes.each do |scheme| %>
+            <%= link_to mutual_fund_path(scheme), class: "grid grid-cols-12 items-center gap-y-1 text-sm text-primary px-4 py-3 hover:bg-surface-hover", data: { turbo_frame: :_top } do %>
+              <div class="col-span-12 md:col-span-5 font-medium">
+                <%= scheme.name %>
+                <p class="text-xs text-secondary font-normal">
+                  <%= [ scheme.plan&.humanize, scheme.option == "idcw" ? "IDCW" : scheme.option&.humanize ].compact.join(" · ") %>
+                </p>
+              </div>
+              <p class="col-span-6 md:col-span-2 text-secondary"><%= scheme.amc.to_s.delete_suffix(" Mutual Fund") %></p>
+              <p class="col-span-6 md:col-span-3 text-secondary"><%= scheme.category.to_s.sub(/\A[^-]*-\s*/, "") %></p>
+              <div class="col-span-12 md:col-span-2 md:text-right">
+                <% if scheme.latest_nav_money %>
+                  <p class="font-medium"><%= format_money scheme.latest_nav_money %></p>
+                  <p class="text-xs text-secondary"><%= scheme.nav_date ? l(scheme.nav_date, format: :short) : "" %></p>
+                <% else %>
+                  <p class="text-secondary">--</p>
+                <% end %>
+              </div>
+            <% end %>
+            <%= render "shared/ruler" unless scheme == @schemes.last %>
+          <% end %>
+        </div>
+      </div>
+
+      <%= render "shared/pagination", pagy: @pagy %>
+    <% else %>
+      <div class="text-center py-12 space-y-2">
+        <p class="text-primary font-medium">No funds found</p>
+        <% if @last_nav_date.nil? %>
+          <p class="text-sm text-secondary">Mutual fund data has not been imported yet. It is fetched nightly from AMFI, or you can <%= link_to "upload NAVAll.txt", settings_market_data_path, class: "underline" %>.</p>
+        <% else %>
+          <p class="text-sm text-secondary">Try a different search or clear the filters.</p>
+        <% end %>
+      </div>
+    <% end %>
+  </div>
+</div>

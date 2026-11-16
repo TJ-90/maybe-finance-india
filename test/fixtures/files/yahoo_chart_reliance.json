@@ -1,0 +1,25 @@
+{
+  "chart": {
+    "result": [
+      {
+        "meta": {
+          "currency": "INR",
+          "symbol": "RELIANCE.NS",
+          "instrumentType": "EQUITY",
+          "longName": "Sample Industries Limited",
+          "shortName": "SAMPLE IND",
+          "exchangeTimezoneName": "Asia/Kolkata"
+        },
+        "timestamp": [1793591100, 1793677500, 1793763900, 1793850300],
+        "indicators": {
+          "quote": [
+            {
+              "close": [2900.5, null, 2925.25, 2931.0]
+            }
+          ]
+        }
+      }
+    ],
+    "error": null
+  }
+}

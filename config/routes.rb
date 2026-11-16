@@ -60,6 +60,7 @@ Rails.application.routes.draw do
     resource :hosting, only: %i[show update] do
       delete :clear_cache, on: :collection
     end
+    resource :market_data, only: %i[show update]
     resource :billing, only: :show
     resource :security, only: :show
     resource :api_key, only: [ :show, :new, :create, :destroy ]
@@ -193,6 +194,7 @@ Rails.application.routes.draw do
   resources :other_liabilities, only: %i[new create edit update]
 
   resources :securities, only: :index
+  resources :mutual_funds, only: %i[index show]
 
   resources :invite_codes, only: %i[index create]
 

@@ -28,7 +28,7 @@ class AccountsTest < ApplicationSystemTestCase
 
     account_name = "[system test] Property Account"
     fill_in "Name*", with: account_name
-    select "Single Family Home", from: "Property type*"
+    select "Residential Property", from: "Property type*"
     fill_in "Year Built (optional)", with: 2005
     fill_in "Area (optional)", with: 2250
 

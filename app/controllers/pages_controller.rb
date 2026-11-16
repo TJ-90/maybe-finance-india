@@ -7,6 +7,7 @@ class PagesController < ApplicationController
     @balance_sheet = Current.family.balance_sheet
     @accounts = Current.family.accounts.visible.with_attached_logo
     @upcoming_premiums = Current.family.insurance_policies.premium_due_within(30.days).to_a
+    @investment_summary = Current.family.investment_summary
 
     period_param = params[:cashflow_period]
     @cashflow_period = if period_param.present?

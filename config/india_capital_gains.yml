@@ -1,0 +1,85 @@
+# Verify each financial year.
+#
+# Indicative capital-gains rules for resident individuals, as amended by the Finance (No. 2) Act 2024
+# (carried into the Income-tax Act 2025 for tax year 2026-27). Surcharge, 4% cess, the 87A rebate and
+# carry-forward of losses are NOT modelled. Edit this file when the rules change; no code change is needed.
+#
+# Conventions
+#   * Rate lists are effective-dated by TRANSFER (sale) date: the entry with the latest
+#     `effective_from` that is on or before the sale date applies.
+#   * `long_term_after_months`: long-term only if held for MORE than this many months.
+#   * Rates are percentages. `slab` means "taxed at the taxpayer's slab rate".
+#   * `indexation: true` means the old rule allowed indexation, which is not computed here.
+
+grandfathering:
+  # Equity lots bought on or before this date: cost = max(actual cost, min(FMV on this date, sale price)).
+  # FMV is not available, so actual cost is used and a warning is shown.
+  cutoff: 2018-01-31
+
+# Section 112A exemption on long-term equity gains, per person per financial year.
+ltcg_equity_exemption:
+  - effective_from: 2000-04-01
+    amount: 100000
+  - effective_from: 2024-04-01
+    amount: 125000
+
+categories:
+  # Listed shares and equity-oriented MFs/ETFs (65% or more domestic equity)
+  equity:
+    bucket: equity
+    rules:
+      - effective_from: 1900-01-01
+        long_term_after_months: 12
+        stcg_rate: 15
+        ltcg_rate: 10
+        exemption_eligible: true
+      - effective_from: 2024-07-23
+        long_term_after_months: 12
+        stcg_rate: 20
+        ltcg_rate: 12.5
+        exemption_eligible: true
+
+  # Specified mutual funds (Sec 50AA): lots bought on or after the date below are always taxed at slab rate.
+  # Older lots are treated like `other_unlisted`.
+  debt:
+    purchase_rules:
+      - purchased_on_or_after: 2023-04-01
+        always_slab: true
+        note: "Specified mutual fund (Sec 50AA): taxed at slab rate regardless of holding period."
+      - purchased_on_or_after: 1900-01-01
+        use_category: other_unlisted
+
+  # Hybrid funds (35-65% equity), gold/international FoFs, pre-April-2023 debt fund lots
+  other_unlisted:
+    bucket: other
+    rules:
+      - effective_from: 1900-01-01
+        long_term_after_months: 36
+        stcg_rate: slab
+        ltcg_rate: 20
+        indexation: true
+        note: "Long-term gains were taxed at 20% with indexation before 23 Jul 2024. Indexation is not computed."
+      - effective_from: 2024-07-23
+        long_term_after_months: 24
+        stcg_rate: slab
+        ltcg_rate: 12.5
+
+  # Gold ETFs, non-equity ETFs, listed bonds, SGB sold on exchange.
+  # The pre-23-Jul-2024 entry is less certain (gold ETFs followed the 36-month / 20% indexed rule).
+  other_listed:
+    bucket: other
+    rules:
+      - effective_from: 1900-01-01
+        long_term_after_months: 36
+        stcg_rate: slab
+        ltcg_rate: 20
+        indexation: true
+        note: "Pre 23 Jul 2024 rule approximated as 36 months / 20% with indexation. Verify for your instrument."
+      - effective_from: 2024-07-23
+        long_term_after_months: 12
+        stcg_rate: slab
+        ltcg_rate: 12.5
+
+  # Sovereign Gold Bonds redeemed with RBI at maturity
+  exempt:
+    exempt: true

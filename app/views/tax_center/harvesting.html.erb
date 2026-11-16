@@ -1,0 +1,93 @@
+<%= turbo_frame_tag "tax_harvesting" do %>
+  <div class="bg-container shadow-border-xs rounded-xl p-4 space-y-5" id="tax-harvesting">
+    <div class="flex items-center justify-between gap-4">
+      <h2 id="harvesting-heading" class="text-lg font-medium text-primary">Tax harvesting</h2>
+      <%= link_to "Export CSV", export_tax_center_path(shared_params.merge(kind: "harvesting")), data: { turbo: false }, class: "text-sm text-secondary hover:text-primary underline" %>
+    </div>
+
+    <p class="text-sm text-secondary">
+      Based on today's prices and the current financial year (<%= @current_year_report.label %>).
+      Units are taken from the front of each folio's FIFO queue only. Selected accounts should belong to one person.
+    </p>
+
+    <div class="space-y-2">
+      <h3 class="font-medium text-primary">LTCG harvesting</h3>
+      <p class="text-sm text-secondary">
+        Exemption remaining this year: <strong class="text-primary"><%= tax_money(@harvester.exemption_remaining) %></strong>.
+        Recommended LTCG to realize: <strong class="text-primary" id="harvest-total"><%= tax_money(@harvester.recommended_ltcg) %></strong>.
+      </p>
+
+      <% if @harvester.ltcg_recommendations.any? %>
+        <div class="overflow-x-auto">
+          <table class="w-full text-sm text-primary" id="ltcg-harvest">
+            <caption class="sr-only">LTCG harvesting recommendations</caption>
+            <thead class="text-xs uppercase text-secondary">
+              <tr>
+                <th scope="col" class="text-left py-2 pr-3">Scheme / security</th>
+                <th scope="col" class="text-left py-2 pr-3">Folio</th>
+                <th scope="col" class="text-right py-2 pr-3">Units to sell</th>
+                <th scope="col" class="text-right py-2 pr-3">Est. proceeds</th>
+                <th scope="col" class="text-right py-2">LTCG</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-alpha-black-100">
+              <% @harvester.ltcg_recommendations.each do |rec| %>
+                <tr>
+                  <td class="py-2 pr-3"><%= rec.security.display_name %><span class="block text-xs text-secondary"><%= rec.account.name %></span></td>
+                  <td class="py-2 pr-3"><%= rec.folio.presence || "-" %></td>
+                  <td class="py-2 pr-3 text-right"><%= tax_units(rec.units) %></td>
+                  <td class="py-2 pr-3 text-right"><%= tax_money(rec.proceeds) %></td>
+                  <td class="py-2 text-right font-medium text-success"><%= tax_money(rec.gain) %></td>
+                </tr>
+              <% end %>
+            </tbody>
+          </table>
+        </div>
+      <% else %>
+        <p class="text-sm text-secondary">No long-term equity lots in profit can be harvested right now.</p>
+      <% end %>
+    </div>
+
+    <div class="space-y-2">
+      <h3 class="font-medium text-primary">Loss harvesting</h3>
+      <p class="text-sm text-secondary">
+        The FIFO prefix of each folio with the largest combined loss. A short-term loss (STCL) offsets any gain;
+        a long-term loss (LTCL) offsets only long-term gains.
+      </p>
+
+      <% if @harvester.loss_rows.any? %>
+        <div class="overflow-x-auto">
+          <table class="w-full text-sm text-primary" id="loss-harvest">
+            <caption class="sr-only">Loss harvesting candidates</caption>
+            <thead class="text-xs uppercase text-secondary">
+              <tr>
+                <th scope="col" class="text-left py-2 pr-3">Scheme / security</th>
+                <th scope="col" class="text-left py-2 pr-3">Folio</th>
+                <th scope="col" class="text-right py-2 pr-3">Units to sell</th>
+                <th scope="col" class="text-left py-2 pr-3">Type</th>
+                <th scope="col" class="text-left py-2 pr-3">Offsets realized gains</th>
+                <th scope="col" class="text-right py-2">Net loss</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-alpha-black-100">
+              <% @harvester.loss_rows.each do |row| %>
+                <tr>
+                  <td class="py-2 pr-3"><%= row.security.display_name %><span class="block text-xs text-secondary"><%= row.account.name %></span></td>
+                  <td class="py-2 pr-3"><%= row.folio.presence || "-" %></td>
+                  <td class="py-2 pr-3 text-right"><%= tax_units(row.units) %></td>
+                  <td class="py-2 pr-3"><%= row.label %></td>
+                  <td class="py-2 pr-3"><%= row.offsets_gains ? "Yes" : "No gains to offset yet" %></td>
+                  <td class="py-2 text-right font-medium text-destructive"><%= tax_money(row.net) %></td>
+                </tr>
+              <% end %>
+            </tbody>
+          </table>
+        </div>
+      <% else %>
+        <p class="text-sm text-secondary">No holdings are at a loss.</p>
+      <% end %>
+    </div>
+
+    <%= render "tax_center/disclaimer" %>
+  </div>
+<% end %>

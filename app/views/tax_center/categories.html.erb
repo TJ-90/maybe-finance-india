@@ -1,0 +1,54 @@
+<%= turbo_frame_tag "tax_categories" do %>
+  <div class="bg-container shadow-border-xs rounded-xl p-4 space-y-4" id="tax-categories">
+    <h2 id="categories-heading" class="text-lg font-medium text-primary">Category mapping</h2>
+    <p class="text-sm text-secondary">
+      The tax category decides holding periods and rates. Change it here if a fund is classified wrongly
+      (for example a hybrid fund that holds 65% or more in equity). Changes apply to your family only.
+    </p>
+
+    <% if flash[:alert].present? %>
+      <p class="text-sm text-destructive"><%= flash[:alert] %></p>
+    <% elsif flash[:notice].present? %>
+      <p class="text-sm text-success"><%= flash[:notice] %></p>
+    <% end %>
+
+    <% rows = @mapping.rows %>
+    <% if rows.any? %>
+      <div class="divide-y divide-alpha-black-100">
+        <% rows.each do |row| %>
+          <%= form_with url: update_category_tax_center_path(security_id: row.security.id, **shared_params), method: :patch, class: "grid grid-cols-1 md:grid-cols-12 gap-2 items-end py-3" do |form| %>
+            <div class="md:col-span-4">
+              <p class="text-sm font-medium text-primary"><%= row.security.display_name %></p>
+              <p class="text-xs text-secondary">
+                <%= row.security.ticker %>
+                <% if row.unclassified? %>
+                  <span class="text-warning">Unclassified, treated as other unlisted</span>
+                <% elsif row.overridden? %>
+                  <span>Overridden</span>
+                <% end %>
+              </p>
+            </div>
+
+            <div class="md:col-span-3 space-y-1">
+              <%= form.label :tax_category, "Tax category", for: "tax_category_#{row.security.id}", class: "block text-xs text-secondary" %>
+              <%= form.select :tax_category, options_for_select(tax_category_options, row.tax_category), { include_blank: "Unclassified" }, { id: "tax_category_#{row.security.id}", class: "form-field__input text-sm border border-secondary rounded-lg w-full" } %>
+            </div>
+
+            <div class="md:col-span-3 space-y-1">
+              <%= form.label :asset_class, "Asset class", for: "asset_class_#{row.security.id}", class: "block text-xs text-secondary" %>
+              <%= form.select :asset_class, options_for_select(tax_asset_class_options, row.asset_class), { include_blank: "Unclassified" }, { id: "asset_class_#{row.security.id}", class: "form-field__input text-sm border border-secondary rounded-lg w-full" } %>
+            </div>
+
+            <div class="md:col-span-2">
+              <%= render DS::Button.new(text: "Save", type: "submit", variant: "secondary", size: :sm) %>
+            </div>
+          <% end %>
+        <% end %>
+      </div>
+    <% else %>
+      <p class="text-sm text-secondary">No traded securities yet.</p>
+    <% end %>
+
+    <%= render "tax_center/disclaimer" %>
+  </div>
+<% end %>

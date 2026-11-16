@@ -6,6 +6,10 @@
 
     <%= render UI::Account::Chart.new(account: account, period: chart_period, view: chart_view) %>
 
+    <% if investment_summary %>
+      <%= render "investments/summary_cards", summary: investment_summary, id: "account-investment-summary" %>
+    <% end %>
+
     <div class="min-h-[800px]" data-testid="account-details">
       <% if tabs.count > 1 %>
         <%= render DS::Tabs.new(active_tab: active_tab, url_param_key: "tab") do |tabs_container| %>

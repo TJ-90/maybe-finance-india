@@ -42,6 +42,11 @@
         <%= render "pages/dashboard/upcoming_premiums", policies: @upcoming_premiums %>
       </section>
     <% end %>
+    <% if @investment_summary.any? %>
+      <section>
+        <%= render "pages/dashboard/investments", summary: @investment_summary %>
+      </section>
+    <% end %>
     <section>
       <%= render "pages/dashboard/balance_sheet", balance_sheet: @balance_sheet %>
     </section>

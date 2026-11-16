@@ -88,6 +88,19 @@ module ApplicationHelper
     Money.new(number_or_money).format_compact(options)
   end
 
+  # XIRR is a fraction (0.12 = 12%). Nil means it could not be computed.
+  def format_xirr(rate)
+    return "--" if rate.nil?
+
+    number_to_percentage(rate * 100, precision: 1)
+  end
+
+  def xirr_class(rate)
+    return "text-secondary" if rate.nil?
+
+    rate.negative? ? "text-destructive" : "text-success"
+  end
+
   def totals_by_currency(collection:, money_method:, separator: " | ", negate: false)
     collection.group_by(&:currency)
               .transform_values { |item| calculate_total(item, money_method, negate) }

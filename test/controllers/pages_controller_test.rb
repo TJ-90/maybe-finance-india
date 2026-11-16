@@ -1,6 +1,8 @@
 require "test_helper"
 
 class PagesControllerTest < ActionDispatch::IntegrationTest
+  include TaxTestHelper
+
   setup do
     sign_in @user = users(:family_admin)
   end
@@ -27,6 +29,32 @@ class PagesControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :ok
     assert_select "#upcoming-premiums", count: 0
+  end
+
+  test "dashboard shows the Investments card with XIRR when there are trades" do
+    family = inr_family
+    account = create_investment_account(family)
+    fund = create_tax_security("DASHFUND")
+    create_folio_trade account, fund, qty: 10, price: 100, date: 1.year.ago.to_date
+    account.holdings.create!(security: fund, date: Date.current, qty: 10, price: 110, amount: 1100, currency: "INR")
+
+    get root_path
+
+    assert_response :ok
+    assert_select "#dashboard-investments", text: /Invested/
+    assert_select "#dashboard-investments", text: /Current value/
+    assert_select "#dashboard-investments", text: /Gain/
+    assert_select "#dashboard-investments", text: /XIRR/
+  end
+
+  test "dashboard hides the Investments card without holdings" do
+    Holding.destroy_all
+    Entry.where(entryable_type: "Trade").destroy_all
+
+    get root_path
+
+    assert_response :ok
+    assert_select "#dashboard-investments", count: 0
   end
 
   test "changelog" do

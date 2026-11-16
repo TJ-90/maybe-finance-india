@@ -1,0 +1,10 @@
+<%# locals: (summary:) %>
+
+<div class="bg-container shadow-border-xs rounded-xl space-y-3 p-4" id="dashboard-investments">
+  <div class="flex items-center justify-between">
+    <h2 class="text-lg font-medium text-primary">Investments</h2>
+    <%= link_to "Tax Center", tax_center_path, class: "text-sm text-secondary hover:text-primary" %>
+  </div>
+
+  <%= render "investments/summary_cards", summary: summary, id: "dashboard-investment-summary" %>
+</div>

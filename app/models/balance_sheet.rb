@@ -37,6 +37,15 @@ class BalanceSheet
     assets.total - liabilities.total
   end
 
+  # Net worth split into market assets, retirement funds, cash, property & vehicles, other and liabilities
+  def india_breakdown
+    @india_breakdown ||= IndiaBreakdown.new(
+      asset_accounts: account_totals.asset_accounts,
+      liabilities_total: liabilities.total,
+      currency: family.currency
+    )
+  end
+
   def net_worth_series(period: Period.last_30_days)
     net_worth_series_builder.net_worth_series(period: period)
   end

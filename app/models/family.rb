@@ -26,6 +26,7 @@ class Family < ApplicationRecord
   has_many :trades, through: :accounts
   has_many :holdings, through: :accounts
 
+  has_many :insurance_policies, dependent: :destroy
   has_many :tags, dependent: :destroy
   has_many :categories, dependent: :destroy
   has_many :merchants, dependent: :destroy, class_name: "FamilyMerchant"

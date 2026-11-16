@@ -1,0 +1,26 @@
+term:
+  family: dylan_family
+  kind: term
+  insurer: Example Life Insurance
+  policy_number: "TERM-0001-2345"
+  insured_names: Self
+  currency: INR
+  sum_assured: 10000000
+  premium: 24000
+  premium_frequency: yearly
+  next_premium_due_on: <%= 10.days.from_now.to_date %>
+  start_date: <%= 2.years.ago.to_date %>
+  end_date: <%= 20.years.from_now.to_date %>
+  nominee: Spouse
+
+health:
+  family: dylan_family
+  kind: health
+  insurer: Example Health Insurance
+  policy_number: "HLTH-9876-5432"
+  insured_names: Self, Spouse
+  currency: INR
+  sum_assured: 1000000
+  premium: 18000
+  premium_frequency: yearly
+  next_premium_due_on: <%= 200.days.from_now.to_date %>

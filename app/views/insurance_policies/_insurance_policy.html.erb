@@ -1,0 +1,59 @@
+<%# locals: (insurance_policy:) %>
+
+<% date_format = Current.family.date_format.presence || "%d-%m-%Y" %>
+
+<div id="<%= dom_id(insurance_policy) %>" class="flex justify-between items-center gap-4 p-4 bg-container">
+  <div class="min-w-0 grow space-y-0.5">
+    <div class="flex items-center gap-2">
+      <p class="text-primary text-sm font-medium truncate"><%= insurance_policy.insurer %></p>
+      <span class="text-xs text-secondary bg-surface-inset rounded-full px-2 py-0.5"><%= insurance_policy.kind_label %></span>
+      <% unless insurance_policy.active? %>
+        <span class="text-xs text-secondary">Expired</span>
+      <% end %>
+    </div>
+
+    <p class="text-sm text-secondary truncate">
+      <%= [insurance_policy.insured_names.presence, insurance_policy.masked_policy_number].compact.join(" - ") %>
+    </p>
+  </div>
+
+  <div class="hidden md:block text-right text-sm">
+    <p class="text-secondary">Cover</p>
+    <p class="text-primary font-medium"><%= insurance_policy.sum_assured_money ? format_money_compact(insurance_policy.sum_assured_money) : "-" %></p>
+  </div>
+
+  <div class="text-right text-sm">
+    <p class="text-secondary">
+      Premium <%= insurance_policy.premium_frequency.to_s.humanize.downcase if insurance_policy.premium_frequency.present? %>
+    </p>
+    <p class="text-primary font-medium"><%= insurance_policy.premium_money ? format_money(insurance_policy.premium_money) : "-" %></p>
+    <% if insurance_policy.next_premium_due_on %>
+      <p class="text-xs text-secondary">Due <%= insurance_policy.next_premium_due_on.strftime(date_format) %></p>
+    <% end %>
+  </div>
+
+  <div class="justify-self-end">
+    <%= render DS::Menu.new do |menu| %>
+      <% menu.with_item(variant: "link", text: "Edit", href: edit_insurance_policy_path(insurance_policy), icon: "pencil", data: { turbo_frame: "modal" }) %>
+
+      <% if insurance_policy.next_premium_due_on %>
+        <% menu.with_item(
+          variant: "button",
+          text: "Mark premium paid",
+          href: mark_premium_paid_insurance_policy_path(insurance_policy),
+          method: :patch,
+          icon: "check"
+        ) %>
+      <% end %>
+
+      <% menu.with_item(
+        variant: "button",
+        text: "Delete",
+        href: insurance_policy_path(insurance_policy),
+        method: :delete,
+        icon: "trash-2",
+        confirm: CustomConfirm.for_resource_deletion("this policy")
+      ) %>
+    <% end %>
+  </div>
+</div>

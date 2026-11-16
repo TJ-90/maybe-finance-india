@@ -1,0 +1,6 @@
+<%= render DS::Dialog.new do |dialog| %>
+  <% dialog.with_header(title: "New insurance policy") %>
+  <% dialog.with_body do %>
+    <%= render "form", insurance_policy: @insurance_policy %>
+  <% end %>
+<% end %>

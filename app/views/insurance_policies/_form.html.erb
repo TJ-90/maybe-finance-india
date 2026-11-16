@@ -1,0 +1,56 @@
+<%# locals: (insurance_policy:) %>
+
+<%= styled_form_with model: insurance_policy, multipart: true, class: "space-y-4" do |form| %>
+  <% if insurance_policy.errors.any? %>
+    <%= render "shared/form_errors", model: insurance_policy %>
+  <% end %>
+
+  <div class="space-y-2">
+    <div class="flex items-center gap-2">
+      <%= form.select :kind, InsurancePolicy::KINDS.map { |key, label| [ label, key ] }, { label: "Type" } %>
+      <%= form.text_field :insurer, label: "Insurer", placeholder: "LIC, HDFC Life, Star Health...", required: true %>
+    </div>
+
+    <div class="flex items-center gap-2">
+      <%= form.text_field :policy_number, label: "Policy number", autocomplete: "off" %>
+      <%= form.text_field :insured_names, label: "Insured person(s)", placeholder: "Self, spouse" %>
+    </div>
+
+    <div class="flex items-center gap-2">
+      <%= form.money_field :sum_assured, label: "Sum assured", default_currency: Current.family.currency %>
+      <%= form.money_field :premium, label: "Premium", default_currency: Current.family.currency, hide_currency: true %>
+    </div>
+
+    <div class="flex items-center gap-2">
+      <%= form.select :premium_frequency, InsurancePolicy::PREMIUM_FREQUENCIES.keys.map { |key| [ key.humanize, key ] }, { label: "Premium frequency" } %>
+      <%= form.date_field :next_premium_due_on, label: "Next premium due" %>
+    </div>
+
+    <div class="flex items-center gap-2">
+      <%= form.date_field :start_date, label: "Start date" %>
+      <%= form.date_field :end_date, label: "End date" %>
+    </div>
+
+    <%= form.text_field :nominee, label: "Nominee" %>
+    <%= form.text_area :notes, label: "Notes", rows: 3 %>
+
+    <div class="form-field">
+      <div class="form-field__body">
+        <label class="form-field__label" for="insurance_policy_documents">Policy documents (PDF, JPG or PNG, up to 10 MB each)</label>
+        <%= form.file_field :documents, multiple: true, accept: "application/pdf,image/jpeg,image/png", class: "form-field__input" %>
+      </div>
+
+      <% if insurance_policy.persisted? && insurance_policy.documents.attached? %>
+        <ul class="mt-2 space-y-1 text-sm">
+          <% insurance_policy.documents.each do |document| %>
+            <li>
+              <%= link_to document.filename.to_s, rails_blob_path(document, disposition: "attachment"), class: "text-primary underline" %>
+            </li>
+          <% end %>
+        </ul>
+      <% end %>
+    </div>
+  </div>
+
+  <%= form.submit %>
+<% end %>

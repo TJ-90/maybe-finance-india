@@ -1,8 +1,15 @@
 # Reads the public AMFI "NAVAll.txt" file, which lists the latest NAV of every Indian mutual fund scheme.
 #
-# Format (semicolon separated, one scheme per line, grouped under category and AMC header lines):
+# Two layouts are read, detected from the header line (semicolon separated, one scheme per line, grouped
+# under category and AMC header lines):
 #
-#   Scheme Code;ISIN Div Payout/ ISIN Growth;ISIN Div Reinvestment;Scheme Name;Net Asset Value;Date
+#   current: Scheme Code;ISIN Div Payout/ ISIN Growth;ISIN Div Reinvestment;Scheme Name;Plan;Option;Net Asset Value;Date
+#   legacy:  Scheme Code;ISIN Div Payout/ ISIN Growth;ISIN Div Reinvestment;Scheme Name;Net Asset Value;Date
+#
+# In the current layout the scheme name no longer carries the plan and option; they come in their own
+# columns. The stored name is then rebuilt as "<name> - <Plan> - <Option>" (the legacy long form), so schemes
+# that differ only by plan or option stay distinguishable. Plan and option are normalised to the enums
+# (direct/regular, growth/idcw), and inferred from the name when the columns are empty.
 #
 #   Open Ended Schemes(Equity Scheme - Large Cap Fund)
 #
@@ -24,6 +31,8 @@ class Provider::Amfi < Provider
 
   CATEGORY_HEADER = /\A(?<type>Open Ended|Close Ended|Closed Ended|Interval Fund)[^(]*\((?<category>.+)\)\s*\z/i
   DATA_LINE = /\A\d+;/
+  LEGACY_COLUMNS = %i[code isin_a isin_b name nav date].freeze
+  CURRENT_COLUMNS = %i[code isin_a isin_b name plan option nav date].freeze
 
   class << self
     def parse_navall(io)
@@ -55,16 +64,17 @@ class Provider::Amfi < Provider
     category = nil
     scheme_type = nil
     rows = []
+    columns = nil
 
     io.each_line do |raw|
       line = raw.to_s.dup.force_encoding(Encoding::UTF_8).scrub("").strip
       next if line.empty?
 
       if line.match?(DATA_LINE)
-        row = parse_scheme_line(line, amc: amc, category: category, scheme_type: scheme_type)
+        row = parse_scheme_line(line, columns || columns_for(line), amc: amc, category: category, scheme_type: scheme_type)
         rows << row if row
       elsif line.start_with?("Scheme Code")
-        next # column header
+        columns = header_columns(line)
       elsif (match = CATEGORY_HEADER.match(line))
         category = match[:category].strip
         scheme_type = match[:type].strip.sub(/\s*Fund\z/i, "").sub("Closed", "Close")
@@ -77,10 +87,29 @@ class Provider::Amfi < Provider
   end
 
   private
-    def parse_scheme_line(line, amc:, category:, scheme_type:)
-      code, isin_a, isin_b, name, nav, date = line.split(";", 6).map { |f| f&.strip }
-      return nil if code.blank? || name.blank?
+    # Column layout from the header line; unknown headers fall back to the legacy layout
+    def header_columns(line)
+      names = line.split(";").map { |name| name.downcase.gsub(/[^a-z]/, "") }
+      return CURRENT_COLUMNS if names.include?("plan") && names.include?("option")
 
+      LEGACY_COLUMNS
+    end
+
+    # Without a header line, the number of fields tells the layout
+    def columns_for(line)
+      line.split(";").size >= 8 ? CURRENT_COLUMNS : LEGACY_COLUMNS
+    end
+
+    def parse_scheme_line(line, columns, amc:, category:, scheme_type:)
+      fields = line.split(";", columns.size).map { |f| f&.strip }
+      values = columns.zip(fields).to_h
+      code = values[:code]
+      base_name = values[:name]
+      return nil if code.blank? || base_name.blank?
+
+      plan = normalize_plan(values[:plan]) || MutualFundScheme.infer_plan(base_name)
+      option = normalize_option(values[:option]) || MutualFundScheme.infer_option(base_name)
+      name = [ base_name, values[:plan].presence, values[:option].presence ].compact.join(" - ")
       asset_class = MutualFundScheme.infer_asset_class(category, name)
 
       SchemeRow.new(
@@ -89,15 +118,30 @@ class Provider::Amfi < Provider
         amc: amc,
         category: category,
         scheme_type: scheme_type,
-        plan: MutualFundScheme.infer_plan(name),
-        option: MutualFundScheme.infer_option(name),
-        isin_growth: clean_isin(isin_a),
-        isin_reinvestment: clean_isin(isin_b),
-        nav: parse_nav(nav),
-        nav_date: parse_date(date),
+        plan: plan,
+        option: option,
+        isin_growth: clean_isin(values[:isin_a]),
+        isin_reinvestment: clean_isin(values[:isin_b]),
+        nav: parse_nav(values[:nav]),
+        nav_date: parse_date(values[:date]),
         asset_class: asset_class,
         tax_category: MutualFundScheme.infer_tax_category(category, name, asset_class: asset_class)
       )
+    end
+
+    def normalize_plan(value)
+      case value.to_s
+      when /direct/i then "direct"
+      when /regular/i then "regular"
+      end
+    end
+
+    # Any dividend / IDCW wording is idcw, any growth wording is growth
+    def normalize_option(value)
+      case value.to_s
+      when /idcw|dividend|payout|reinvest|bonus/i then "idcw"
+      when /growth/i then "growth"
+      end
     end
 
     def clean_isin(value)

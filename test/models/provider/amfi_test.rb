@@ -94,4 +94,45 @@ class Provider::AmfiTest < ActiveSupport::TestCase
     assert_not response.success?
     assert_kind_of Provider::Amfi::Error, response.error
   end
+
+  test "reads the current 8 column layout with separate plan and option columns" do
+    rows = File.open(file_fixture("navall_current_format.txt")) { |io| Provider::Amfi.new.parse_navall(io) }
+    by_code = rows.index_by(&:scheme_code)
+
+    assert_equal 17, rows.size
+    assert_equal rows.size, rows.count { |row| row.nav_date.present? }
+
+    row = by_code["135762"]
+    assert_equal BigDecimal("31.1190"), row.nav
+    assert_equal Date.new(2026, 11, 16), row.nav_date
+    assert_equal "direct", row.plan
+    assert_equal "growth", row.option
+    assert_equal "Axis Children's Fund - Direct Plan - Growth Option", row.name
+    assert_equal "Axis Mutual Fund", row.amc
+    assert_equal "INF846K01WO1", row.isin_growth
+    assert_equal "INF846K01WQ6", by_code["135763"].isin_reinvestment
+
+    assert_equal "regular", by_code["135759"].plan
+    assert_equal "idcw", by_code["135760"].option
+  end
+
+  test "normalises plan and option wording of the current layout" do
+    rows = File.open(file_fixture("navall_current_format.txt")) { |io| Provider::Amfi.new.parse_navall(io) }
+    by_code = rows.index_by(&:scheme_code)
+
+    assert_equal [ "regular", "growth" ], [ by_code["103178"].plan, by_code["103178"].option ] # "GROWTH"
+    assert_equal "idcw", by_code["124832"].option # "IDCW Payout"
+    assert_equal "idcw", by_code["119532"].option # "Monthly IDCW Re-investment"
+  end
+
+  test "current layout rows with empty plan and option fall back to the name" do
+    rows = File.open(file_fixture("navall_current_format.txt")) { |io| Provider::Amfi.new.parse_navall(io) }
+    row = rows.index_by(&:scheme_code)["148239"]
+
+    assert_equal "UTI - Credit Risk Fund (Segregated - 06032020)", row.name
+    assert_equal "regular", row.plan
+    assert_equal "growth", row.option
+    assert_equal BigDecimal("0"), row.nav
+    assert_equal Date.new(2026, 11, 16), row.nav_date
+  end
 end

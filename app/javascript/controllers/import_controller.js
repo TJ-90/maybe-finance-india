@@ -12,9 +12,17 @@ export default class extends Controller {
     "customColumnFieldset",
     "amountTypeValue",
     "amountTypeStrategySelect",
+    "debitCreditFieldset",
+    "amountColumnSelect",
   ];
 
   connect() {
+    if (this.hasDebitCreditFieldsetTarget) {
+      this.#toggleAmountColumn(
+        this.amountTypeStrategySelectTarget.value !== "debit_credit_columns",
+      );
+    }
+
     if (
       this.amountTypeStrategySelectTarget.value === "custom_column" &&
       this.amountTypeColumnKeyValue
@@ -26,16 +34,27 @@ export default class extends Controller {
   handleAmountTypeStrategyChange(event) {
     const amountTypeStrategy = event.target.value;
 
-    if (amountTypeStrategy === "custom_column") {
-      this.#enableCustomColumnFieldset();
+    this.#showFieldset(
+      this.signedAmountFieldsetTarget,
+      amountTypeStrategy === "signed_amount",
+    );
+    this.#showFieldset(
+      this.customColumnFieldsetTarget,
+      amountTypeStrategy === "custom_column",
+    );
+    this.#showFieldset(
+      this.debitCreditFieldsetTarget,
+      amountTypeStrategy === "debit_credit_columns",
+    );
 
-      if (this.amountTypeColumnKeyValue) {
-        this.#showAmountTypeValueTargets(this.amountTypeColumnKeyValue);
-      }
-    }
+    // Separate debit/credit columns replace the single amount column
+    this.#toggleAmountColumn(amountTypeStrategy !== "debit_credit_columns");
 
-    if (amountTypeStrategy === "signed_amount") {
-      this.#enableSignedAmountFieldset();
+    if (
+      amountTypeStrategy === "custom_column" &&
+      this.amountTypeColumnKeyValue
+    ) {
+      this.#showAmountTypeValueTargets(this.amountTypeColumnKeyValue);
     }
   }
 
@@ -78,41 +97,31 @@ export default class extends Controller {
     return [...new Set(values)];
   }
 
-  #enableCustomColumnFieldset() {
-    this.customColumnFieldsetTarget.classList.remove("hidden");
-    this.signedAmountFieldsetTarget.classList.add("hidden");
+  #showFieldset(fieldset, visible) {
+    fieldset.classList.toggle("hidden", !visible);
+    fieldset.classList.toggle("block", visible);
 
-    // Set required on custom column fields
-    this.customColumnFieldsetTarget
-      .querySelectorAll("select, input")
-      .forEach((field) => {
+    fieldset.querySelectorAll("select, input").forEach((field) => {
+      if (visible) {
         field.setAttribute("required", "");
-      });
-
-    // Remove required from signed amount fields
-    this.signedAmountFieldsetTarget
-      .querySelectorAll("select, input")
-      .forEach((field) => {
+      } else {
         field.removeAttribute("required");
-      });
+      }
+    });
   }
 
-  #enableSignedAmountFieldset() {
-    this.customColumnFieldsetTarget.classList.add("hidden");
-    this.signedAmountFieldsetTarget.classList.remove("hidden");
+  #toggleAmountColumn(visible) {
+    if (!this.hasAmountColumnSelectTarget) return;
 
-    // Remove required from custom column fields
-    this.customColumnFieldsetTarget
-      .querySelectorAll("select, input")
-      .forEach((field) => {
-        field.removeAttribute("required");
-      });
+    const select = this.amountColumnSelectTarget;
+    const container = select.closest(".form-field") || select;
 
-    // Set required on signed amount fields
-    this.signedAmountFieldsetTarget
-      .querySelectorAll("select, input")
-      .forEach((field) => {
-        field.setAttribute("required", "");
-      });
+    container.classList.toggle("hidden", !visible);
+
+    if (visible) {
+      select.setAttribute("required", "");
+    } else {
+      select.removeAttribute("required");
+    }
   }
 }

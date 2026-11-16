@@ -18,7 +18,7 @@
                     { label: "Date", prompt: "Select column" },
                     required: true %>
     <%= form.select :date_format,
-                    Family::DATE_FORMATS,
+                    Import::DATE_FORMATS,
                     { label: t(".date_format_label"), prompt: "Select format" },
                     required: true %>
   </div>
@@ -28,7 +28,8 @@
     <%= form.select :amount_col_label,
                     import.csv_headers,
                     { label: "Amount", container_class: "w-2/5", prompt: "Select column" },
-                    required: true %>
+                    required: @import.amount_type_strategy != "debit_credit_columns",
+                    data: { import_target: "amountColumnSelect" } %>
     <%= form.select :currency_col_label,
                     import.csv_headers,
                     { include_blank: "Default", label: "Currency", container_class: "w-1/5" } %>
@@ -40,7 +41,7 @@
 
   <%# Amount Type Strategy %>
   <%= form.select :amount_type_strategy,
-                  Import::AMOUNT_TYPE_STRATEGIES.map { |strategy| [strategy.humanize, strategy] },
+                  Import::AMOUNT_TYPE_STRATEGIES.map { |strategy| [strategy == "debit_credit_columns" ? "Separate debit and credit columns" : strategy.humanize, strategy] },
                   { label: "Amount type strategy", prompt: "Select strategy" },
                   required: true,
                   data: {
@@ -57,6 +58,22 @@
                       [["Incomes are positive", "inflows_positive"], ["Incomes are negative", "inflows_negative"]],
                       { label: "Amount type", prompt: "Select convention" },
                       required: @import.amount_type_strategy == "signed_amount" %>
+    </div>
+  <% end %>
+
+  <%# Debit / Credit Columns Configuration (Indian bank statements) %>
+  <%= tag.fieldset data: { import_target: "debitCreditFieldset" },
+                   class: @import.amount_type_strategy == "debit_credit_columns" ? "block" : "hidden" do %>
+    <div class="flex items-center gap-2">
+      <span class="text-sm shrink-0 text-secondary">↪</span>
+      <%= form.select :debit_col_label,
+                      import.csv_headers,
+                      { label: "Debit (money out) column", prompt: "Select column" },
+                      required: @import.amount_type_strategy == "debit_credit_columns" %>
+      <%= form.select :credit_col_label,
+                      import.csv_headers,
+                      { label: "Credit (money in) column", prompt: "Select column" },
+                      required: @import.amount_type_strategy == "debit_credit_columns" %>
     </div>
   <% end %>
 

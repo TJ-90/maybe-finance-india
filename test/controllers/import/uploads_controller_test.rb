@@ -35,6 +35,18 @@ class Import::UploadsControllerTest < ActionDispatch::IntegrationTest
     assert_equal "CSV uploaded successfully.", flash[:notice]
   end
 
+  test "uploading a bank statement with account details above the header strips them" do
+    patch import_upload_url(@import), params: {
+      import: {
+        csv_file: file_fixture_upload("imports/india/sbi_savings.csv"),
+        col_sep: ","
+      }
+    }
+
+    assert_redirected_to import_configuration_url(@import, template_hint: true)
+    assert_equal [ "Txn Date", "Value Date", "Description", "Ref No./Cheque No.", "Debit", "Credit", "Balance" ], @import.reload.csv_headers
+  end
+
   test "invalid csv cannot be uploaded" do
     patch import_upload_url(@import), params: {
       import: {

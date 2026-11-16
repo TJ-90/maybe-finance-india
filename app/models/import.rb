@@ -12,7 +12,20 @@ class Import < ApplicationRecord
     "1,234"    => { separator: "",  delimiter: "," }   # Zero-decimal currencies like JPY
   }.freeze
 
-  AMOUNT_TYPE_STRATEGIES = %w[signed_amount custom_column].freeze
+  AMOUNT_TYPE_STRATEGIES = %w[signed_amount custom_column debit_credit_columns].freeze
+
+  # Family::DATE_FORMATS plus the two-digit-year and month-name formats Indian bank exports use
+  DATE_FORMATS = (Family::DATE_FORMATS + [
+    [ "DD/MM/YY", "%d/%m/%y" ],
+    [ "DD-MM-YY", "%d-%m-%y" ],
+    [ "DD Mon YYYY", "%d %b %Y" ],
+    [ "DD-Mon-YYYY", "%d-%b-%Y" ],
+    [ "DD Mon YY", "%d %b %y" ]
+  ]).freeze
+
+  # Words that identify the header row of a bank statement that has account details above it
+  STATEMENT_HEADER_HINTS = /date|narration|description|particulars|remarks|debit|credit|withdraw|deposit|amount|balance|txn|transaction|\bdr\b|\bcr\b|chq|cheque/i
+  MAX_PREAMBLE_LINES = 40
 
   belongs_to :family
   belongs_to :account, optional: true
@@ -42,6 +55,25 @@ class Import < ApplicationRecord
   has_many :entries, dependent: :destroy
 
   class << self
+    # Bank statements often put account details above the header row. Returns the CSV with
+    # those lines removed, or the input unchanged when the first row already is the header
+    # (or no header row can be found).
+    def strip_preamble(csv_str, col_sep: ",")
+      str = csv_str.to_s.dup.force_encoding(Encoding::UTF_8)
+      str = str.scrub unless str.valid_encoding?
+      str = str.delete_prefix("\uFEFF")
+
+      rows = CSV.parse(str, col_sep: col_sep, liberal_parsing: true)
+      return str if rows.empty? || plain_header_row?(rows.first)
+
+      header_index = rows.first(MAX_PREAMBLE_LINES).index { |row| statement_header_row?(row) }
+      return str if header_index.nil? || header_index.zero?
+
+      rows.drop(header_index).map { |row| CSV.generate_line(row, col_sep: col_sep) }.join
+    rescue CSV::MalformedCSVError
+      csv_str
+    end
+
     def parse_csv_str(csv_str, col_sep: ",")
       CSV.parse(
         (csv_str || "").strip,
@@ -51,6 +83,21 @@ class Import < ApplicationRecord
         liberal_parsing: true
       )
     end
+
+    private
+      def non_blank_cells(row)
+        row.compact.map { |cell| cell.to_s.strip }.reject(&:empty?)
+      end
+
+      # A header row has several text cells and no numbers or dates
+      def plain_header_row?(row)
+        cells = non_blank_cells(row)
+        cells.size >= 3 && cells.none? { |cell| cell.match?(/\A[\d.,\s\/:-]+\z/) }
+      end
+
+      def statement_header_row?(row)
+        plain_header_row?(row) && non_blank_cells(row).any? { |cell| cell.match?(STATEMENT_HEADER_HINTS) }
+      end
   end
 
   def publish_later
@@ -95,6 +142,11 @@ class Import < ApplicationRecord
     update! status: :revert_failed, error: error.message
   end
 
+  # Hook for subclasses to clean an uploaded file before it is stored (see Import::UploadsController)
+  def prepare_raw_csv(csv_str, col_sep: ",")
+    csv_str
+  end
+
   def csv_rows
     @csv_rows ||= parsed_csv
   end
@@ -132,7 +184,7 @@ class Import < ApplicationRecord
   def generate_rows_from_csv
     rows.destroy_all
 
-    mapped_rows = csv_rows.map do |row|
+    mapped_rows = csv_rows.select { |row| statement_data_row?(row) }.map do |row|
       {
         account: row[account_col_label].to_s,
         date: row[date_col_label].to_s,
@@ -140,7 +192,7 @@ class Import < ApplicationRecord
         ticker: row[ticker_col_label].to_s,
         exchange_operating_mic: row[exchange_operating_mic_col_label].to_s,
         price: sanitize_number(row[price_col_label]).to_s,
-        amount: sanitize_number(row[amount_col_label]).to_s,
+        amount: derive_amount(row),
         currency: (row[currency_col_label] || default_currency).to_s,
         name: (row[name_col_label] || default_row_name).to_s,
         category: row[category_col_label].to_s,
@@ -220,7 +272,8 @@ class Import < ApplicationRecord
         "qty_col_label", "ticker_col_label", "price_col_label",
         "entity_type_col_label", "notes_col_label", "currency_col_label",
         "date_format", "signage_convention", "number_format",
-        "exchange_operating_mic_col_label"
+        "exchange_operating_mic_col_label", "debit_col_label", "credit_col_label",
+        "amount_type_strategy", "amount_type_inflow_value"
       )
     )
   end
@@ -248,6 +301,31 @@ class Import < ApplicationRecord
 
     def parsed_csv
       @parsed_csv ||= self.class.parse_csv_str(raw_file_str, col_sep: col_sep)
+    end
+
+    def debit_credit_columns?
+      amount_type_strategy == "debit_credit_columns"
+    end
+
+    # Rows are stored with inflows positive (matching the "inflows_positive" signage convention);
+    # Import::Row flips the sign into the app's outflow-positive convention.
+    def derive_amount(row)
+      return sanitize_number(row[amount_col_label]).to_s unless debit_credit_columns?
+
+      debit = sanitize_number(row[debit_col_label]).presence&.to_d
+      credit = sanitize_number(row[credit_col_label]).presence&.to_d
+      return "" if debit.nil? && credit.nil?
+
+      ((credit || 0) - (debit || 0)).to_s("F").delete_suffix(".0")
+    end
+
+    # Statements end with totals, "***" separators and blank lines. For debit/credit imports,
+    # keep only lines that have a date and at least one amount.
+    def statement_data_row?(row)
+      return true unless debit_credit_columns?
+
+      row[date_col_label].to_s.match?(/\d/) &&
+        (sanitize_number(row[debit_col_label]).present? || sanitize_number(row[credit_col_label]).present?)
     end
 
     def sanitize_number(value)

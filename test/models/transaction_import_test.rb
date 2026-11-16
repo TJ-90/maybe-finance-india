@@ -100,4 +100,134 @@ class TransactionImportTest < ActiveSupport::TestCase
 
     assert_equal [ -100, 200, -300 ], @import.entries.map(&:amount)
   end
+
+  test "imports a debit/credit column statement with parsed narrations, merchants and category hints" do
+    family = @import.family
+    food = family.categories.create!(name: "Food Delivery & Dining", color: "#eb5429", lucide_icon: "utensils", classification: "expense")
+    invest = family.categories.create!(name: "Investments & SIP", color: "#4da568", lucide_icon: "trending-up", classification: "expense")
+    interest = family.categories.create!(name: "Interest", color: "#e99537", lucide_icon: "percent", classification: "income")
+
+    configure_statement_import("hdfc_savings")
+
+    assert_difference -> { Entry.count } => 4, -> { Transaction.count } => 4, -> { FamilyMerchant.count } => 3 do
+      @import.publish
+    end
+
+    assert_equal "complete", @import.status
+
+    entries = @import.entries.includes(:entryable).index_by(&:name)
+    assert_equal [ "Acme Pvt Ltd", "BSE Limited", "Interest credit", "Swiggy" ], entries.keys.sort
+
+    swiggy = entries["Swiggy"]
+    assert_equal 450, swiggy.amount
+    assert_equal "upi", swiggy.transaction.payment_mode
+    assert_equal "412345678901", swiggy.transaction.reference_number
+    assert_equal "Swiggy", swiggy.transaction.merchant.name
+    assert_equal food, swiggy.transaction.category
+    assert_includes swiggy.notes, "UPI-SWIGGY-swiggy@icici"
+    assert_equal "import_hint", DataEnrichment.find_by!(enrichable: swiggy.transaction, attribute_name: "category_id").source
+
+    salary = entries["Acme Pvt Ltd"]
+    assert_equal(-125000.50, salary.amount)
+    assert_equal "neft", salary.transaction.payment_mode
+    assert_nil salary.transaction.category # no hint for this counterparty
+
+    sip = entries["BSE Limited"]
+    assert_equal "nach", sip.transaction.payment_mode
+    assert_equal invest, sip.transaction.category
+    assert_equal "BSE Limited", sip.transaction.merchant.name
+
+    assert_equal "other", entries["Interest credit"].transaction.payment_mode
+    assert_equal interest, entries["Interest credit"].transaction.category
+    assert_nil entries["Interest credit"].transaction.merchant
+  end
+
+  test "category hints never override a category supplied by the file" do
+    family = @import.family
+    family.categories.create!(name: "Food Delivery & Dining", color: "#eb5429", lucide_icon: "utensils", classification: "expense")
+
+    @import.update!(
+      raw_file_str: "date,name,amount,category\n01/01/2024,UPI-SWIGGY-swiggy@icici-ICIC0000001-412345678901-UPI,100,Treats\n",
+      account: accounts(:depository),
+      date_col_label: "date", name_col_label: "name", amount_col_label: "amount",
+      category_col_label: "category", date_format: "%m/%d/%Y"
+    )
+    @import.generate_rows_from_csv
+    @import.reload.sync_mappings
+
+    @import.publish
+
+    transaction = @import.entries.first.transaction
+    assert_equal "Treats", transaction.category.name
+    assert_equal "Swiggy", transaction.merchant.name
+  end
+
+  test "hints are skipped when the family has no matching category" do
+    configure_statement_import("hdfc_savings")
+
+    assert_no_difference -> { Category.count } do
+      @import.publish
+    end
+
+    assert @import.entries.map { |e| e.transaction.category }.all?(&:nil?)
+  end
+
+  test "reuses an existing merchant instead of creating a duplicate" do
+    existing = @import.family.merchants.create!(name: "Swiggy")
+    configure_statement_import("hdfc_savings")
+
+    @import.publish
+
+    swiggy_entry = @import.entries.find_by(name: "Swiggy")
+    assert_equal existing, swiggy_entry.transaction.merchant
+    assert_equal 1, @import.family.merchants.where("LOWER(name) = 'swiggy'").count
+  end
+
+  test "unrecognised narrations keep their original name" do
+    @import.update!(
+      raw_file_str: "date,name,amount\n01/01/2024,Grocery Store,25\n",
+      account: accounts(:depository),
+      date_col_label: "date", name_col_label: "name", amount_col_label: "amount", date_format: "%m/%d/%Y"
+    )
+    @import.generate_rows_from_csv
+    @import.reload.sync_mappings
+
+    assert_no_difference -> { FamilyMerchant.count } do
+      @import.publish
+    end
+
+    transaction = @import.entries.first.transaction
+    assert_equal "Grocery Store", @import.entries.first.name
+    assert_nil transaction.payment_mode
+    assert_nil @import.entries.first.notes
+  end
+
+  test "debit_credit_columns derives signed amounts and skips non-data lines" do
+    csv = <<~CSV
+      Date,Narration,Debit,Credit
+      01/04/2024,Rent,"12,000.00",
+      02/04/2024,Salary,,"1,00,000.00"
+      ,,,
+      Total,,"12,000.00","1,00,000.00"
+    CSV
+
+    @import.update!(
+      raw_file_str: csv, date_format: "%d/%m/%Y", date_col_label: "Date", name_col_label: "Narration",
+      amount_type_strategy: "debit_credit_columns", debit_col_label: "Debit", credit_col_label: "Credit"
+    )
+    @import.generate_rows_from_csv
+
+    rows = @import.reload.rows.sort_by(&:date_iso)
+    assert_equal [ "-12000", "100000" ], rows.map(&:amount)
+    assert_equal [ 12000, -100000 ], rows.map(&:signed_amount)
+  end
+
+  private
+    def configure_statement_import(preset_key)
+      raw = Import.strip_preamble(file_fixture("imports/india/#{preset_key}.csv").read)
+      @import.update!(raw_file_str: raw, account: accounts(:depository))
+      @import.update!(Import::StatementPreset.find(preset_key).attributes_for(@import))
+      @import.generate_rows_from_csv
+      @import.reload.sync_mappings
+    end
 end

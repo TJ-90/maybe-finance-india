@@ -4,6 +4,13 @@ class Import::ConfigurationsController < ApplicationController
   before_action :set_import
 
   def show
+    preset_key = params.dig(:statement, :preset)
+
+    if preset_key.present? && @import.is_a?(TransactionImport)
+      @preset = Import::StatementPreset.find(preset_key)
+      # Pre-fills the form only; nothing is saved until the user applies the configuration
+      @import.assign_attributes(@preset.attributes_for(@import)) if @preset
+    end
   end
 
   def update
@@ -34,6 +41,8 @@ class Import::ConfigurationsController < ApplicationController
         :entity_type_col_label,
         :notes_col_label,
         :currency_col_label,
+        :debit_col_label,
+        :credit_col_label,
         :date_format,
         :number_format,
         :signage_convention,

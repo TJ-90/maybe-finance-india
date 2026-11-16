@@ -32,6 +32,14 @@ class UI::AccountPage < ApplicationComponent
     account.property.address
   end
 
+  # Invested / value / gain / XIRR strip, shown on investment accounts with holdings
+  def investment_summary
+    return nil unless account.accountable_type == "Investment"
+
+    summary = account.family.investment_summary(accounts: [ account ])
+    summary if summary.any?
+  end
+
   def active_tab
     tabs.find { |tab| tab == @active_tab&.to_sym } || tabs.first
   end

@@ -1,0 +1,26 @@
+<%# locals: (summary:, id: "investment-summary") %>
+
+<% xirr = summary.xirr %>
+<dl class="grid grid-cols-2 lg:grid-cols-4 gap-3 text-sm" id="<%= id %>">
+  <div class="rounded-lg bg-container-inset p-3">
+    <dt class="text-secondary">Invested</dt>
+    <dd class="font-medium text-primary"><%= format_money_compact(summary.invested) %></dd>
+  </div>
+  <div class="rounded-lg bg-container-inset p-3">
+    <dt class="text-secondary">Current value</dt>
+    <dd class="font-medium text-primary"><%= format_money_compact(summary.current_value) %></dd>
+  </div>
+  <div class="rounded-lg bg-container-inset p-3">
+    <dt class="text-secondary">Gain</dt>
+    <dd class="font-medium <%= summary.gain.amount.negative? ? "text-destructive" : "text-success" %>">
+      <%= format_money_compact(summary.gain) %>
+      <% if summary.gain_percent %>
+        <span class="font-normal">(<%= number_to_percentage(summary.gain_percent * 100, precision: 1) %>)</span>
+      <% end %>
+    </dd>
+  </div>
+  <div class="rounded-lg bg-container-inset p-3">
+    <dt class="text-secondary">XIRR</dt>
+    <dd class="font-medium <%= xirr_class(xirr) %>"><%= format_xirr(xirr) %></dd>
+  </div>
+</dl>

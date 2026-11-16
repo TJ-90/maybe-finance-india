@@ -45,9 +45,26 @@ class BrokerTradebookImport < TradeImport
     return if chosen.nil?
 
     columns = chosen.resolve_columns(csv_headers.compact)
-    mapped = csv_rows.filter_map { |csv_row| chosen.row_attributes(csv_row, columns) }
+    # Exports often leave blank lines under the header; they are not trades
+    data_rows = csv_rows.reject { |csv_row| csv_row.fields.all?(&:blank?) }
+    mapped = data_rows.filter_map { |csv_row| chosen.row_attributes(csv_row, columns) }
 
     rows.insert_all!(mapped) if mapped.any?
+  end
+
+  # Mutual fund rows that name the fund but give no ISIN or scheme code (Groww). They are matched to an
+  # AMFI scheme by name, and the user confirms or corrects the match on the Map step.
+  def fund_names_to_resolve
+    return [] unless preset&.mutual_fund?
+
+    rows.where(exchange_operating_mic: Security::AMFI_MIC, isin: [ nil, "" ]).pluck(:ticker).uniq
+        .reject { |ticker| ticker.blank? || ticker.match?(/\A\d{4,7}\z/) || ticker.upcase.match?(ISIN_PATTERN) }
+  end
+
+  def mapping_steps
+    steps = super
+    steps << Import::SchemeMapping if fund_names_to_resolve.any?
+    steps
   end
 
   def required_column_keys

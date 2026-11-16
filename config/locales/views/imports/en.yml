@@ -41,6 +41,10 @@ en:
           to %{product_name}'s existing categories.  You can also add new categories or leave
           them uncategorized.
         category_mapping_title: Assign your categories
+        scheme_mapping_description: Your file names its funds but has no scheme codes. We matched
+          each name to the AMFI scheme list where one fund fits clearly; choose the right
+          fund for the others. The plan (direct or regular) and option (growth or IDCW) must be the right ones.
+        scheme_mapping_title: Match your funds
         tag_mapping_description: Assign all of your imported file's tags to %{product_name}'s
           existing tags.  You can also add new tags or leave them uncategorized.
         tag_mapping_title: Assign your tags

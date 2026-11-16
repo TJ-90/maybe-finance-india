@@ -4,10 +4,12 @@ class Import::MappingsController < ApplicationController
   def update
     mapping = @import.mappings.find(params[:id])
 
-    mapping.update! \
+    mapping.assign_attributes \
       create_when_empty: create_when_empty,
-      mappable: mappable,
+      mappable: mappable(mapping),
       value: mapping_params[:value]
+    # Like sync_mappings: keep an incomplete choice; the import cannot be published until it is valid
+    mapping.save!(validate: false)
 
     redirect_back_or_to import_confirm_path(@import)
   end
@@ -21,10 +23,10 @@ class Import::MappingsController < ApplicationController
       @import = Current.family.imports.find(params[:import_id])
     end
 
-    def mappable
+    def mappable(mapping)
       return nil unless mappable_class.present?
 
-      @mappable ||= mappable_class.find_by(id: mapping_params[:mappable_id], family: Current.family)
+      mapping.find_mappable(mapping_params[:mappable_id], Current.family)
     end
 
     def create_when_empty

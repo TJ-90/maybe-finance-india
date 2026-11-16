@@ -1,0 +1,35 @@
+<%# locals: (mapping:, search: nil) %>
+
+<div class="grid grid-cols-3 gap-2 items-start">
+  <span class="text-sm break-words"><%= mapping.key %></span>
+
+  <div class="space-y-2">
+    <%= styled_form_with model: mapping,
+                         scope: :import_mapping,
+                         url: import_mapping_path(mapping.import, mapping),
+                         data: { controller: "auto-submit-form" },
+                         html: { id: dom_id(mapping, :form) } do |form| %>
+      <%= form.hidden_field :mappable_type, value: mapping.mappable_class, id: dom_id(mapping, :mappable_type) %>
+      <%= form.select :mappable_id,
+                      mapping.selectable_values(search),
+                      { container_class: mapping.mappable.nil? ? "border-red-500" : nil, include_blank: "Select a fund", selected: mapping.mappable_id },
+                      "data-auto-submit-form-target": "auto", "data-autosubmit-trigger-event": "change", disabled: mapping.import.complete?, id: dom_id(mapping, :mappable_id) %>
+      <%= form.hidden_field :key, value: mapping.key, id: dom_id(mapping, :key) %>
+      <%= form.hidden_field :type, value: mapping.type, id: dom_id(mapping, :type) %>
+    <% end %>
+
+    <% unless mapping.import.complete? %>
+      <%= form_with url: import_confirm_path(mapping.import), method: :get, class: "flex items-center gap-2", data: { turbo: false } do %>
+        <%= hidden_field_tag :step, params[:step] %>
+        <%= search_field_tag "scheme_q[#{mapping.id}]", search, placeholder: "Search all funds by name or code", class: "form-field__input border border-primary rounded-lg px-2 py-1 text-sm w-full", "aria-label": "Search funds for #{mapping.key}", autocomplete: "off" %>
+        <%= render DS::Button.new(text: "Search", variant: "secondary", size: "sm", type: "submit") %>
+      <% end %>
+    <% end %>
+
+    <% if mapping.mappable.nil? %>
+      <p class="text-xs text-destructive">No clear match in the AMFI list. Choose the fund, or search for it.</p>
+    <% end %>
+  </div>
+
+  <span class="justify-self-end text-sm"><%= mapping.values_count %></span>
+</div>

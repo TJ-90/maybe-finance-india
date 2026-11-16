@@ -10,6 +10,8 @@ module Import::InvestmentRowLookup
     def reset_duplicate_tracking
       @existing_trade_counts = nil
       @seen_external_ids = nil
+      @schemes_by_name = nil
+      @security_cache = nil
     end
 
     # Mutual fund rows (MIC AMFI) go ISIN -> MutualFundScheme -> Security (ticker = AMFI scheme code).
@@ -63,7 +65,16 @@ module Import::InvestmentRowLookup
     def scheme_for(isin, ticker)
       scheme = MutualFundScheme.where(isin_growth: isin).or(MutualFundScheme.where(isin_reinvestment: isin)).first if isin
       scheme ||= MutualFundScheme.find_by(scheme_code: ticker.to_s) if ticker.to_s.match?(/\A\d{4,7}\z/)
+      scheme ||= scheme_chosen_for_name(ticker)
       scheme
+    end
+
+    # Files that only carry a fund name (Groww): the scheme the user confirmed on the Map step
+    def scheme_chosen_for_name(name)
+      return nil if name.blank? || !respond_to?(:mappings)
+
+      @schemes_by_name ||= mappings.where(type: "Import::SchemeMapping").includes(:mappable).to_h { |mapping| [ mapping.key, mapping.mappable ] }
+      @schemes_by_name[name.to_s]
     end
 
     def listed_security(row, create:)

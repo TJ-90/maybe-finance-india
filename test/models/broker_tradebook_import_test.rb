@@ -118,7 +118,7 @@ class BrokerTradebookImportTest < ActiveSupport::TestCase
   end
 
   test "presets are listed in the config file" do
-    assert_equal %w[zerodha_console mf_template generic_broker], Import::BrokerPreset.all.map(&:key)
+    assert_equal %w[zerodha_console mf_template groww_mf_orders generic_broker], Import::BrokerPreset.all.map(&:key)
     assert Import::BrokerPreset.find("generic_broker").unverified?
     assert_not Import::BrokerPreset.find("zerodha_console").unverified?
     assert_equal "generic_broker", Import::BrokerPreset.detect([ "Scrip Name", "Trade Date", "Buy/Sell", "Qty", "Rate" ]).key

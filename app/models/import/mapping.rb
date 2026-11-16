@@ -12,6 +12,7 @@ class Import::Mapping < ApplicationRecord
   scope :tags, -> { where(type: "Import::TagMapping") }
   scope :accounts, -> { where(type: "Import::AccountMapping") }
   scope :account_types, -> { where(type: "Import::AccountTypeMapping") }
+  scope :schemes, -> { where(type: "Import::SchemeMapping") }
 
   class << self
     def mappable_for(key)
@@ -37,6 +38,11 @@ class Import::Mapping < ApplicationRecord
 
   def creatable?
     mappable.nil? && key.present? && create_when_empty
+  end
+
+  # The record the user picked for this mapping (mappables are family owned unless a subclass says otherwise)
+  def find_mappable(id, family)
+    mappable_class&.find_by(id: id, family: family)
   end
 
   def create_mappable!

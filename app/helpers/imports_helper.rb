@@ -4,7 +4,8 @@ module ImportsHelper
       "Import::AccountTypeMapping" => "Account Type",
       "Import::AccountMapping" => "Account",
       "Import::CategoryMapping" => "Category",
-      "Import::TagMapping" => "Tag"
+      "Import::TagMapping" => "Tag",
+      "Import::SchemeMapping" => "Fund"
     }.fetch(mapping_class.name)
   end
 

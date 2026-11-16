@@ -3,6 +3,8 @@
 # CSV line into the attributes of an import row. It never saves anything.
 class Import::BrokerPreset
   CONFIG_PATH = Rails.root.join("config", "india_broker_presets.yml")
+  # A time of day after the date ("2024-01-15T09:32:11", "15-01-2024 09:32", "15-01-2024 9:32 PM")
+  TIME_SUFFIX = /[T\s]+\d{1,2}:\d{2}(:\d{2}(\.\d+)?)?\s*([ap]m)?\s*(Z|[+-]\d{2}:?\d{2})?\z/i
 
   attr_reader :key, :label, :kind, :confidence, :date_format
 
@@ -138,9 +140,9 @@ class Import::BrokerPreset
       "#{verb} #{label}".strip
     end
 
-    # Dates keep the text of the file; a time part ("2024-01-15T09:32:11") is dropped
+    # Dates keep the text of the file ("10 Jan 2025" stays whole); only a time part is dropped
     def date_text(value)
-      value.to_s.strip.split(/[ T]/).first.to_s
+      value.to_s.strip.sub(TIME_SUFFIX, "")
     end
 
     def number(value)

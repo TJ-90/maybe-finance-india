@@ -67,6 +67,32 @@ class Family < ApplicationRecord
     @income_statement ||= IncomeStatement.new(self)
   end
 
+  # XIRR across several accounts' trades, with their current holdings as the final inflow today
+  def portfolio_xirr(accounts:)
+    accounts = Array(accounts)
+    flows = accounts.flat_map do |account|
+      account.trade_cash_flows.map do |date, amount|
+        [ date, Money.new(amount, account.currency).exchange_to(currency, date: date, fallback_rate: 1).amount ]
+      end
+    end
+    return nil if flows.empty?
+
+    value = accounts.sum do |account|
+      Money.new(account.securities_value, account.currency).exchange_to(currency, fallback_rate: 1).amount
+    end
+    flows << [ Date.current, value ] if value.positive?
+
+    Xirr.new(flows).rate
+  end
+
+  def investment_summary(accounts: accounts_with_investments)
+    InvestmentSummary.new(family: self, accounts: accounts)
+  end
+
+  def accounts_with_investments
+    accounts.visible.where(accountable_type: "Investment").alphabetically
+  end
+
   def india?
     country == "IN"
   end

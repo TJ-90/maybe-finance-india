@@ -47,6 +47,13 @@ class Holding < ApplicationRecord
     @trend ||= calculate_trend
   end
 
+  # Annualized return since the first trade in this security, as a fraction (nil when not computable)
+  def xirr
+    return nil unless amount
+
+    account.xirr(security: security, terminal_value: amount)
+  end
+
   def trades
     account.entries.where(entryable: account.trades.where(security: security)).reverse_chronological
   end

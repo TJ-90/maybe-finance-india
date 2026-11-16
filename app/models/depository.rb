@@ -4,9 +4,10 @@ class Depository < ApplicationRecord
   SUBTYPES = {
     "checking" => { short: "Checking", long: "Checking" },
     "savings" => { short: "Savings", long: "Savings" },
-    "hsa" => { short: "HSA", long: "Health Savings Account" },
-    "cd" => { short: "CD", long: "Certificate of Deposit" },
-    "money_market" => { short: "MM", long: "Money Market" }
+    "current" => { short: "Current", long: "Current Account" },
+    "salary" => { short: "Salary", long: "Salary Account" },
+    "nre" => { short: "NRE", long: "NRE Account" },
+    "nro" => { short: "NRO", long: "NRO Account" }
   }.freeze
 
   class << self

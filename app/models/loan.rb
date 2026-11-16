@@ -2,9 +2,12 @@ class Loan < ApplicationRecord
   include Accountable
 
   SUBTYPES = {
-    "mortgage" => { short: "Mortgage", long: "Mortgage" },
-    "student" => { short: "Student", long: "Student Loan" },
-    "auto" => { short: "Auto", long: "Auto Loan" },
+    "home" => { short: "Home", long: "Home Loan" },
+    "vehicle" => { short: "Vehicle", long: "Vehicle Loan" },
+    "personal" => { short: "Personal", long: "Personal Loan" },
+    "education" => { short: "Education", long: "Education Loan" },
+    "gold" => { short: "Gold", long: "Gold Loan" },
+    "loan_against_property" => { short: "LAP", long: "Loan Against Property" },
     "other" => { short: "Other", long: "Other Loan" }
   }.freeze
 

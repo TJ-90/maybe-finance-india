@@ -71,20 +71,32 @@ class Category < ApplicationRecord
     private
       def default_categories
         [
-          [ "Income", "#e99537", "circle-dollar-sign", "income" ],
-          [ "Loan Payments", "#6471eb", "credit-card", "expense" ],
-          [ "Fees", "#6471eb", "credit-card", "expense" ],
-          [ "Entertainment", "#df4e92", "drama", "expense" ],
-          [ "Food & Drink", "#eb5429", "utensils", "expense" ],
+          # Income
+          [ "Salary", "#e99537", "banknote", "income" ],
+          [ "Business Income", "#e99537", "briefcase", "income" ],
+          [ "Interest", "#e99537", "percent", "income" ],
+          [ "Dividends", "#e99537", "coins", "income" ],
+          [ "Rental Income", "#e99537", "house", "income" ],
+          # Expenses
+          [ "Rent & Housing", "#db5a54", "house", "expense" ],
+          [ "Utilities", "#db5a54", "lightbulb", "expense" ],
+          [ "Groceries", "#eb5429", "shopping-basket", "expense" ],
+          [ "Food Delivery & Dining", "#eb5429", "utensils", "expense" ],
+          [ "Transport & Fuel", "#df4e92", "bus", "expense" ],
           [ "Shopping", "#e99537", "shopping-cart", "expense" ],
-          [ "Home Improvement", "#6471eb", "house", "expense" ],
+          [ "EMI & Loan Payments", "#6471eb", "credit-card", "expense" ],
+          [ "Insurance Premiums", "#6471eb", "shield-check", "expense" ],
+          [ "Investments & SIP", "#4da568", "trending-up", "expense" ],
           [ "Healthcare", "#4da568", "pill", "expense" ],
-          [ "Personal Care", "#4da568", "pill", "expense" ],
-          [ "Services", "#4da568", "briefcase", "expense" ],
-          [ "Gifts & Donations", "#61c9ea", "hand-helping", "expense" ],
-          [ "Transportation", "#df4e92", "bus", "expense" ],
+          [ "Education & School Fees", "#6471eb", "graduation-cap", "expense" ],
+          [ "Domestic Help", "#4da568", "users", "expense" ],
+          [ "Personal Care", "#4da568", "sparkles", "expense" ],
+          [ "Entertainment & OTT", "#df4e92", "drama", "expense" ],
           [ "Travel", "#df4e92", "plane", "expense" ],
-          [ "Rent & Utilities", "#db5a54", "lightbulb", "expense" ]
+          [ "Gifts & Festivals", "#61c9ea", "gift", "expense" ],
+          [ "Donations", "#61c9ea", "hand-helping", "expense" ],
+          [ "Taxes", "#6471eb", "receipt", "expense" ],
+          [ "Bank Charges & Fees", "#6471eb", "landmark", "expense" ]
         ]
       end
   end

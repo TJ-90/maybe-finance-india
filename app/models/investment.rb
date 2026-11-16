@@ -2,16 +2,13 @@ class Investment < ApplicationRecord
   include Accountable
 
   SUBTYPES = {
-    "brokerage" => { short: "Brokerage", long: "Brokerage" },
-    "pension" => { short: "Pension", long: "Pension" },
-    "retirement" => { short: "Retirement", long: "Retirement" },
-    "401k" => { short: "401(k)", long: "401(k)" },
-    "roth_401k" => { short: "Roth 401(k)", long: "Roth 401(k)" },
-    "529_plan" => { short: "529 Plan", long: "529 Plan" },
-    "hsa" => { short: "HSA", long: "Health Savings Account" },
+    "demat" => { short: "Demat", long: "Demat Account" },
     "mutual_fund" => { short: "Mutual Fund", long: "Mutual Fund" },
-    "ira" => { short: "IRA", long: "Traditional IRA" },
-    "roth_ira" => { short: "Roth IRA", long: "Roth IRA" },
+    "nps_tier1" => { short: "NPS Tier I", long: "NPS Tier I" },
+    "nps_tier2" => { short: "NPS Tier II", long: "NPS Tier II" },
+    "ulip" => { short: "ULIP", long: "ULIP" },
+    "pms_aif" => { short: "PMS/AIF", long: "PMS / AIF" },
+    "brokerage" => { short: "Brokerage", long: "Brokerage" },
     "angel" => { short: "Angel", long: "Angel" }
   }.freeze
 

@@ -84,9 +84,15 @@ class CategoriesControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "bootstrap" do
-    assert_difference "Category.count", 12 do
+    assert_difference "Category.count", 24 do
       post bootstrap_categories_url
     end
+
+    family = users(:family_admin).family
+    names = family.categories.pluck(:name)
+    %w[Salary Dividends Groceries Taxes].each { |name| assert_includes names, name }
+    assert_equal "income", family.categories.find_by(name: "Rental Income").classification
+    assert_equal "expense", family.categories.find_by(name: "Investments & SIP").classification
 
     assert_redirected_to categories_url
   end

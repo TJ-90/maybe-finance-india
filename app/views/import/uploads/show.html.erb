@@ -33,7 +33,7 @@
               <div data-file-upload-target="uploadText" class="flex flex-col items-center">
                 <%= icon("plus", size: "lg", class: "mb-4 mx-auto") %>
                 <p class="mb-2 text-md text-secondary text-center">
-                  <span class="font-medium text-primary">Browse</span> to add your CSV file here
+                  <span class="font-medium text-primary">Browse</span> to add your CSV or Excel (.xlsx) file here
                 </p>
               </div>
 
@@ -44,7 +44,7 @@
                 <p class="text-md font-medium text-primary"></p>
               </div>
 
-              <%= form.file_field :csv_file, class: "hidden", "data-auto-submit-form-target": "auto", "data-file-upload-target": "input" %>
+              <%= form.file_field :csv_file, accept: ".csv,.xlsx,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", class: "hidden", "data-auto-submit-form-target": "auto", "data-file-upload-target": "input" %>
             </div>
           </div>
 
@@ -74,7 +74,7 @@
 
   <div class="flex justify-center">
     <span class="text-secondary text-sm">
-      <%= link_to "Download a sample CSV", "/imports/#{@import.id}/upload/sample_csv", class: "text-primary underline", data: { turbo: false } %> to see the required CSV format
+      <%= link_to "Download a sample CSV", "/imports/#{@import.id}/upload/sample_csv", class: "text-primary underline", data: { turbo: false } %> to see the required CSV format. Excel workbooks (.xlsx) are read too; save an old .xls file as .xlsx or CSV first.
     </span>
   </div>
 </div>

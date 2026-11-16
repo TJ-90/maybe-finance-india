@@ -3,6 +3,11 @@ class Import::UploadsController < ApplicationController
 
   before_action :set_import
 
+  rescue_from Import::XlsxReader::Error do |error|
+    flash.now[:alert] = error.message
+    render :show, status: :unprocessable_entity
+  end
+
   def show
   end
 
@@ -18,7 +23,7 @@ class Import::UploadsController < ApplicationController
 
     if csv_valid?(csv_str)
       @import.account = Current.family.accounts.find_by(id: params.dig(:import, :account_id))
-      @import.assign_attributes(raw_file_str: csv_str, col_sep: upload_params[:col_sep])
+      @import.assign_attributes(raw_file_str: csv_str, col_sep: col_sep)
       @import.save!(validate: false)
 
       redirect_to import_configuration_path(@import, template_hint: true), notice: "CSV uploaded successfully."
@@ -45,16 +50,27 @@ class Import::UploadsController < ApplicationController
       @import = Current.family.imports.find(params[:import_id])
     end
 
+    # The uploaded file or pasted text as CSV. An Excel workbook is converted to CSV first, so from here
+    # on it is handled exactly like an uploaded CSV.
     def csv_str
       @csv_str ||= begin
         raw = upload_params[:csv_file]&.read || upload_params[:raw_file_str]
-        raw.nil? ? raw : @import.prepare_raw_csv(raw, col_sep: upload_params[:col_sep].presence || ",")
+        @converted_workbook = raw.present? && Import::XlsxReader.spreadsheet?(raw)
+        raw = Import::XlsxReader.to_csv(raw) if @converted_workbook
+        raw.nil? ? raw : @import.prepare_raw_csv(raw, col_sep: col_sep)
       end
+    end
+
+    # A converted workbook is always comma separated, whatever the form says
+    def col_sep
+      return "," if @converted_workbook
+
+      upload_params[:col_sep]
     end
 
     def csv_valid?(str)
       begin
-        csv = Import.parse_csv_str(str, col_sep: upload_params[:col_sep])
+        csv = Import.parse_csv_str(str, col_sep: col_sep)
         return false if csv.headers.empty?
         return false if csv.count == 0
         true

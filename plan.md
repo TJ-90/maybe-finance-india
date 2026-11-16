@@ -479,3 +479,135 @@ All 8 phases are implemented and merged on `claude/peaceful-darwin-s89wtn`.
   - the interest rates in `config/india_small_savings_rates.yml`
   - the tax rules in `config/india_capital_gains.yml`, especially `other_listed` before 2024-07-23
 - Upgrade Rails off 7.2 (EOL) and bump Brakeman to clear the CI security step.
+
+---
+
+## 8. Round 2 (requested 2026-11-16): live values, household members with residency, goal monitoring
+
+Three phases, run in parallel in separate worktrees. Ground rules (§1) and the environment notes apply unchanged.
+
+**Migration timestamp blocks:**
+- Phase 9: `202611180900xx`
+- Phase 10: `202611181000xx`
+- Phase 11: `202611181100xx`
+
+**File ownership, to keep merges small:**
+- Phase 10 owns `app/models/demo/generator.rb` and the Tax Center's person selection.
+- Phase 9 owns `config/schedule.yml` market-data entries and `Trade.build_name`.
+- Phase 11 owns notifications and goal snapshots.
+- Everyone else touches these files only where unavoidable.
+
+### Phase 9: Values that keep themselves current (prices, returns, trade names)
+
+**What exists today:**
+- `ImportMutualFundSchemesJob` runs at 23:30 IST and `ImportMarketDataJob` at 00:00 IST.
+- Nothing re-syncs accounts afterwards, so holdings, balances, net worth and XIRR only refresh when a family syncs (on login, or manually).
+- `ImportMarketDataJob` also returns early in development.
+
+**To build:**
+1. **Re-value after every price import.**
+   - Add `RefreshInvestmentValuesJob`, chained after the AMFI and market-data imports. It syncs every account holding an online security whose price changed, plus accounts in a non-family currency after FX imports.
+   - Make it idempotent and cheap: one sync per account per run, and skip accounts that already have a pending sync.
+2. **NSE/BSE end-of-day:** run `import_market_data` at 16:15 IST on weekdays (`45 10 * * 1-5` UTC), after market close. Keep a nightly run for FX and NAV catch-up.
+3. **Intraday stock prices (optional by ENV):**
+   - `RefreshIntradayPricesJob` runs every 15 minutes, 09:15–15:30 IST on weekdays. It fetches the latest price only for NSE/BSE securities that someone holds, writes or updates today's `Security::Price`, and re-values the affected accounts.
+   - `INTRADAY_PRICE_REFRESH` defaults to `true`; `false` turns it off.
+   - Respect the provider: batch requests and back off on errors.
+4. **Freshness and control:**
+   - Show "Prices as of <date time IST>" on investment accounts, the dashboard Investments card and holdings.
+   - Add a "Refresh prices now" action on Settings → Market data and on investment accounts. It enqueues the same jobs.
+   - Let the scheduled jobs run in development when `ENABLE_MARKET_DATA_IN_DEV=true`.
+5. **Returns.** These are model methods on `Account::Returns` / `Holding` / `InvestmentSummary`, with tests.
+   - **Per holding:** invested (FIFO cost of units held), current value, gain, absolute return %, XIRR, **1-day change**, and **CAGR since first purchase**. CAGR is price-based: (latest price ÷ price on first purchase date)^(1/years) − 1. Show "—" under 1 year, and label it so.
+   - **Per account and portfolio:** invested, current, gain, absolute %, XIRR, 1-day change.
+   - **Fund pages** (`/mutual_funds/:id`) and the holdings rows of MF holdings show **trailing 1Y / 3Y / 5Y CAGR** from NAV history.
+   - The `GetHoldings` assistant function includes the new fields.
+6. **Bug: MF trades are named with the AMFI code** ("Buy 3.368 900003").
+   - `Trade.build_name` and every importer (CAS, broker/MF template, Groww, the trade form) must use the security's display name. Mutual funds use "units": "Buy 3.368 units of <Fund name>"; stocks keep "shares".
+   - Add a data migration (rake task under `lib/tasks/data_migration.rake`) that renames existing auto-named trade entries matching the old pattern, and test it.
+
+### Phase 10: Household members with Resident/NRI status (taxation per person)
+
+1. **Model `HouseholdMember`** (family-scoped):
+   - `name`
+   - `relationship` (self/spouse/parent/child/other)
+   - **`residency_status` (resident/nri): required, with no default. Every member must be presented the choice explicitly.**
+   - `date_of_birth` (optional; used for retirement-goal age)
+   - `pan_last4` (optional)
+   - `slab_rate` (decimal; default 30 when NRI, otherwise blank and asked for)
+   - `tax_regime` (new/old, default new)
+   - `color`
+2. **Ownership:**
+   - `accounts.household_member_id`: the owner / first holder; nil means "Joint / household".
+   - Optional `users.household_member_id`, linking a login to a person.
+   - Optional `goals.household_member_id`. A retirement goal uses the member's DOB for current age when set.
+3. **UI:**
+   - Settings → Household: CRUD for members, with Resident/NRI shown as a required radio choice and short help text on what changes.
+   - An onboarding step after preferences: add yourself, then optionally your spouse and others, each with the residency choice.
+   - Existing families with no members see a dashboard banner prompting setup.
+   - Account forms get a "Belongs to" select, and the account sidebar can show each account's owner.
+   - The dashboard gets a member filter (`?member=`) that applies to the net-worth breakdown and the Investments card.
+4. **Tax Center by person:**
+   - Replace the account checkboxes with a **member select**; that member's accounts are used. Keep an "advanced: choose accounts" disclosure for joint cases.
+   - Apply residency via data in `config/india_capital_gains.yml` (a `residency:` section, effective-dated, `# Verify each financial year`):
+     - **Same for both:** capital-gains rates and the ₹1.25 L LTCG exemption (Sec 112A applies to NRIs too).
+     - **Resident only (shown as notes):** setting off the unused basic exemption limit against STCG (111A) / LTCG (112A), and the 87A rebate.
+     - **NRI:** the page shows an **estimated TDS the AMC or broker will deduct** on each sale:
+       - equity STCG 20%
+       - equity LTCG 12.5%
+       - specified (debt) MF 30%
+       - other LTCG 12.5%
+       - plus 4% cess, with surcharge noted
+     - **NRI:** the default slab rate is 30%. A DTAA-relief note says it is not modelled.
+   - Harvesting and the calculator use the selected member's residency.
+   - **Interest income (FY) section per member:**
+     - FD/RD interest credited (generated entries from Phase 3) is taxable.
+     - PPF/SSY interest is exempt, and EPF interest exempt (with a note about the ₹2.5 L contribution rule).
+     - **NRE** deposit interest is exempt for NRIs. **NRO** interest is taxable, with a 30% TDS note.
+     - Residents get the TDS threshold note.
+5. **NRI instrument rules (warnings, not blocks):**
+   - A PPF owned by an NRI member: "can continue to maturity, cannot be extended; no new PPF for NRIs".
+   - SSY for an NRI child: the closure note.
+   - NRE/NRO subtypes are suggested for NRI members' new bank accounts.
+6. **Imports:**
+   - The CAS mapping step maps each CAS investor to a member, or creates one inline with the residency choice. Accounts created get that owner.
+   - Broker, Groww and MF template imports ask "Whose account is this?" when creating a new account.
+7. **Demo data (you own `app/models/demo/generator.rb`):**
+   - Two members: Asha (spouse, Resident) and Rahul (self, NRI, e.g. working in Dubai), with NRE and NRO accounts for Rahul.
+   - Accounts are split between them, and the Tax Center shows both residencies.
+   - Keep the demo network-free and the generator test passing.
+8. **Assistant:** `GetTaxSummary` takes a member, and `GetHoldings`/`GetGoals` include the owner.
+
+### Phase 11: Goals that monitor themselves, plus reminders
+
+1. **Snapshots:**
+   - `goal_snapshots` (goal_id, date, status, progress_pct, projected_corpus, target_corpus, required_sip, shortfall), with a unique index on (goal_id, date).
+   - `MonitorGoalsJob` runs daily at 01:00 IST, after Phase 9's re-valuation, and writes one snapshot per goal.
+   - Status:
+     - **on_track:** projected ≥ target
+     - **at_risk:** shortfall ≤ 10% of target
+     - **off_track:** otherwise
+2. **Goal UI:**
+   - Status history (a small progress-over-time chart and the last status change) on the goal page.
+   - A "Goals health" card on the dashboard: counts by status, the worst goal first, and a link.
+3. **Notifications (in-app first, email optional):**
+   - A `Notification` model (user, family, kind, title, body, url, read_at, dedupe key) with a bell and unread count in the top bar, an inbox page, and mark-as-read.
+   - A `NotificationMailer` sends a digest only when SMTP is configured and the user opted in.
+   - **Privacy:** emails contain no amounts by default (a toggle allows them). They say what changed and link to the app.
+4. **Triggers** (each deduplicated, so the same reminder isn't repeated within its window):
+   - A goal's status changes (on_track → at_risk/off_track, or recovers).
+   - A monthly goal summary on the 1st.
+   - **Stale data:** an investment account with no new trades for more than `N` days (default 35, configurable).
+     - The last import or manual trade date decides. For SIP accounts (detected monthly buys), a missing expected SIP triggers it sooner.
+     - The reminder links to the right import ("Upload your latest CAS", "Upload your Groww order history", "Upload your Zerodha tradebook"), chosen from how the account was last fed: the import type of its latest import.
+   - **Stale NAVs:** no new NAV for held funds in more than 3 days, e.g. the provider is failing. It points to Settings → Market data → upload NAVAll.txt.
+   - Insurance premium due within 7 days.
+   - **Financial-year-end tax reminder (1–31 March):** "Review tax harvesting before 31 March", linking to the Tax Center, if any member has unused LTCG exemption and long-term gains available.
+5. **Settings → Notifications (per user):**
+   - Email on/off
+   - Include amounts in email
+   - Stale-data threshold in days
+   - Monthly summary on/off
+   - Per-kind toggles
+6. **Scheduling:** add entries to `config/schedule.yml` (UTC cron with IST comments). Don't touch Phase 9's market-data entries.
+7. **Tests:** status thresholds, snapshot idempotency, each trigger including dedupe and opt-out, mailer content with and without amounts, and controller tests for the inbox and settings.

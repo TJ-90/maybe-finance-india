@@ -17,12 +17,19 @@ class GoalAllocation < ApplicationRecord
     Money.new(converted.amount * percentage / 100, goal.currency)
   end
 
-  # Total percentage already allocated to the same account (and security) by other goals
+  # Percentage of this holding that is already spoken for by other allocations. A whole-account
+  # allocation covers every holding in the account, so the two kinds overlap:
+  #   * for a security allocation: other allocations of the same security + all whole-account ones
+  #   * for a whole-account allocation: other whole-account ones + the most-allocated single security
   def allocated_elsewhere
-    GoalAllocation
-      .where(account_id: account_id, security_id: security_id)
-      .where.not(id: id)
-      .sum(:percentage)
+    others = GoalAllocation.where(account_id: account_id).where.not(id: id)
+    account_level = others.where(security_id: nil).sum(:percentage)
+
+    if security_id
+      account_level + others.where(security_id: security_id).sum(:percentage)
+    else
+      account_level + (others.where.not(security_id: nil).group(:security_id).sum(:percentage).values.max || 0)
+    end
   end
 
   def holding
@@ -56,6 +63,6 @@ class GoalAllocation < ApplicationRecord
       total = allocated_elsewhere + percentage
       return if total <= 100
 
-      errors.add(:percentage, "would allocate #{total.to_f.round(2)}% of this holding across all goals (maximum 100%)")
+      errors.add(:percentage, "would allocate #{total.to_f.round(2)}% of this holding across all goals, counting whole-account and per-holding allocations together (maximum 100%)")
     end
 end

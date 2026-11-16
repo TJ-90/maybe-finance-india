@@ -40,8 +40,39 @@ class GoalAllocationTest < ActiveSupport::TestCase
     @home.goal_allocations.create!(account: account, security: security, percentage: 100)
 
     assert @emergency.goal_allocations.new(account: account, security: other, percentage: 100).valid?
-    assert @emergency.goal_allocations.new(account: account, percentage: 100).valid?
     assert_not @emergency.goal_allocations.new(account: account, security: security, percentage: 1).valid?
+  end
+
+  test "a whole-account allocation overlaps with allocations of its individual securities" do
+    security = Security.create!(ticker: "GOALTEST", exchange_operating_mic: "XNSE", asset_class: "equity")
+    other = Security.create!(ticker: "GOALTWO", exchange_operating_mic: "XNSE", asset_class: "equity")
+    account = accounts(:investment)
+
+    @home.goal_allocations.create!(account: account, security: security, percentage: 70)
+    @home.goal_allocations.create!(account: account, security: other, percentage: 20)
+
+    # The whole account covers every holding, so it is limited by the most-allocated security (70%)
+    assert @emergency.goal_allocations.new(account: account, percentage: 30).valid?
+    over = @emergency.goal_allocations.new(account: account, percentage: 31)
+    assert_not over.valid?
+    assert_match "101", over.errors[:percentage].to_sentence
+  end
+
+  test "a security allocation is limited by whole-account allocations of the same account" do
+    security = Security.create!(ticker: "GOALTEST", exchange_operating_mic: "XNSE", asset_class: "equity")
+    account = accounts(:investment)
+
+    @home.goal_allocations.create!(account: account, percentage: 60)
+
+    assert @emergency.goal_allocations.new(account: account, security: security, percentage: 40).valid?
+    assert_not @emergency.goal_allocations.new(account: account, security: security, percentage: 41).valid?
+  end
+
+  test "whole-account allocations still add up on their own" do
+    @home.goal_allocations.create!(account: @account, percentage: 60)
+
+    assert @emergency.goal_allocations.new(account: @account, percentage: 40).valid?
+    assert_not @emergency.goal_allocations.new(account: @account, percentage: 41).valid?
   end
 
   test "the same account cannot be allocated twice to one goal" do

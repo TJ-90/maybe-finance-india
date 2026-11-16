@@ -150,6 +150,6 @@ class PagesController < ApplicationController
       end
       # No primary income node anymore, percentages are on individual income cats relative to total_income_val
 
-      { nodes: nodes, links: links, currency_symbol: Money::Currency.new(currency_symbol).symbol }
+      { nodes: nodes, links: links, currency_symbol: Money::Currency.new(currency_symbol).symbol, currency: Money::Currency.new(currency_symbol).iso_code }
     end
 end

@@ -1,6 +1,7 @@
 import { Controller } from "@hotwired/stimulus";
 import * as d3 from "d3";
 import { sankey, sankeyLinkHorizontal } from "d3-sankey";
+import { formatAmount } from "services/number_formatting";
 
 // Connects to data-controller="sankey-chart"
 export default class extends Controller {
@@ -8,7 +9,8 @@ export default class extends Controller {
     data: Object,
     nodeWidth: { type: Number, default: 15 },
     nodePadding: { type: Number, default: 20 },
-    currencySymbol: { type: String, default: "$" }
+    currencySymbol: { type: String, default: "" },
+    currency: { type: String, default: "USD" }
   };
 
   connect() {
@@ -109,7 +111,7 @@ export default class extends Controller {
       .attr("stroke", (d, i) => `url(#link-gradient-${d.source.index}-${d.target.index}-${i})`)
       .attr("stroke-width", (d) => Math.max(1, d.width))
       .append("title")
-      .text((d) => `${nodes[d.source.index].name} → ${nodes[d.target.index].name}: ${this.currencySymbolValue}${Number.parseFloat(d.value).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} (${d.percentage}%)`);
+      .text((d) => `${nodes[d.source.index].name} → ${nodes[d.target.index].name}: ${formatAmount(d.value, { currency: this.currencyValue, symbol: this.currencySymbolValue })} (${d.percentage}%)`);
 
     // Draw nodes
     const node = svg
@@ -198,7 +200,7 @@ export default class extends Controller {
           .style("font-size", "0.65rem"); // Explicitly set smaller font size
 
         financialDetailsTspan.append("tspan")
-          .text(stimulusControllerInstance.currencySymbolValue + Number.parseFloat(d.value).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
+          .text(formatAmount(d.value, { currency: stimulusControllerInstance.currencyValue, symbol: stimulusControllerInstance.currencySymbolValue }));
       });
   }
 } 

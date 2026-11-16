@@ -351,7 +351,9 @@ module LanguagesHelper
   }.freeze
 
   def country_options
-    COUNTRY_MAPPING.keys.map { |key| [ COUNTRY_MAPPING[key], key ] }
+    options = COUNTRY_MAPPING.keys.map { |key| [ COUNTRY_MAPPING[key], key ] }
+    india, others = options.partition { |_label, key| key == :IN }
+    india + others
   end
 
   def language_options

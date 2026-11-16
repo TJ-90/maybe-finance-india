@@ -1,5 +1,11 @@
 empty:
   name: Family
+  currency: USD
+  country: US
+  date_format: "%m-%d-%Y"
 
 dylan_family:
   name: The Dylan Family
+  currency: USD
+  country: US
+  date_format: "%m-%d-%Y"

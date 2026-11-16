@@ -1,5 +1,5 @@
 class Account < ApplicationRecord
-  include AASM, Syncable, Monetizable, Chartable, Linkable, Enrichable, Anchorable, Reconcileable
+  include AASM, Syncable, Monetizable, Chartable, Linkable, Enrichable, Anchorable, Reconcileable, GeneratedEntries
 
   validates :name, :balance, :currency, presence: true
 
@@ -63,8 +63,12 @@ class Account < ApplicationRecord
       transaction do
         account.save!
 
+        # Some accountables know when and with how much they start (e.g. a fixed deposit's principal on its start date)
+        accountable = account.reload.accountable
+        opening_balance = initial_balance || accountable.try(:opening_balance_amount) || account.balance
+
         manager = Account::OpeningBalanceManager.new(account)
-        result = manager.set_opening_balance(balance: initial_balance || account.balance)
+        result = manager.set_opening_balance(balance: opening_balance, date: accountable.try(:opening_balance_date))
         raise result.error if result.error
       end
 
@@ -150,9 +154,9 @@ class Account < ApplicationRecord
   # "Investment" = A mix of both, including brokerage cash (liquid) and holdings (illiquid)
   def balance_type
     case accountable_type
-    when "Depository", "CreditCard"
+    when "Depository", "CreditCard", "ProvidentFund"
       :cash
-    when "Property", "Vehicle", "OtherAsset", "Loan", "OtherLiability"
+    when "Property", "Vehicle", "OtherAsset", "Loan", "OtherLiability", "FixedDeposit", "PreciousMetal"
       :non_cash
     when "Investment", "Crypto"
       :investment

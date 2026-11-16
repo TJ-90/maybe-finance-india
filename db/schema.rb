@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2026_11_17_010001) do
+ActiveRecord::Schema[7.2].define(version: 2026_11_17_030005) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pgcrypto"
   enable_extension "plpgsql"
@@ -233,8 +233,11 @@ ActiveRecord::Schema[7.2].define(version: 2026_11_17_010001) do
     t.boolean "excluded", default: false
     t.string "plaid_id"
     t.jsonb "locked_attributes", default: {}
+    t.string "generated_by"
+    t.boolean "generated_user_edited", default: false, null: false
     t.index "lower((name)::text)", name: "index_entries_on_lower_name"
     t.index ["account_id", "date"], name: "index_entries_on_account_id_and_date"
+    t.index ["account_id", "generated_by"], name: "index_entries_on_account_id_and_generated_by", where: "(generated_by IS NOT NULL)"
     t.index ["account_id"], name: "index_entries_on_account_id"
     t.index ["date"], name: "index_entries_on_date"
     t.index ["entryable_type"], name: "index_entries_on_entryable_type"
@@ -276,6 +279,21 @@ ActiveRecord::Schema[7.2].define(version: 2026_11_17_010001) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.index ["family_id"], name: "index_family_exports_on_family_id"
+  end
+
+  create_table "fixed_deposits", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.decimal "interest_rate", precision: 7, scale: 3
+    t.string "compounding", default: "quarterly"
+    t.string "payout", default: "cumulative"
+    t.date "start_date"
+    t.date "maturity_date"
+    t.decimal "principal", precision: 19, scale: 4
+    t.decimal "monthly_installment", precision: 19, scale: 4
+    t.string "institution_name"
+    t.boolean "auto_renew", default: false, null: false
+    t.jsonb "locked_attributes", default: {}
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
   end
 
   create_table "holdings", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
@@ -381,6 +399,27 @@ ActiveRecord::Schema[7.2].define(version: 2026_11_17_010001) do
     t.string "amount_type_strategy", default: "signed_amount"
     t.string "amount_type_inflow_value"
     t.index ["family_id"], name: "index_imports_on_family_id"
+  end
+
+  create_table "insurance_policies", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.uuid "family_id", null: false
+    t.string "kind", default: "term", null: false
+    t.string "insurer", null: false
+    t.text "policy_number"
+    t.string "insured_names"
+    t.string "currency", null: false
+    t.decimal "sum_assured", precision: 19, scale: 4
+    t.decimal "premium", precision: 19, scale: 4
+    t.string "premium_frequency", default: "yearly"
+    t.date "next_premium_due_on"
+    t.date "start_date"
+    t.date "end_date"
+    t.string "nominee"
+    t.text "notes"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["family_id", "next_premium_due_on"], name: "index_insurance_policies_on_family_id_and_next_premium_due_on"
+    t.index ["family_id"], name: "index_insurance_policies_on_family_id"
   end
 
   create_table "investments", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
@@ -569,6 +608,15 @@ ActiveRecord::Schema[7.2].define(version: 2026_11_17_010001) do
     t.index ["plaid_id"], name: "index_plaid_items_on_plaid_id", unique: true
   end
 
+  create_table "precious_metals", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.decimal "weight_grams", precision: 12, scale: 3
+    t.string "purity"
+    t.string "form"
+    t.jsonb "locked_attributes", default: {}
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+  end
+
   create_table "properties", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
@@ -576,6 +624,18 @@ ActiveRecord::Schema[7.2].define(version: 2026_11_17_010001) do
     t.integer "area_value"
     t.string "area_unit"
     t.jsonb "locked_attributes", default: {}
+  end
+
+  create_table "provident_funds", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.decimal "interest_rate", precision: 7, scale: 3
+    t.decimal "monthly_contribution", precision: 19, scale: 4
+    t.decimal "employer_contribution", precision: 19, scale: 4
+    t.date "opened_on"
+    t.date "maturity_date"
+    t.string "account_number_last4"
+    t.jsonb "locked_attributes", default: {}
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
   end
 
   create_table "rejected_transfers", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
@@ -846,6 +906,7 @@ ActiveRecord::Schema[7.2].define(version: 2026_11_17_010001) do
   add_foreign_key "impersonation_sessions", "users", column: "impersonator_id"
   add_foreign_key "import_rows", "imports"
   add_foreign_key "imports", "families"
+  add_foreign_key "insurance_policies", "families"
   add_foreign_key "invitations", "families"
   add_foreign_key "invitations", "users", column: "inviter_id"
   add_foreign_key "merchants", "families"

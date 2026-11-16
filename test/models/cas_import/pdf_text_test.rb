@@ -61,7 +61,7 @@ class CasImport::PdfTextTest < ActiveSupport::TestCase
       reader.stubs(:pages).returns([ stub(text: "decrypted by qpdf") ])
     end)
     CasImport::PdfText.stubs(:qpdf_available?).returns(true)
-    Open3.stubs(:capture3).with { |*args| File.binwrite(args.last, unlocked) || true }.returns([ "", "", stub(success?: true, exitstatus: 0) ])
+    Open3.stubs(:capture3).with { |*args, **opts| File.binwrite(File.join(opts[:chdir], "out.pdf"), unlocked) || true }.returns([ "", "", stub(success?: true, exitstatus: 0) ])
 
     assert_equal "decrypted by qpdf", CasImport::PdfText.extract(unlocked, password: "x")
   end

@@ -1,5 +1,5 @@
 require "open3"
-require "tempfile"
+require "tmpdir"
 
 # Pulls the text out of a CAS PDF, in memory and inside the request. The PDF and its password are
 # never stored and never leave this object: callers keep only the extracted text.
@@ -75,29 +75,22 @@ class CasImport::PdfText
       raise UnreadablePdfError, "We couldn't read this PDF."
     end
 
-    # The password goes through a short-lived file (never the command line, where other processes could
-    # see it). Every temp file is deleted before this method returns.
+    # The password goes through a file in a private temp directory (never the command line, where other
+    # processes could see it). The directory and everything in it is deleted before this returns.
     def decrypt_with_qpdf
-      Tempfile.create([ "cas-in", ".pdf" ], binmode: true) do |input|
-        input.write(@data)
-        input.flush
+      Dir.mktmpdir("cas") do |dir|
+        File.binwrite(File.join(dir, "in.pdf"), @data)
+        File.write(File.join(dir, "pw.txt"), @password.to_s, perm: 0o600)
 
-        Tempfile.create([ "cas-pw", ".txt" ]) do |password_file|
-          password_file.write(@password.to_s)
-          password_file.flush
+        _out, err, status = Open3.capture3("qpdf", "--password-file=pw.txt", "--decrypt", "in.pdf", "out.pdf", chdir: dir)
 
-          Tempfile.create([ "cas-out", ".pdf" ]) do |output|
-            _out, err, status = Open3.capture3("qpdf", "--password-file=#{password_file.path}", "--decrypt", input.path, output.path)
-
-            # qpdf exits with 3 when it only produced warnings
-            unless status.success? || status.exitstatus == 3
-              raise InvalidPasswordError, "That password did not unlock the PDF. Check it and try again." if err.match?(/invalid password/i)
-              raise UnreadablePdfError, "We couldn't decrypt this PDF."
-            end
-
-            File.binread(output.path)
-          end
+        # qpdf exits with 3 when it only produced warnings
+        unless status.success? || status.exitstatus == 3
+          raise InvalidPasswordError, "That password did not unlock the PDF. Check it and try again." if err.match?(/invalid password/i)
+          raise UnreadablePdfError, "We couldn't decrypt this PDF."
         end
+
+        File.binread(File.join(dir, "out.pdf"))
       end
     end
 end

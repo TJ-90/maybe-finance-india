@@ -28,7 +28,7 @@ module PdfTestHelper
       objects << stream_object(content_stream, 4)
       # Explicit widths (monospaced) so text positions do not depend on font metric files
       objects << "<< /Type /Font /Subtype /Type1 /BaseFont /Courier /Encoding /WinAnsiEncoding " \
-                 "/FirstChar 32 /LastChar 126 /Widths [#{(['600'] * 95).join(' ')}] >>"
+                 "/FirstChar 32 /LastChar 126 /Widths [#{([ '600' ] * 95).join(' ')}] >>"
       objects << encrypt_dictionary if @password
 
       body = "%PDF-1.6\n".b

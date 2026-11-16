@@ -52,6 +52,18 @@ class Period
       label: "Current Year",
       comparison_label: "vs. start of year"
     },
+    "current_financial_year" => {
+      date_range: -> { [ financial_year_start(Date.current), Date.current ] },
+      label_short: "FYTD",
+      label: -> { "Current FY (#{financial_year_label(Date.current)})" },
+      comparison_label: "vs. start of financial year"
+    },
+    "last_financial_year" => {
+      date_range: -> { financial_year_range(financial_year_start(Date.current).year - 1) },
+      label_short: "Last FY",
+      label: "Last FY",
+      comparison_label: "vs. start of last financial year"
+    },
     "last_365_days" => {
       date_range: -> { [ 365.days.ago.to_date, Date.current ] },
       label_short: "365D",
@@ -75,6 +87,33 @@ class Period
       start_date, end_date = PERIODS[key].fetch(:date_range).call
 
       new(key: key, start_date: start_date, end_date: end_date)
+    end
+
+    # Indian financial year runs April 1 to March 31.
+    FINANCIAL_YEAR_START_MONTH = 4
+
+    # First day of the financial year containing the given date
+    def financial_year_start(date)
+      year = date.month >= FINANCIAL_YEAR_START_MONTH ? date.year : date.year - 1
+      Date.new(year, FINANCIAL_YEAR_START_MONTH, 1)
+    end
+
+    # Full April-March range for the financial year starting in the given calendar year
+    def financial_year_range(start_year)
+      start_date = Date.new(start_year, FINANCIAL_YEAR_START_MONTH, 1)
+      [ start_date, start_date.next_year.prev_day ]
+    end
+
+    # Period covering the whole financial year that contains the given date
+    def financial_year_for(date)
+      start_date, end_date = financial_year_range(financial_year_start(date).year)
+      new(start_date: start_date, end_date: end_date)
+    end
+
+    # e.g. "2026-27"
+    def financial_year_label(date)
+      start_year = financial_year_start(date).year
+      "#{start_year}-#{(start_year + 1).to_s.last(2)}"
     end
 
     def custom(start_date:, end_date:)
@@ -130,7 +169,8 @@ class Period
 
   def label
     if key_metadata
-      key_metadata.fetch(:label)
+      label = key_metadata.fetch(:label)
+      label.respond_to?(:call) ? label.call : label
     else
       "Custom Period"
     end

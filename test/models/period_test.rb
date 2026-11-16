@@ -57,4 +57,65 @@ class PeriodTest < ActiveSupport::TestCase
     expected = "#{start_date.strftime("%b %d, %Y")} to #{end_date.strftime("%b %d, %Y")}"
     assert_equal expected, period.comparison_label
   end
+
+  test "current financial year runs from April 1 to today" do
+    travel_to Date.new(2026, 11, 16) do
+      period = Period.current_financial_year
+      assert_equal Date.new(2026, 4, 1), period.start_date
+      assert_equal Date.new(2026, 11, 16), period.end_date
+      assert_equal "FYTD", period.label_short
+      assert_equal "Current FY (2026-27)", period.label
+    end
+
+    travel_to Date.new(2027, 2, 10) do
+      period = Period.current_financial_year
+      assert_equal Date.new(2026, 4, 1), period.start_date
+      assert_equal Date.new(2027, 2, 10), period.end_date
+      assert_equal "Current FY (2026-27)", period.label
+    end
+  end
+
+  test "financial year boundary on April 1 and March 31" do
+    travel_to Date.new(2026, 4, 1) do
+      assert_equal Date.new(2026, 4, 1), Period.current_financial_year.start_date
+    end
+
+    travel_to Date.new(2026, 3, 31) do
+      assert_equal Date.new(2025, 4, 1), Period.current_financial_year.start_date
+      assert_equal "Current FY (2025-26)", Period.current_financial_year.label
+    end
+  end
+
+  test "last financial year covers the whole previous April to March" do
+    travel_to Date.new(2026, 11, 16) do
+      period = Period.last_financial_year
+      assert_equal Date.new(2025, 4, 1), period.start_date
+      assert_equal Date.new(2026, 3, 31), period.end_date
+      assert_equal "Last FY", period.label_short
+    end
+
+    travel_to Date.new(2027, 2, 10) do
+      assert_equal Date.new(2025, 4, 1), Period.last_financial_year.start_date
+      assert_equal Date.new(2026, 3, 31), Period.last_financial_year.end_date
+    end
+  end
+
+  test "financial_year_for returns the full financial year containing a date" do
+    period = Period.financial_year_for(Date.new(2027, 3, 31))
+    assert_equal Date.new(2026, 4, 1), period.start_date
+    assert_equal Date.new(2027, 3, 31), period.end_date
+
+    period = Period.financial_year_for(Date.new(2027, 4, 1))
+    assert_equal Date.new(2027, 4, 1), period.start_date
+    assert_equal Date.new(2028, 3, 31), period.end_date
+
+    assert_equal "2026-27", Period.financial_year_label(Date.new(2027, 3, 31))
+    assert_equal "2099-00", Period.financial_year_label(Date.new(2099, 6, 1))
+  end
+
+  test "financial year periods appear in selector options" do
+    keys = Period.as_options.map(&:last)
+    assert_includes keys, "current_financial_year"
+    assert_includes keys, "last_financial_year"
+  end
 end

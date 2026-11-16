@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2026_11_17_010001) do
+ActiveRecord::Schema[7.2].define(version: 2026_11_17_020004) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pgcrypto"
   enable_extension "plpgsql"
@@ -278,6 +278,18 @@ ActiveRecord::Schema[7.2].define(version: 2026_11_17_010001) do
     t.index ["family_id"], name: "index_family_exports_on_family_id"
   end
 
+  create_table "family_security_overrides", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.uuid "family_id", null: false
+    t.uuid "security_id", null: false
+    t.string "tax_category"
+    t.string "asset_class"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["family_id", "security_id"], name: "index_family_security_overrides_on_family_id_and_security_id", unique: true
+    t.index ["family_id"], name: "index_family_security_overrides_on_family_id"
+    t.index ["security_id"], name: "index_family_security_overrides_on_security_id"
+  end
+
   create_table "holdings", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
     t.uuid "account_id", null: false
     t.uuid "security_id", null: false
@@ -470,6 +482,29 @@ ActiveRecord::Schema[7.2].define(version: 2026_11_17_010001) do
     t.index ["user_id"], name: "index_mobile_devices_on_user_id"
   end
 
+  create_table "mutual_fund_schemes", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.string "scheme_code", null: false
+    t.string "name", null: false
+    t.string "amc"
+    t.string "category"
+    t.string "scheme_type"
+    t.string "plan"
+    t.string "option"
+    t.string "isin_growth"
+    t.string "isin_reinvestment"
+    t.decimal "latest_nav", precision: 19, scale: 4
+    t.date "nav_date"
+    t.string "asset_class"
+    t.string "tax_category"
+    t.boolean "active", default: true, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["amc"], name: "index_mutual_fund_schemes_on_amc"
+    t.index ["category"], name: "index_mutual_fund_schemes_on_category"
+    t.index ["isin_growth"], name: "index_mutual_fund_schemes_on_isin_growth"
+    t.index ["scheme_code"], name: "index_mutual_fund_schemes_on_scheme_code", unique: true
+  end
+
   create_table "oauth_access_grants", force: :cascade do |t|
     t.string "resource_owner_id", null: false
     t.bigint "application_id", null: false
@@ -634,9 +669,14 @@ ActiveRecord::Schema[7.2].define(version: 2026_11_17_010001) do
     t.datetime "failed_fetch_at"
     t.integer "failed_fetch_count", default: 0, null: false
     t.datetime "last_health_check_at"
+    t.string "kind"
+    t.string "isin"
+    t.string "asset_class"
+    t.string "tax_category"
     t.index "upper((ticker)::text), COALESCE(upper((exchange_operating_mic)::text), ''::text)", name: "index_securities_on_ticker_and_exchange_operating_mic_unique", unique: true
     t.index ["country_code"], name: "index_securities_on_country_code"
     t.index ["exchange_operating_mic"], name: "index_securities_on_exchange_operating_mic"
+    t.index ["isin"], name: "index_securities_on_isin"
   end
 
   create_table "security_prices", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
@@ -746,6 +786,8 @@ ActiveRecord::Schema[7.2].define(version: 2026_11_17_010001) do
     t.datetime "updated_at", null: false
     t.string "currency"
     t.jsonb "locked_attributes", default: {}
+    t.string "folio_number"
+    t.index ["security_id", "folio_number"], name: "index_trades_on_security_id_and_folio_number"
     t.index ["security_id"], name: "index_trades_on_security_id"
   end
 
@@ -839,6 +881,8 @@ ActiveRecord::Schema[7.2].define(version: 2026_11_17_010001) do
   add_foreign_key "entries", "accounts"
   add_foreign_key "entries", "imports"
   add_foreign_key "family_exports", "families"
+  add_foreign_key "family_security_overrides", "families"
+  add_foreign_key "family_security_overrides", "securities"
   add_foreign_key "holdings", "accounts"
   add_foreign_key "holdings", "securities"
   add_foreign_key "impersonation_session_logs", "impersonation_sessions"

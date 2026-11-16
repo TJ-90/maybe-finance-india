@@ -1,7 +1,12 @@
 module Provider::SecurityConcept
   extend ActiveSupport::Concern
 
-  Security = Data.define(:symbol, :name, :logo_url, :exchange_operating_mic, :country_code)
+  # `kind` is optional (stock, etf, mutual_fund, ...). Providers that can tell the instrument type set it.
+  Security = Data.define(:symbol, :name, :logo_url, :exchange_operating_mic, :country_code, :kind) do
+    def initialize(symbol:, name:, logo_url:, exchange_operating_mic:, country_code:, kind: nil)
+      super
+    end
+  end
   SecurityInfo = Data.define(:symbol, :name, :links, :logo_url, :description, :kind, :exchange_operating_mic)
   Price = Data.define(:symbol, :date, :price, :currency, :exchange_operating_mic)
 

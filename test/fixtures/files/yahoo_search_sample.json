@@ -1,0 +1,12 @@
+{
+  "explains": [],
+  "count": 5,
+  "quotes": [
+    { "exchange": "NSI", "shortname": "SAMPLE IND", "quoteType": "EQUITY", "symbol": "RELIANCE.NS", "longname": "Sample Industries Limited", "exchDisp": "NSE", "isYahooFinance": true },
+    { "exchange": "BSE", "shortname": "SAMPLE IND", "quoteType": "EQUITY", "symbol": "RELIANCE.BO", "longname": "Sample Industries Limited", "exchDisp": "BSE", "isYahooFinance": true },
+    { "exchange": "NSI", "shortname": "SAMPLE GOLD ETF", "quoteType": "ETF", "symbol": "SAMPLEGOLD.NS", "exchDisp": "NSE", "isYahooFinance": true },
+    { "exchange": "NYQ", "shortname": "Sample Inc", "quoteType": "EQUITY", "symbol": "SMPL", "longname": "Sample Inc", "exchDisp": "NYSE", "isYahooFinance": true },
+    { "exchange": "NSI", "shortname": "NIFTY 50", "quoteType": "INDEX", "symbol": "^NSEI", "exchDisp": "NSE", "isYahooFinance": true }
+  ],
+  "news": []
+}

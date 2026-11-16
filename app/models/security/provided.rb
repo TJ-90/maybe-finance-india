@@ -6,7 +6,7 @@ module Security::Provided
   class_methods do
     def provider
       registry = Provider::Registry.for_concept(:securities)
-      registry.get_provider(:synth)
+      registry.first_provider
     end
 
     def search_provider(symbol, country_code: nil, exchange_operating_mic: nil)
@@ -27,7 +27,8 @@ module Security::Provided
             name: provider_security.name,
             logo_url: provider_security.logo_url,
             exchange_operating_mic: provider_security.exchange_operating_mic,
-            country_code: provider_security.country_code
+            country_code: provider_security.country_code,
+            kind: provider_security.kind.presence_in(Security::KINDS)
           )
         end
       else

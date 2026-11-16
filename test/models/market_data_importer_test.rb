@@ -15,9 +15,9 @@ class MarketDataImporterTest < ActiveSupport::TestCase
     Security.delete_all
 
     @provider = mock("provider")
+    # Security.provider and ExchangeRate.provider both use the registry's first configured provider
     Provider::Registry.any_instance
-                      .stubs(:get_provider)
-                      .with(:synth)
+                      .stubs(:first_provider)
                       .returns(@provider)
   end
 

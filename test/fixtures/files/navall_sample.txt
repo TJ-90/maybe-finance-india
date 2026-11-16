@@ -1,0 +1,72 @@
+Scheme Code;ISIN Div Payout/ ISIN Growth;ISIN Div Reinvestment;Scheme Name;Net Asset Value;Date
+
+Open Ended Schemes(Equity Scheme - Large Cap Fund)
+
+Alpha Sample Mutual Fund
+
+100001;INF000A01001;INF000A01002;Alpha Bluechip Fund - Direct Plan - Growth;245.1234;01-Nov-2026
+100002;INF000A01003;INF000A01004;Alpha Bluechip Fund - Regular Plan - Growth;220.5000;01-Nov-2026
+100003;-;INF000A01005;Alpha Bluechip Fund - Direct Plan - IDCW;35.4100;01-Nov-2026
+
+Open Ended Schemes(Equity Scheme - ELSS)
+
+Beta Sample Mutual Fund
+
+200001;INF000B01001;-;Beta Tax Saver Fund - Direct Plan - Growth;88.0000;01-Nov-2026
+200002;INF000B01002;INF000B01003;Beta Dividend Yield Fund - Direct Plan - Growth;41.2500;01-Nov-2026
+
+Open Ended Schemes(Debt Scheme - Liquid Fund)
+
+Alpha Sample Mutual Fund
+
+100010;INF000A01010;INF000A01011;Alpha Liquid Fund - Direct Plan - Growth;3500.5678;01-Nov-2026
+100011;INF000A01012;INF000A01013;Alpha Liquid Fund - Regular Plan - Weekly IDCW;N.A.;01-Nov-2026
+
+Open Ended Schemes(Hybrid Scheme - Aggressive Hybrid Fund)
+
+Beta Sample Mutual Fund
+
+200010;INF000B01010;INF000B01011;Beta Aggressive Hybrid Fund - Direct Plan - Growth;120.7800;01-Nov-2026
+
+Open Ended Schemes(Hybrid Scheme - Arbitrage Fund)
+
+Beta Sample Mutual Fund
+
+200011;INF000B01012;INF000B01013;Beta Arbitrage Fund - Regular Plan - Growth;26.1000;01-Nov-2026
+
+Open Ended Schemes(Hybrid Scheme - Balanced Advantage Fund)
+
+Alpha Sample Mutual Fund
+
+100020;INF000A01020;INF000A01021;Alpha Balanced Advantage Fund - Direct Plan - Growth;64.2000;01-Nov-2026
+
+Open Ended Schemes(Other Scheme - Index Funds)
+
+Gamma Sample Mutual Fund
+
+300001;INF000C01001;INF000C01002;Gamma Nifty 50 Index Fund - Direct Plan - Growth;150.3300;01-Nov-2026
+300002;INF000C01003;INF000C01004;Gamma Nifty 10 Year Gilt Index Fund - Direct Plan - Growth;12.1100;01-Nov-2026
+
+Open Ended Schemes(Other Scheme - Gold ETF)
+
+Gamma Sample Mutual Fund
+
+300010;INF000C01010;-;Gamma Gold ETF;62.5500;01-Nov-2026
+
+Open Ended Schemes(Other Scheme - Other  ETFs)
+
+Gamma Sample Mutual Fund
+
+300011;INF000C01011;-;Gamma Nifty 50 ETF;245.9000;01-Nov-2026
+
+Open Ended Schemes(Other Scheme - FoF Overseas)
+
+Gamma Sample Mutual Fund
+
+300020;INF000C01020;INF000C01021;Gamma Global Equity FoF - Direct Plan - Growth;18.7400;01-Nov-2026
+
+Close Ended Schemes(Debt Scheme - Fixed Term Plan)
+
+Alpha Sample Mutual Fund
+
+100030;INF000A01030;INF000A01031;Alpha Fixed Term Plan Series 1 - Direct Plan - Growth;10.9900;01-Nov-2026

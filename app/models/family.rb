@@ -19,6 +19,7 @@ class Family < ApplicationRecord
 
   has_many :imports, dependent: :destroy
   has_many :family_exports, dependent: :destroy
+  has_many :family_security_overrides, dependent: :destroy
 
   has_many :entries, through: :accounts
   has_many :transactions, through: :accounts
@@ -89,7 +90,7 @@ class Family < ApplicationRecord
   end
 
   def missing_data_provider?
-    requires_data_provider? && Provider::Registry.get_provider(:synth).nil?
+    requires_data_provider? && Provider::Registry.for_concept(:exchange_rates).first_provider.nil?
   end
 
   def oldest_entry_date

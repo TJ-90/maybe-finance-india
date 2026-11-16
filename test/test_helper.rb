@@ -14,6 +14,11 @@ ENV["PLAID_ENV"] = "sandbox"
 ENV["PLAID_CLIENT_ID"] ||= "test_client_id"
 ENV["PLAID_SECRET"] ||= "test_secret"
 
+# The free Indian market data providers (AMFI, MFAPI, Yahoo, Frankfurter) are on by default in the app. Tests must
+# never reach the network, so they start disabled. Tests that exercise them re-enable them with
+# `with_env_overrides DISABLE_INDIAN_MARKET_DATA: nil` and stub the HTTP calls.
+ENV["DISABLE_INDIAN_MARKET_DATA"] = "true"
+
 # Fixes Segfaults on M1 Macs when running tests in parallel (temporary workaround)
 ENV["PGGSSENCMODE"] = "disable"
 
@@ -22,6 +27,7 @@ require "minitest/mock"
 require "minitest/autorun"
 require "mocha/minitest"
 require "aasm/minitest"
+require "webmock/minitest"
 
 VCR.configure do |config|
   config.cassette_library_dir = "test/vcr_cassettes"

@@ -64,8 +64,16 @@ bin/rails test                                      # full suite (~25s)
 bin/rails test test/models/xirr_test.rb             # single file
 bin/rubocop -f github -a
 bundle exec erb_lint ./app/**/*.erb -a
-bin/brakeman --no-pager
+bundle exec brakeman --no-pager -q --no-exit-on-warn   # bin/brakeman fails here (--ensure-latest); 1 pre-existing "Rails 7.2 EOL" warning is expected
 ```
+
+- **System tests can't run in this container.** Chrome 153 is installed, but the only chromedriver is v147. Write system tests only where the plan asks for them, and say in your report that they weren't run. Every other test must pass.
+- **Phase 1 conventions (now on the branch):**
+  - Use `product_name` (helper) / `Rails.configuration.x.product_name` for the app name; never write "Maybe".
+  - `Money.default_currency` is INR. Test fixtures in `families.yml` are pinned to USD/US, so pass currencies explicitly in tests.
+  - Use `format_money_compact` for tight spaces.
+  - FY periods: `Period.current_financial_year`, `Period.last_financial_year`, `Period.financial_year_for(date)`.
+  - `Family#india?` exists.
 
 - Never commit anything under `/home/user/.maybe-dev/`. Never change the `ruby file: ".ruby-version"` line in the repo `Gemfile`.
 - **Adding a gem (Phase 5 only):** add it to the repo `Gemfile` *and* to `/home/user/.maybe-dev/Gemfile`, then run `bundle install`. Copy only the new gem's lines from `/home/user/.maybe-dev/Gemfile.lock` into the repo `Gemfile.lock`. `git diff Gemfile.lock` must show nothing but the new gem and its dependencies; the `RUBY VERSION` stays `ruby 3.4.4p34`.

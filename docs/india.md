@@ -17,7 +17,7 @@ Read the caveats before you rely on a number.
 |---|---|
 | Foundation | INR by default, lakh/crore grouping (`₹12,34,567`), `dd-mm-yyyy` dates, the April to March financial year, Indian account types and default categories. The product name comes from `PRODUCT_NAME`. |
 | Bank and card statements | CSV import with bank presets (HDFC, ICICI, SBI, Axis, Kotak, IDFC FIRST, Yes, and card statements), separate debit and credit columns, and a parser for UPI, NEFT, IMPS, RTGS, NACH, ATM, card and cheque narrations (payment mode, counterparty, reference number). Known merchants get a category suggestion. |
-| Investment import | CAMS/KFintech **CAS PDF** (detailed and summary, password-protected files, parsed on the server and never stored), the **Zerodha Console tradebook**, a best-effort generic broker layout, and a **mutual fund CSV template**. Imports are idempotent: re-importing a statement does not duplicate trades. |
+| Investment import | CAMS/KFintech **CAS PDF** (detailed and summary, password-protected files, parsed on the server and never stored), the **Zerodha Console tradebook**, a best-effort generic broker layout, and a **mutual fund CSV template**, and **Groww mutual fund order history** (Excel or CSV). Imports are idempotent: re-importing a statement does not duplicate trades. |
 | Market data | Mutual fund NAVs from AMFI/MFAPI, NSE/BSE prices from Yahoo Finance, USD/INR and other rates from Frankfurter, and a fund discovery page (filter by AMC, category, plan, option and active/passive). |
 | Instruments | Fixed deposits, recurring deposits, NSC, KVP, SCSS, POMIS and corporate FDs with accrued value. EPF, VPF, PPF and SSY with interest posted from the rate table. Gold and silver by weight and purity. Insurance policies with premium reminders (kept out of net worth). Mutual funds with folio numbers, stocks and ETFs. |
 | Net worth | A card that splits net worth into market assets (investments, FDs, gold), retirement funds (EPF/VPF/PPF/SSY and NPS), cash, property and vehicles, and other assets. Insurance is never part of net worth. |
@@ -34,7 +34,7 @@ fixture payloads. **Treat the first live run as a test.**
 
 | Source | Used for | Reliability notes |
 |---|---|---|
-| **AMFI `NAVAll.txt`** (`amfiindia.com/spages/NAVAll.txt`) | The list of every mutual fund scheme and its latest NAV, refreshed nightly by `ImportMutualFundSchemesJob`. | Official and public, but the parser is written from the documented semicolon layout and has only seen sample files. The URL, the column order or the category header wording can change. If a download ever imports zero schemes, nothing is overwritten. |
+| **AMFI `NAVAll.txt`** (`amfiindia.com/spages/NAVAll.txt`) | The list of every mutual fund scheme and its latest NAV, refreshed nightly by `ImportMutualFundSchemesJob`. | Official and public, but the parser reads both the current 8-column layout (separate Plan and Option columns, checked against a real file, Nov 2026) and the older 6-column one, chosen from the header line. The URL, the column order or the category header wording can change. If a download ever imports zero schemes, nothing is overwritten. |
 | **MFAPI** (`api.mfapi.in`) | NAV history for one scheme (`/mf/{scheme_code}`). | A free, community-run service with no uptime guarantee or published terms. The response format used here is from its public documentation. |
 | **Yahoo Finance** (unofficial endpoints) | NSE (`.NS`) and BSE (`.BO`) prices and symbol search. | **Unofficial and undocumented.** The endpoints can change, rate limit or disappear without notice, and Yahoo's terms restrict commercial use. The provider is isolated behind `Provider::IndianMarkets` so it can be replaced (for example by NSE bhavcopy files or a paid feed). |
 | **Frankfurter** (`api.frankfurter.app`) | Exchange rates from ECB reference data. | Free and keyless, but rates exist only for ECB working days (weekends use the previous working day) and only for the currencies the ECB publishes. |
@@ -113,8 +113,37 @@ does not recognise keeps the original narration.
 |---|---|
 | Zerodha Console tradebook | **Confirmed** (column names from the reference export) |
 | Mutual fund transactions template | **Confirmed**, it is defined by this app. Download it from the import screen |
+| Groww mutual fund orders | **Confirmed**: column layout (`Scheme Name`, `Transaction Type`, `Units`, `NAV`, `Amount`, `Date`) taken from a real export, Nov 2026. `PURCHASE` and `REDEEM` were seen in that file; SIP, switch in/out and dividend reinvestment types are **assumed** (not seen) |
 | Other broker (best-effort column match) | **Unverified** |
-| Groww, Upstox, ICICI Direct, HDFC Securities, Kotak Securities, Angel One, Fyers, Aionion, Religare, 5paisa, Dhan | **Not shipped.** Use the plain trade import with its column mapping, or add a preset once you have checked a real export |
+| Groww stocks, Upstox, ICICI Direct, HDFC Securities, Kotak Securities, Angel One, Fyers, Aionion, Religare, 5paisa, Dhan | **Not shipped.** Use the plain trade import with its column mapping, or add a preset once you have checked a real export |
+
+### Excel (.xlsx) uploads
+
+Every CSV-based import (transactions, trades, broker tradebooks) also accepts an Excel **.xlsx** workbook. The first
+worksheet is converted to CSV on upload (`Import::XlsxReader`, no extra gem) and then goes through the same steps as a
+CSV, including the removal of account details above the header row. Cells keep their columns, and numeric date cells
+become ISO dates (`2025-01-10`), so pick the `YYYY-MM-DD` date format in that case; dates stored as text keep their
+text. Old binary **.xls** files are not supported: save them as .xlsx or CSV. The reader refuses oversized or
+suspicious workbooks (entry count and uncompressed size caps, no DTDs or external entities).
+
+### Groww order history and fund-name matching
+
+A Groww export has no folio, ISIN or scheme code, only the fund's display name (for example "... Direct Growth").
+The import matches each distinct name to the AMFI scheme list (`MutualFundScheme::NameMatcher`): case, punctuation and
+filler words are ignored, the plan (direct or regular) and option (growth or IDCW) in the name must agree with the
+scheme's own plan and option columns, and the words must overlap closely. Only a single clear winner is accepted.
+Anything ambiguous or unmatched is **never guessed**: it appears on the **Match your funds** step, where you pick the
+scheme from the best candidates or search the whole list, and the import cannot be published until every fund is
+matched. Your choice is kept if you go back and change the file configuration.
+
+Limits:
+
+- It needs the AMFI scheme list (Settings → Market data). With an empty list every fund is unmatched.
+- Funds that were renamed, merged or closed since your order may not be in the list; match them by hand.
+- Matching has been tested on a real Groww file against the real AMFI list (all funds in it matched uniquely), but names
+  vary between funds and Groww may rename them, so check the **Match your funds** step.
+- The folio number is blank for this format. Re-importing the same file adds nothing, because trades are compared by
+  account, fund, date and units; two genuinely identical orders on one day are still both kept.
 
 ### CAMS / KFintech CAS PDF
 

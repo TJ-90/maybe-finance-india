@@ -65,6 +65,66 @@
           </li>
         <% end %>
 
+        <% if params[:type].nil? || params[:type] == "CasImport" %>
+          <li>
+            <%= button_to imports_path(import: { type: "CasImport" }), class: "flex items-center justify-between p-4 group cursor-pointer w-full", data: { turbo: false } do %>
+              <div class="flex items-center gap-2">
+                <div class="bg-emerald-500/5 rounded-md w-8 h-8 flex items-center justify-center">
+                  <span class="text-emerald-500">
+                    <%= icon("file-text", color: "current") %>
+                  </span>
+                </div>
+                <span class="text-sm text-primary group-hover:text-secondary">
+                  Mutual fund CAS (PDF)
+                </span>
+              </div>
+              <%= icon("chevron-right") %>
+            <% end %>
+
+            <%= render "shared/ruler" %>
+          </li>
+        <% end %>
+
+        <% if params[:type].nil? || params[:type] == "BrokerTradebookImport" %>
+          <li>
+            <%= button_to imports_path(import: { type: "BrokerTradebookImport" }), class: "flex items-center justify-between p-4 group cursor-pointer w-full", data: { turbo: false } do %>
+              <div class="flex items-center gap-2">
+                <div class="bg-sky-500/5 rounded-md w-8 h-8 flex items-center justify-center">
+                  <span class="text-sky-500">
+                    <%= icon("candlestick-chart", color: "current") %>
+                  </span>
+                </div>
+                <span class="text-sm text-primary group-hover:text-secondary">
+                  Broker tradebook (Zerodha and others)
+                </span>
+              </div>
+              <%= icon("chevron-right") %>
+            <% end %>
+
+            <%= render "shared/ruler" %>
+          </li>
+        <% end %>
+
+        <% if params[:type].nil? || params[:type] == "BrokerTradebookImport" %>
+          <li>
+            <%= button_to imports_path(import: { type: "BrokerTradebookImport", broker_preset: "mf_template" }), class: "flex items-center justify-between p-4 group cursor-pointer w-full", data: { turbo: false } do %>
+              <div class="flex items-center gap-2">
+                <div class="bg-teal-500/5 rounded-md w-8 h-8 flex items-center justify-center">
+                  <span class="text-teal-500">
+                    <%= icon("table", color: "current") %>
+                  </span>
+                </div>
+                <span class="text-sm text-primary group-hover:text-secondary">
+                  Mutual fund transactions (CSV template)
+                </span>
+              </div>
+              <%= icon("chevron-right") %>
+            <% end %>
+
+            <%= render "shared/ruler" %>
+          </li>
+        <% end %>
+
         <% if params[:type].nil? || params[:type] == "AccountImport" %>
           <li>
             <%= button_to imports_path(import: { type: "AccountImport" }), class: "flex items-center justify-between p-4 group cursor-pointer w-full", data: { turbo: false } do %>

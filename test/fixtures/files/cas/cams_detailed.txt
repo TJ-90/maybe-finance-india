@@ -1,0 +1,41 @@
+CAMS Consolidated Account Statement
+Statement Period: 01-Apr-2023 To 31-Mar-2024
+This is a synthetic statement used only for automated tests. Names, PAN and folios are fictional.
+
+Email Id: asha.kumar@example.com
+Name: ASHA KUMAR
+Address: 12 Test Street, Sample Nagar, Bengaluru 560001
+PAN: ABCDE1234F   KYC: OK   PAN: OK
+
+Orchid Mutual Fund
+Folio No: 12345678 / 90   PAN: ABCDE1234F   KYC: OK   PAN: OK
+P8046-Orchid Flexi Cap Fund - Direct Plan - Growth - ISIN: INF000A01AB1(Advisor: DIRECT) Registrar : CAMS
+Opening Unit Balance: 100.000
+05-May-2023   Purchase - Systematic Investment    5,000.00    25.000    200.00    125.000
+05-May-2023   *** Stamp Duty ***    0.25
+05-Jun-2023   Systematic Investment    5,000.00    20.000    250.00    145.000
+05-Jun-2023   *** Stamp Duty ***    0.25
+20-Aug-2023   Redemption    (6,250.00)    (25.000)    250.00    120.000
+20-Aug-2023   *** STT Paid ***    0.06
+10-Oct-2023   Purchase    3,000.00    12.000    250.00    132.000
+11-Oct-2023   Purchase - Reversal    (3,000.00)    (12.000)    250.00    120.000
+15-Nov-2023   IDCW Reinvested    240.00    0.960    250.00    120.960
+Closing Unit Balance: 120.960   NAV on 31-Mar-2024: INR 300.00   Total Cost Value: 25,000.00   Market Value on 31-Mar-2024: INR 36,288.00
+
+Lotus Mutual Fund
+Folio No: 7000123 / 45   PAN: ABCDE1234F   KYC: OK   PAN: OK
+Q1234-Lotus Liquid Fund - Direct Plan - Growth - ISIN: INF000B01CD2(Advisor: DIRECT) Registrar : KFINTECH
+Opening Unit Balance: 0.000
+02-Jan-2024   Purchase    20,000.00    20.000    1,000.00    20.000
+15-Feb-2024   Switch In - From Lotus Equity Fund    5,000.00    5.000    1,000.00    25.000
+20-Mar-2024   Switch Out - To Lotus Equity Fund    (4,000.00)    (4.000)    1,000.00    21.000
+Closing Unit Balance: 21.000   NAV on 31-Mar-2024: INR 1,000.00   Total Cost Value: 21,000.00   Market Value on 31-Mar-2024: INR 21,000.00
+
+Q5678-Lotus Equity Fund - Regular Plan - IDCW Payout - ISIN: INF999Z01ZZ9(Advisor: ARN-0000) Registrar : KFINTECH
+Opening Unit Balance: 0.000
+15-Feb-2024   Switch In - From Lotus Liquid Fund    5,000.00    100.000    50.00    100.000
+20-Mar-2024   Switch In - From Lotus Liquid Fund    4,000.00    80.000    50.00    180.000
+20-Mar-2024   IDCW Payout    350.00
+Closing Unit Balance: 180.000   NAV on 31-Mar-2024: INR 55.00   Total Cost Value: 9,000.00   Market Value on 31-Mar-2024: INR 9,900.00
+
+Page 1 of 2

@@ -1,0 +1,108 @@
+# Broker tradebook / mutual fund transaction layouts for BrokerTradebookImport (Import::BrokerPreset).
+#
+# Verify each financial year: brokers change their export layouts without notice.
+#
+# How a preset is applied: when a CSV is uploaded, the preset whose required columns all appear in
+# the header row is pre-selected (the user can pick another). For every column role below, the
+# FIRST candidate that matches a header in the file is used. Matching ignores case, spaces and
+# punctuation. Rows are generated from the preset directly, so there is nothing else to map.
+#
+# Confidence (shown to the user):
+#   confirmed:  column names written down in plan.md (Zerodha Console) or defined by this app (template)
+#   unverified: best-effort. No sample export could be checked offline.
+#
+# Keys per preset
+#   label, kind (broker | template), confidence
+#   date_format:    strptime format of the date column (the user can change it before importing)
+#   currency:       currency of the amounts
+#   exchange_mics:  exchange name in the file => ISO MIC (listed securities)
+#   default_mic:    MIC used when the file has no exchange column (AMFI = mutual fund scheme)
+#   columns:        role => ordered list of candidate header names
+#   required:       roles that must all be found for the preset to be detected
+#   only:           role => accepted values; other rows (e.g. F&O trades) are skipped
+#   buy_values / sell_values: values of the buy/sell column (compared ignoring case and punctuation)
+#   template:       sample CSV offered for download
+#
+# TODO (layouts not confident enough to ship; use the plain "Trade import" with its column mapping,
+# or add a preset here once a real export has been checked): Groww, Upstox, ICICI Direct,
+# HDFC Securities, Kotak Securities, Angel One, Fyers, Aionion, Religare, 5paisa, Dhan.
+presets:
+  zerodha_console:
+    label: Zerodha Console tradebook
+    kind: broker
+    confidence: confirmed
+    date_format: "%Y-%m-%d"
+    currency: INR
+    exchange_mics:
+      NSE: XNSE
+      BSE: XBOM
+    columns:
+      symbol: [symbol]
+      isin: [isin]
+      date: [trade_date]
+      exchange: [exchange]
+      segment: [segment]
+      type: [trade_type]
+      quantity: [quantity]
+      price: [price]
+      trade_id: [trade_id]
+    required: [symbol, date, type, quantity, price]
+    only:
+      segment: [EQ]
+    buy_values: [buy]
+    sell_values: [sell]
+    template: |
+      symbol,isin,trade_date,exchange,segment,series,trade_type,auction,quantity,price,trade_id,order_id,order_execution_time
+      RELIANCE,INE002A01018,2024-01-15,NSE,EQ,EQ,buy,false,10,2450.50,81234567,1300000012345678,2024-01-15T09:32:11
+      INFY,INE009A01021,2024-02-20,NSE,EQ,EQ,sell,false,5,1650.00,81234999,1300000012349999,2024-02-20T10:05:42
+
+  mf_template:
+    label: Mutual fund transactions (template)
+    kind: template
+    confidence: confirmed
+    date_format: "%d-%m-%Y"
+    currency: INR
+    default_mic: AMFI
+    columns:
+      date: [date]
+      scheme: [scheme_code, isin, scheme_code_or_isin, schemecodeorisin, scheme, amfi_code]
+      folio: [folio, folio_number, folio_no]
+      quantity: [units, qty, quantity]
+      price: [nav, price]
+      amount: [amount, value]
+      type: [type, transaction_type]
+    required: [date, scheme, quantity, type]
+    buy_values: [buy, purchase, sip, switch_in, switchin, dividend_reinvest, idcw_reinvest, bonus]
+    sell_values: [sell, redemption, redeem, switch_out, switchout, withdrawal]
+    template: |
+      date,scheme_code or isin,folio,units,nav,amount,type
+      15-01-2024,100001,12345678/90,25.000,200.00,5000.00,buy
+      15-02-2024,INF000A01AB1,12345678/90,10.000,210.00,2100.00,sell
+
+  generic_broker:
+    label: Other broker (best-effort column match)
+    kind: broker
+    confidence: unverified
+    date_format: "%d-%m-%Y"
+    currency: INR
+    exchange_mics:
+      NSE: XNSE
+      BSE: XBOM
+      NSE_EQ: XNSE
+      BSE_EQ: XBOM
+    default_mic: XNSE
+    columns:
+      symbol: [symbol, scrip, scrip_name, trading_symbol, tradingsymbol, security_name, stock_name, instrument]
+      isin: [isin, isin_code]
+      date: [trade_date, date, order_date, executed_date, transaction_date]
+      exchange: [exchange, exch]
+      type: [trade_type, buy_sell, buy/sell, transaction_type, side, type, action]
+      quantity: [quantity, qty, trade_quantity, traded_qty]
+      price: [price, rate, trade_price, avg_price, average_price, net_rate]
+      trade_id: [trade_id, trade_no, trade_number, exchange_trade_id]
+    required: [symbol, date, type, quantity, price]
+    buy_values: [buy, b, purchase, bought]
+    sell_values: [sell, s, sale, sold]
+    template: |
+      symbol,isin,trade_date,exchange,trade_type,quantity,price,trade_id
+      RELIANCE,INE002A01018,15-01-2024,NSE,buy,10,2450.50,81234567

@@ -1,0 +1,38 @@
+<%# locals: (import:) %>
+
+<% preset = import.preset %>
+
+<div class="space-y-4">
+  <%= styled_form_with url: import_configuration_path(import),
+                       method: :get,
+                       scope: :broker,
+                       data: { controller: "auto-submit-form", turbo_frame: "_top" } do |preset_form| %>
+    <%= preset_form.select :preset,
+                           Import::BrokerPreset.options,
+                           { label: "File format", include_blank: "Choose a format", selected: preset&.key },
+                           { data: { auto_submit_form_target: "auto" } } %>
+  <% end %>
+
+  <% if preset.nil? %>
+    <p class="text-sm text-destructive">
+      We couldn't match this file to a known layout. Pick the closest format above, or use the standard trade import and map the columns yourself.
+    </p>
+  <% elsif preset.unverified? %>
+    <p class="text-xs text-secondary">
+      The column names for "<%= preset.label %>" are a best guess and could not be checked against a real export. Review the rows in the next step before importing.
+    </p>
+  <% end %>
+
+  <% if preset.present? %>
+    <%= styled_form_with model: import, url: import_configuration_path(import), scope: :import, method: :patch, class: "space-y-4" do |form| %>
+      <%= form.hidden_field :broker_preset, value: preset.key %>
+
+      <div class="flex items-center gap-4">
+        <%= form.select :date_format, Import::DATE_FORMATS, { label: "Date format" }, required: true %>
+        <%= form.select :number_format, Import::NUMBER_FORMATS.keys, { label: "Number format" }, required: true %>
+      </div>
+
+      <%= form.submit "Apply configuration", disabled: import.complete? %>
+    <% end %>
+  <% end %>
+</div>

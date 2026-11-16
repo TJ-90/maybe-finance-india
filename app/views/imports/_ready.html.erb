@@ -35,5 +35,9 @@
     </div>
   </div>
 
+  <% if import.is_a?(CasImport) %>
+    <%= render "imports/cas_summary", import: import %>
+  <% end %>
+
   <%= render DS::Button.new(text: "Publish import", href: publish_import_path(import), full_width: true) %>
 </div>

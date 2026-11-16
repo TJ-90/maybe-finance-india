@@ -74,6 +74,9 @@ gem "rqrcode", "~> 3.0"
 gem "activerecord-import"
 gem "rubyzip", "~> 2.3"
 
+# Text extraction from CAS (mutual fund statement) PDFs
+gem "pdf-reader", "~> 2.12"
+
 # State machines
 gem "aasm"
 gem "after_commit_everywhere", "~> 1.0"

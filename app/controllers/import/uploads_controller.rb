@@ -14,6 +14,8 @@ class Import::UploadsController < ApplicationController
   end
 
   def update
+    return update_from_pdf if @import.is_a?(CasImport)
+
     if csv_valid?(csv_str)
       @import.account = Current.family.accounts.find_by(id: params.dig(:import, :account_id))
       @import.assign_attributes(raw_file_str: csv_str, col_sep: upload_params[:col_sep])
@@ -28,6 +30,17 @@ class Import::UploadsController < ApplicationController
   end
 
   private
+    # The statement PDF and its password are read right here and then dropped: they are never saved
+    # and never handed to a background job.
+    def update_from_pdf
+      @import.load_pdf!(params.dig(:import, :pdf_file), password: params.dig(:import, :pdf_password))
+
+      redirect_to import_clean_path(@import), notice: "Statement read successfully."
+    rescue CasImport::Error => error
+      flash.now[:alert] = error.message
+      render :show, status: :unprocessable_entity
+    end
+
     def set_import
       @import = Current.family.imports.find(params[:import_id])
     end

@@ -418,6 +418,9 @@ ActiveRecord::Schema[7.2].define(version: 2026_11_17_070002) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.string "exchange_operating_mic"
+    t.string "isin"
+    t.string "folio_number"
+    t.string "external_id"
     t.index ["import_id"], name: "index_import_rows_on_import_id"
   end
 
@@ -890,6 +893,8 @@ ActiveRecord::Schema[7.2].define(version: 2026_11_17_070002) do
     t.string "currency"
     t.jsonb "locked_attributes", default: {}
     t.string "folio_number"
+    t.string "external_id"
+    t.index ["external_id"], name: "index_trades_on_external_id"
     t.index ["security_id", "folio_number"], name: "index_trades_on_security_id_and_folio_number"
     t.index ["security_id"], name: "index_trades_on_security_id"
   end

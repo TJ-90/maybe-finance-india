@@ -22,7 +22,11 @@ module ImportsHelper
       ticker: "Ticker",
       exchange: "Exchange",
       price: "Price",
-      entity_type: "Type"
+      entity_type: "Type",
+      folio_number: "Folio",
+      external_id: "Trade ID",
+      exchange_operating_mic: "Exchange",
+      isin: "ISIN"
     }[key]
   end
 
@@ -31,7 +35,9 @@ module ImportsHelper
       transactions: DryRunResource.new(label: "Transactions", icon: "credit-card", text_class: "text-cyan-500", bg_class: "bg-cyan-500/5"),
       accounts: DryRunResource.new(label: "Accounts", icon: "layers", text_class: "text-orange-500", bg_class: "bg-orange-500/5"),
       categories: DryRunResource.new(label: "Categories", icon: "shapes", text_class: "text-blue-500", bg_class: "bg-blue-500/5"),
-      tags: DryRunResource.new(label: "Tags", icon: "tags", text_class: "text-violet-500", bg_class: "bg-violet-500/5")
+      tags: DryRunResource.new(label: "Tags", icon: "tags", text_class: "text-violet-500", bg_class: "bg-violet-500/5"),
+      new_trades: DryRunResource.new(label: "New transactions to import", icon: "plus", text_class: "text-green-600", bg_class: "bg-green-500/5"),
+      already_imported: DryRunResource.new(label: "Already imported (skipped)", icon: "copy", text_class: "text-secondary", bg_class: "bg-gray-500/5")
     }
 
     map[key]
@@ -62,7 +68,7 @@ module ImportsHelper
 
   private
     def permitted_import_types
-      %w[transaction_import trade_import account_import mint_import]
+      %w[transaction_import trade_import account_import mint_import broker_tradebook_import]
     end
 
     DryRunResource = Struct.new(:label, :icon, :text_class, :bg_class, keyword_init: true)

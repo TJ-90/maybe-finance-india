@@ -1,0 +1,26 @@
+KFintech Consolidated Account Statement
+From 01-Jan-2023 To 31-Dec-2023
+Synthetic statement for tests only. All names, PAN numbers and folios are fictional.
+
+Investor Name : RAVI MENON
+Email : ravi.menon@example.com
+PAN : PQRSX5678L
+
+Orchid Mutual Fund
+Folio No : 99887766   PAN : PQRSX5678L
+Scheme : Orchid Bluechip Fund - Direct Plan - Growth   ISIN : INF000C01GH4   Registrar : KFINTECH
+Opening Unit Balance : 0.000
+10-Jan-2023  Purchase  12,000.00  120.000  100.00  120.000
+10-Jan-2023  *** Stamp Duty ***  0.60
+10-Feb-2023  SIP Purchase  2,000.00  19.608  102.00  139.608
+10-Mar-2023  Systematic Investment Purchase  2,000.00  19.231  104.00  158.839
+25-Jul-2023  Redemption  (5,200.00)  (50.000)  104.00  108.839
+Closing Unit Balance : 108.839   NAV on 29-Dec-2023 : INR 110.00   Total Cost Value : 10,200.00   Market Value on 29-Dec-2023 : INR 11,972.29
+
+Folio No : 5544332 / 01   PAN : PQRSX5678L
+Scheme : Orchid Gilt Fund - Regular Plan - IDCW   ISIN : INF000C01JK5   Registrar : KFINTECH
+Opening Unit Balance : 50.000
+15-Mar-2023  Dividend Reinvestment  100.00  2.000  50.00  52.000
+15-Jun-2023  Dividend Payout  120.00
+15-Sep-2023  Switch Over Out - To Orchid Bluechip Fund  (1,300.00)  (26.000)  50.00  26.000
+Closing Unit Balance : 26.000   NAV on 29-Dec-2023 : INR 52.00   Total Cost Value : 1,250.00   Market Value on 29-Dec-2023 : INR 1,352.00

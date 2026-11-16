@@ -4,6 +4,9 @@
 
 <%= content_for :previous_path, imports_path %>
 
+<% if @import.is_a?(CasImport) %>
+  <%= render "import/uploads/cas_import", import: @import %>
+<% else %>
 <div class="space-y-4">
   <div class="space-y-4 mx-auto max-w-md">
     <div class="text-center space-y-2">
@@ -21,7 +24,7 @@
         <%= styled_form_with model: @import, scope: :import, url: import_upload_path(@import), multipart: true, class: "space-y-2" do |form| %>
           <%= form.select :col_sep, Import::SEPARATORS, label: true %>
 
-          <% if @import.type == "TransactionImport" || @import.type == "TradeImport" %>
+          <% if %w[TransactionImport TradeImport BrokerTradebookImport].include?(@import.type) %>
             <%= form.select :account_id, @import.family.accounts.visible.pluck(:name, :id), { label: "Account (optional)", include_blank: "Multi-account import", selected: @import.account_id } %>
           <% end %>
 
@@ -53,7 +56,7 @@
         <%= styled_form_with model: @import, scope: :import, url: import_upload_path(@import), multipart: true, class: "space-y-2" do |form| %>
           <%= form.select :col_sep, Import::SEPARATORS, label: true %>
 
-          <% if @import.type == "TransactionImport" || @import.type == "TradeImport" %>
+          <% if %w[TransactionImport TradeImport BrokerTradebookImport].include?(@import.type) %>
             <%= form.select :account_id, @import.family.accounts.visible.pluck(:name, :id), { label: "Account (optional)", include_blank: "Multi-account import", selected: @import.account_id } %>
           <% end %>
 
@@ -75,3 +78,4 @@
     </span>
   </div>
 </div>
+<% end %>

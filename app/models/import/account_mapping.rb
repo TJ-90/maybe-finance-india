@@ -4,14 +4,16 @@ class Import::AccountMapping < Import::Mapping
   class << self
     def mappables_by_key(import)
       unique_values = import.rows.map(&:account).uniq
-      accounts = import.family.accounts.where(name: unique_values).index_by(&:name)
+      scope = import.respond_to?(:investment_account_scope) ? import.investment_account_scope : import.family.accounts
+      accounts = scope.where(name: unique_values).index_by(&:name)
 
       unique_values.index_with { |value| accounts[value] }
     end
   end
 
   def selectable_values
-    family_accounts = import.family.accounts.manual.alphabetically.map { |account| [ account.name, account.id ] }
+    scope = import.respond_to?(:investment_account_scope) ? import.investment_account_scope : import.family.accounts
+    family_accounts = scope.manual.alphabetically.map { |account| [ account.name, account.id ] }
 
     unless key.blank?
       family_accounts.unshift [ "Add as new account", CREATE_NEW_KEY ]
@@ -35,11 +37,15 @@ class Import::AccountMapping < Import::Mapping
   def create_mappable!
     return unless creatable?
 
-    account = import.family.accounts.create_or_find_by!(name: key) do |new_account|
-      new_account.balance = 0
-      new_account.import = import
-      new_account.currency = import.family.currency
-      new_account.accountable = Depository.new
+    account = if import.respond_to?(:create_investor_account!)
+      import.create_investor_account!(key)
+    else
+      import.family.accounts.create_or_find_by!(name: key) do |new_account|
+        new_account.balance = 0
+        new_account.import = import
+        new_account.currency = import.family.currency
+        new_account.accountable = Depository.new
+      end
     end
 
     self.mappable = account

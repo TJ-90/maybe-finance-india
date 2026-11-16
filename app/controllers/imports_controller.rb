@@ -27,6 +27,8 @@ class ImportsController < ApplicationController
       date_format: Current.family.date_format,
     )
 
+    import.update!(broker_preset: import_params[:broker_preset]) if import_params[:broker_preset].present? && import.respond_to?(:broker_preset=)
+
     redirect_to import_upload_path(import)
   end
 
@@ -64,6 +66,6 @@ class ImportsController < ApplicationController
     end
 
     def import_params
-      params.require(:import).permit(:type)
+      params.require(:import).permit(:type, :broker_preset)
     end
 end

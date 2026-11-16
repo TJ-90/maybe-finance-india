@@ -1,0 +1,6 @@
+<%= render DS::Dialog.new do |dialog| %>
+  <% dialog.with_header(title: "Enter provident fund details") %>
+  <% dialog.with_body do %>
+    <%= render "provident_funds/form", account: @account, url: provident_funds_path(return_to: params[:return_to]) %>
+  <% end %>
+<% end %>

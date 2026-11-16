@@ -187,6 +187,12 @@ Rails.application.routes.draw do
     end
   end
   resources :vehicles, only: %i[new create edit update]
+  resources :fixed_deposits, only: %i[new create edit update]
+  resources :provident_funds, only: %i[new create edit update]
+  resources :precious_metals, only: %i[new create edit update]
+  resources :insurance_policies, except: %i[show] do
+    patch :mark_premium_paid, on: :member
+  end
   resources :credit_cards, only: %i[new create edit update]
   resources :loans, only: %i[new create edit update]
   resources :cryptos, only: %i[new create edit update]

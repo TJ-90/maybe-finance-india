@@ -16,6 +16,15 @@ class AccountsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
   end
 
+  test "new account picker offers the Indian instrument types" do
+    get new_account_url
+
+    assert_response :success
+    assert_select "a[href*='fixed_deposits/new']"
+    assert_select "a[href*='provident_funds/new']"
+    assert_select "a[href*='precious_metals/new']"
+  end
+
   test "should sync account" do
     post sync_account_url(@account)
     assert_redirected_to account_url(@account)

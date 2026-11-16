@@ -1,0 +1,35 @@
+<%# locals: (breakdown:) %>
+
+<div class="bg-container shadow-border-xs rounded-xl space-y-4 p-4" id="net-worth-breakdown">
+  <h2 class="text-lg font-medium text-primary">Net worth breakdown</h2>
+
+  <div class="flex gap-1">
+    <% breakdown.asset_rows.each do |row| %>
+      <% next unless row.money.amount.positive? %>
+      <div class="h-1.5 rounded-sm" style="width: <%= breakdown.weight(row) %>%; background-color: <%= row.color %>;"></div>
+    <% end %>
+  </div>
+
+  <dl class="divide-y divide-alpha-black-100">
+    <% breakdown.asset_rows.each do |row| %>
+      <div class="flex items-center justify-between gap-4 py-2 text-sm">
+        <dt class="flex items-center gap-2 text-secondary">
+          <span class="h-2.5 w-2.5 rounded-full" style="background-color: <%= row.color %>;"></span>
+          <%= row.label %>
+          <span class="font-mono text-xs"><%= number_to_percentage(breakdown.weight(row), precision: 0) %></span>
+        </dt>
+        <dd class="font-medium text-primary"><%= format_money_compact(row.money) %></dd>
+      </div>
+    <% end %>
+
+    <div class="flex items-center justify-between gap-4 py-2 text-sm">
+      <dt class="text-secondary">Liabilities</dt>
+      <dd class="font-medium text-primary">-<%= format_money_compact(breakdown.liabilities) %></dd>
+    </div>
+
+    <div class="flex items-center justify-between gap-4 pt-3 text-sm">
+      <dt class="font-medium text-primary">Net worth</dt>
+      <dd class="text-base font-semibold text-primary"><%= format_money_compact(breakdown.net_worth) %></dd>
+    </div>
+  </dl>
+</div>

@@ -1,0 +1,25 @@
+<%# locals: (policies:) %>
+
+<% date_format = Current.family.date_format.presence || "%d-%m-%Y" %>
+
+<div class="bg-container shadow-border-xs rounded-xl space-y-3 p-4" id="upcoming-premiums">
+  <div class="flex items-center justify-between">
+    <h2 class="text-lg font-medium text-primary">Upcoming premiums (next 30 days)</h2>
+    <%= link_to "Manage", insurance_policies_path, class: "text-sm text-secondary hover:text-primary" %>
+  </div>
+
+  <ul class="divide-y divide-alpha-black-100">
+    <% policies.each do |policy| %>
+      <li class="flex items-center justify-between gap-4 py-2 text-sm">
+        <div class="min-w-0">
+          <p class="text-primary font-medium truncate"><%= policy.insurer %> <span class="text-secondary font-normal">&middot; <%= policy.kind_label %></span></p>
+          <p class="text-secondary">
+            Due <%= policy.next_premium_due_on.strftime(date_format) %>
+            (<%= policy.days_until_premium.zero? ? "today" : "in #{pluralize(policy.days_until_premium, "day")}" %>)
+          </p>
+        </div>
+        <p class="text-primary font-medium shrink-0"><%= policy.premium_money ? format_money(policy.premium_money) : "-" %></p>
+      </li>
+    <% end %>
+  </ul>
+</div>

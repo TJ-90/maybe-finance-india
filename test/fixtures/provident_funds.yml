@@ -1,0 +1,3 @@
+one:
+  opened_on: <%= 1.year.ago.to_date %>
+  account_number_last4: "1234"

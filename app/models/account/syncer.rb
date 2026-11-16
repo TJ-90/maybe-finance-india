@@ -8,6 +8,7 @@ class Account::Syncer
   def perform_sync(sync)
     Rails.logger.info("Processing balances (#{account.linked? ? 'reverse' : 'forward'})")
     import_market_data
+    account.generate_auto_entries!
     materialize_balances
   end
 

@@ -1,0 +1,47 @@
+<%# locals: (account:, url:) %>
+
+<%= render "accounts/form", account: account, url: url, balance_label: "Balance" do |form| %>
+  <%= form.select :subtype,
+                  ProvidentFund::SUBTYPES.map { |key, value| [ value[:long], key ] },
+                  { label: "Type" } %>
+
+  <%= render "shared/ruler", classes: "my-4" %>
+
+  <div class="space-y-2">
+    <%= form.fields_for :accountable do |pf_form| %>
+      <div class="flex items-center gap-2">
+        <%= pf_form.date_field :opened_on, label: "Balance as on (opening date)" %>
+        <%= pf_form.text_field :account_number_last4,
+                               label: "Account number (last 4 digits)",
+                               placeholder: "1234",
+                               maxlength: 4 %>
+      </div>
+
+      <div class="flex items-center gap-2">
+        <%= pf_form.number_field :interest_rate,
+                                 label: "Interest rate override (% p.a.)",
+                                 placeholder: "Leave blank for the current default",
+                                 min: 0,
+                                 max: 99.999,
+                                 step: 0.001 %>
+        <%= pf_form.date_field :maturity_date, label: "Maturity date" %>
+      </div>
+
+      <div class="flex items-center gap-2">
+        <%= pf_form.money_field :monthly_contribution,
+                                label: "Your monthly contribution",
+                                default_currency: account.currency,
+                                hide_currency: true %>
+        <%= pf_form.money_field :employer_contribution,
+                                label: "Employer monthly contribution (EPF)",
+                                default_currency: account.currency,
+                                hide_currency: true %>
+      </div>
+
+      <p class="text-xs text-secondary">
+        Record contributions as transactions or transfers into this account. Interest is added automatically on 31 March
+        (EPF on the monthly running balance, PPF and SSY on the balance on the 5th) and counted from the opening date.
+      </p>
+    <% end %>
+  </div>
+<% end %>

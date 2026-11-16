@@ -1,0 +1,41 @@
+<%# locals: (account:) %>
+
+<% metal = account.precious_metal %>
+
+<div class="grid grid-cols-3 gap-2">
+  <%= summary_card title: "Weight" do %>
+    <%= metal.weight_grams ? "#{number_with_precision(metal.weight_grams, precision: 3, strip_insignificant_zeros: true)} g" : "Unknown" %>
+  <% end %>
+
+  <%= summary_card title: "Purity" do %>
+    <%= PreciousMetal::PURITIES.dig(metal.purity, :label) || "Unknown" %>
+  <% end %>
+
+  <%= summary_card title: "Form" do %>
+    <%= PreciousMetal::FORMS[metal.form] || "Unknown" %>
+  <% end %>
+
+  <%= summary_card title: "Purchase value" do %>
+    <%= format_money account.first_valuation_amount %>
+  <% end %>
+
+  <%= summary_card title: "Current value" do %>
+    <%= format_money account.balance_money %>
+  <% end %>
+
+  <%= summary_card title: "Trend" do %>
+    <div class="flex items-center gap-1" style="color: <%= metal.trend.color %>">
+      <p class="text-xl font-medium"><%= metal.trend.value %></p>
+      <p>(<%= metal.trend.percent %>%)</p>
+    </div>
+  <% end %>
+</div>
+
+<div class="flex justify-center py-8">
+  <%= render DS::Link.new(
+    text: "Edit details or update value",
+    variant: "ghost",
+    href: edit_precious_metal_path(account),
+    frame: :modal
+  ) %>
+</div>

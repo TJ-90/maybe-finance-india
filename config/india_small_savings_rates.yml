@@ -1,0 +1,40 @@
+# Verify each quarter.
+#
+# Interest rates (% per annum) for Indian small-savings schemes and the EPF. Schemes set by the
+# Ministry of Finance are notified every quarter (Apr-Jun, Jul-Sep, Oct-Dec, Jan-Mar); EPF is
+# declared once a year by EPFO/CBT for the financial year.
+#
+# Each scheme is a list of effective-dated rates. The rate that applies on a date is the one with
+# the latest `effective_from` on or before that date. To record a change, append a new entry.
+# Do not edit past entries; they are needed to compute historical interest.
+#
+# These values were entered from memory of the published notifications and have NOT been checked
+# against the latest government notification. A rate can also be overridden per account
+# (Provident fund -> "Interest rate"), which always wins over this file.
+epf: # Also used for VPF. Declared per financial year, credited at the end of the year.
+  - { effective_from: 2021-04-01, rate: 8.10 }
+  - { effective_from: 2022-04-01, rate: 8.15 }
+  - { effective_from: 2023-04-01, rate: 8.25 }
+  - { effective_from: 2024-04-01, rate: 8.25 }
+  - { effective_from: 2025-04-01, rate: 8.25 } # FY 2025-26, verify once EPFO declares it
+ppf:
+  - { effective_from: 2020-07-01, rate: 7.1 }
+ssy:
+  - { effective_from: 2022-04-01, rate: 7.6 }
+  - { effective_from: 2023-04-01, rate: 8.0 }
+  - { effective_from: 2024-01-01, rate: 8.2 }
+nsc:
+  - { effective_from: 2022-04-01, rate: 6.8 }
+  - { effective_from: 2023-04-01, rate: 7.0 }
+  - { effective_from: 2023-07-01, rate: 7.7 }
+kvp:
+  - { effective_from: 2022-04-01, rate: 6.9 }
+  - { effective_from: 2023-04-01, rate: 7.2 }
+  - { effective_from: 2023-07-01, rate: 7.5 }
+scss:
+  - { effective_from: 2022-04-01, rate: 7.4 }
+  - { effective_from: 2023-04-01, rate: 8.0 }
+  - { effective_from: 2023-07-01, rate: 8.2 }
+pomis:
+  - { effective_from: 2022-04-01, rate: 6.6 }
+  - { effective_from: 2023-04-01, rate: 7.4 }

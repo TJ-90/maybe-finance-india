@@ -1,0 +1,9 @@
+one:
+  interest_rate: 7
+  compounding: quarterly
+  payout: cumulative
+  start_date: <%= 6.months.ago.to_date %>
+  maturity_date: <%= 6.months.from_now.to_date %>
+  principal: 100000
+  institution_name: HDFC Bank
+  auto_renew: false

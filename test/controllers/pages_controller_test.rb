@@ -10,6 +10,25 @@ class PagesControllerTest < ActionDispatch::IntegrationTest
     assert_response :ok
   end
 
+  test "dashboard shows the net worth breakdown and upcoming premiums" do
+    get root_path
+
+    assert_response :ok
+    assert_select "#net-worth-breakdown", text: /Market assets/
+    assert_select "#net-worth-breakdown", text: /Retirement funds/
+    assert_select "#upcoming-premiums", text: /Example Life Insurance/
+    assert_select "#upcoming-premiums", text: /Example Health Insurance/, count: 0 # due in 200 days
+  end
+
+  test "dashboard hides the upcoming premiums card when none are due" do
+    insurance_policies(:term).update!(next_premium_due_on: 90.days.from_now.to_date)
+
+    get root_path
+
+    assert_response :ok
+    assert_select "#upcoming-premiums", count: 0
+  end
+
   test "changelog" do
     VCR.use_cassette("git_repository_provider/fetch_latest_release_notes") do
       get changelog_path

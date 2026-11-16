@@ -30,6 +30,10 @@ module Maybe
     # Placeholder product name. Set PRODUCT_NAME to rebrand without code changes.
     config.x.product_name = ENV.fetch("PRODUCT_NAME", "Kosh")
 
+    # "owner/repo" of the GitHub project that release notes, feedback and bug reports point at.
+    # Set GITHUB_REPO to an empty string to hide the changelog and feedback links.
+    config.x.github_repo = ENV.fetch("GITHUB_REPO", "TJ-90/maybe-finance-india").to_s.strip.presence
+
     config.app_mode = (ENV["SELF_HOSTED"] == "true" || ENV["SELF_HOSTING_ENABLED"] == "true" ? "self_hosted" : "managed").inquiry
 
     # Self hosters can optionally set their own encryption keys if they want to use ActiveRecord encryption.

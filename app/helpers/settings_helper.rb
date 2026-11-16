@@ -13,8 +13,8 @@ module SettingsHelper
     { name: "Categories", path: :categories_path },
     { name: "Rules", path: :rules_path },
     { name: "Merchants", path: :family_merchants_path },
-    { name: "What's new", path: :changelog_path },
-    { name: "Feedback", path: :feedback_path }
+    { name: "What's new", path: :changelog_path, condition: :github_repo_configured? },
+    { name: "Feedback", path: :feedback_path, condition: :github_repo_configured? }
   ]
 
   def adjacent_setting(current_path, offset)

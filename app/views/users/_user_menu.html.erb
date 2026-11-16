@@ -31,9 +31,11 @@
     <% end %>
 
     <% menu.with_item(variant: "link", text: "Settings", icon: "settings", href: settings_profile_path(return_to: request.fullpath)) %>
-    <% menu.with_item(variant: "link", text: "Changelog", icon: "box", href: changelog_path) %>
+    <% if github_repo.present? %>
+      <% menu.with_item(variant: "link", text: "Changelog", icon: "box", href: changelog_path) %>
+    <% end %>
 
-    <% if self_hosted? %>
+    <% if self_hosted? && github_repo.present? %>
       <% menu.with_item(variant: "link", text: "Feedback", icon: "megaphone", href: feedback_path) %>
     <% elsif intercom_configured? %>
       <% menu.with_item(variant: "button", text: "Contact", icon: "message-square-more", data: { action: "intercom#show" }) %>

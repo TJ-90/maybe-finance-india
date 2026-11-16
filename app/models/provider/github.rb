@@ -1,15 +1,17 @@
 class Provider::Github
   attr_reader :name, :owner, :branch
 
-  def initialize
-    @name = "maybe"
-    @owner = "maybe-finance"
+  # Reads "owner/repo" from Rails.application.config.x.github_repo (ENV GITHUB_REPO)
+  def initialize(repo = Rails.application.config.x.github_repo)
+    @owner, @name = repo.to_s.split("/", 2)
     @branch = "main"
   end
 
   def fetch_latest_release_notes
+    return nil if owner.blank? || name.blank?
+
     begin
-      Rails.cache.fetch("latest_github_release_notes", expires_in: 2.hours) do
+      Rails.cache.fetch("latest_github_release_notes/#{repo}", expires_in: 2.hours) do
         release = Octokit.releases(repo).first
         if release
           {

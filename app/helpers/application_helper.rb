@@ -62,6 +62,21 @@ module ApplicationHelper
     end
   end
 
+  # "owner/repo" for release notes and feedback links, nil when hidden via an empty GITHUB_REPO
+  def github_repo
+    Rails.application.config.x.github_repo
+  end
+
+  def github_repo_configured?
+    github_repo.present?
+  end
+
+  def github_repo_url(path = nil)
+    return nil if github_repo.blank?
+
+    [ "https://github.com/#{github_repo}", path ].compact.join("/")
+  end
+
   def product_name
     Rails.application.config.x.product_name
   end

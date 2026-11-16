@@ -58,10 +58,32 @@ class PagesControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "changelog" do
-    VCR.use_cassette("git_repository_provider/fetch_latest_release_notes") do
-      get changelog_path
-      assert_response :ok
-    end
+    github_provider = mock
+    github_provider.expects(:fetch_latest_release_notes).returns(
+      avatar: nil, username: "TJ-90", name: "v1.0", published_at: Time.current, body: "<p>Notes</p>"
+    )
+    Provider::Registry.stubs(:get_provider).with(:github).returns(github_provider)
+
+    get changelog_path
+    assert_response :ok
+    assert_select "h2", text: "v1.0"
+  end
+
+  test "changelog and feedback are hidden when no GitHub repo is configured" do
+    Rails.application.config.x.stubs(:github_repo).returns(nil)
+
+    get changelog_path
+    assert_redirected_to root_path
+
+    get feedback_path
+    assert_redirected_to root_path
+  end
+
+  test "feedback links point at the configured repo" do
+    get feedback_path
+    assert_response :ok
+    assert_select "a[href^='https://github.com/TJ-90/maybe-finance-india/']"
+    assert_select "a[href*='maybe-finance/maybe']", count: 0
   end
 
   test "changelog with nil release notes" do
@@ -73,7 +95,7 @@ class PagesControllerTest < ActionDispatch::IntegrationTest
     get changelog_path
     assert_response :ok
     assert_select "h2", text: "Release notes unavailable"
-    assert_select "a[href='https://github.com/maybe-finance/maybe/releases']"
+    assert_select "a[href='https://github.com/TJ-90/maybe-finance-india/releases']"
   end
 
   test "changelog with incomplete release notes" do
@@ -81,7 +103,7 @@ class PagesControllerTest < ActionDispatch::IntegrationTest
     github_provider = mock
     incomplete_data = {
       avatar: nil,
-      username: "maybe-finance",
+      username: "TJ-90",
       name: "Test Release",
       published_at: nil,
       body: nil

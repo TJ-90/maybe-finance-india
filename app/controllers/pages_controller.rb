@@ -30,16 +30,20 @@ class PagesController < ApplicationController
   end
 
   def changelog
+    repo = Rails.application.config.x.github_repo
+    return redirect_to(root_path) if repo.blank?
+
     @release_notes = github_provider.fetch_latest_release_notes
 
     # Fallback if no release notes are available
     if @release_notes.nil?
+      owner = repo.split("/").first
       @release_notes = {
-        avatar: "https://github.com/maybe-finance.png",
-        username: "maybe-finance",
+        avatar: "https://github.com/#{owner}.png",
+        username: owner,
         name: "Release notes unavailable",
         published_at: Date.current,
-        body: "<p>Unable to fetch the latest release notes at this time. Please check back later or visit our <a href='https://github.com/maybe-finance/maybe/releases' target='_blank'>GitHub releases page</a> directly.</p>"
+        body: "<p>No release notes are available right now. Visit the <a href='https://github.com/#{ERB::Util.html_escape(repo)}/releases' target='_blank' rel='noopener noreferrer'>GitHub releases page</a> directly.</p>"
       }
     end
 
@@ -47,6 +51,8 @@ class PagesController < ApplicationController
   end
 
   def feedback
+    return redirect_to(root_path) if Rails.application.config.x.github_repo.blank?
+
     render layout: "settings"
   end
 

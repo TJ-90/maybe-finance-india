@@ -27,8 +27,8 @@ nav_sections = [
   {
     header: t(".other_section_title"),
     items: [
-      { label: t(".whats_new_label"), path: changelog_path, icon: "box" },
-      { label: t(".feedback_label"), path: feedback_path, icon: "megaphone" }
+      { label: t(".whats_new_label"), path: changelog_path, icon: "box", if: github_repo.present? },
+      { label: t(".feedback_label"), path: feedback_path, icon: "megaphone", if: github_repo.present? }
     ]
   }
 ]

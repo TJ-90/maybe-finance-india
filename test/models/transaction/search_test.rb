@@ -298,4 +298,28 @@ class Transaction::SearchTest < ActiveSupport::TestCase
     assert_equal Money.new(0, "USD"), totals.expense_money
     assert_equal Money.new(0, "USD"), totals.income_money
   end
+
+  test "search filters by payment mode" do
+    upi = create_transaction(account: @checking_account, amount: 100, name: "Upi txn")
+    neft = create_transaction(account: @checking_account, amount: 200, name: "Neft txn")
+    plain = create_transaction(account: @checking_account, amount: 300, name: "Plain txn")
+    upi.transaction.update!(payment_mode: "upi")
+    neft.transaction.update!(payment_mode: "neft")
+
+    result = Transaction::Search.new(@family, filters: { payment_modes: [ "upi" ] }).transactions_scope
+    assert_equal [ upi.entryable.id ], result.pluck(:id)
+
+    result = Transaction::Search.new(@family, filters: { payment_modes: [ "upi", "neft" ] }).transactions_scope
+    assert_equal [ upi.entryable.id, neft.entryable.id ].sort, result.pluck(:id).sort
+
+    result = Transaction::Search.new(@family, filters: {}).transactions_scope
+    assert_includes result.pluck(:id), plain.entryable.id
+  end
+
+  test "payment mode must be a known value" do
+    entry = create_transaction(account: @checking_account)
+
+    assert_not entry.transaction.update(payment_mode: "carrier_pigeon")
+    assert entry.transaction.update(payment_mode: nil)
+  end
 end

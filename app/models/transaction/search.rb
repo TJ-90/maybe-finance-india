@@ -13,6 +13,7 @@ class Transaction::Search
   attribute :categories, array: true
   attribute :merchants, array: true
   attribute :tags, array: true
+  attribute :payment_modes, array: true
   attribute :active_accounts_only, :boolean, default: true
 
   attr_reader :family
@@ -32,6 +33,7 @@ class Transaction::Search
       query = apply_type_filter(query, types)
       query = apply_merchant_filter(query, merchants)
       query = apply_tag_filter(query, tags)
+      query = apply_payment_mode_filter(query, payment_modes)
       query = EntrySearch.apply_search_filter(query, search)
       query = EntrySearch.apply_date_filters(query, start_date, end_date)
       query = EntrySearch.apply_amount_filter(query, amount, amount_operator)
@@ -134,6 +136,12 @@ class Transaction::Search
     def apply_merchant_filter(query, merchants)
       return query unless merchants.present?
       query.joins(:merchant).where(merchants: { name: merchants })
+    end
+
+    def apply_payment_mode_filter(query, payment_modes)
+      return query unless payment_modes.present?
+
+      query.where(transactions: { payment_mode: payment_modes })
     end
 
     def apply_tag_filter(query, tags)

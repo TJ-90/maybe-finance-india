@@ -90,3 +90,33 @@ crypto:
   accountable_type: Crypto
   accountable: one
   status: active
+
+fixed_deposit:
+  family: dylan_family
+  name: HDFC Fixed Deposit
+  balance: 100000
+  currency: USD
+  subtype: fd
+  accountable_type: FixedDeposit
+  accountable: one
+  status: active
+
+provident_fund:
+  family: dylan_family
+  name: PPF Account
+  balance: 200000
+  currency: USD
+  subtype: ppf
+  accountable_type: ProvidentFund
+  accountable: one
+  status: active
+
+precious_metal:
+  family: dylan_family
+  name: Gold Coins
+  balance: 300000
+  currency: USD
+  subtype: gold
+  accountable_type: PreciousMetal
+  accountable: one
+  status: active

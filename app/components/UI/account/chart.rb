@@ -37,8 +37,10 @@ class UI::Account::Chart < ApplicationComponent
       when "cash_balance"
         "Cash value"
       end
-    when "Property", "Vehicle"
+    when "Property", "Vehicle", "PreciousMetal"
       "Estimated #{account.accountable_type.humanize.downcase} value"
+    when "FixedDeposit"
+      "Current deposit value"
     when "CreditCard", "OtherLiability"
       "Debt balance"
     when "Loan"

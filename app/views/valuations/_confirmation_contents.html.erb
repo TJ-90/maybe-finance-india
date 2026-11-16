@@ -33,6 +33,12 @@
         property value
       <% elsif account.vehicle? %>
         vehicle value
+      <% elsif account.fixed_deposit? %>
+        deposit value
+      <% elsif account.precious_metal? %>
+        metal value
+      <% elsif account.provident_fund? %>
+        provident fund balance
       <% elsif account.crypto? %>
         crypto balance
       <% elsif account.other_asset? %>

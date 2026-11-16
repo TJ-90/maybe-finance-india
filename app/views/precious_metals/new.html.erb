@@ -1,0 +1,6 @@
+<%= render DS::Dialog.new do |dialog| %>
+  <% dialog.with_header(title: "Enter gold or silver details") %>
+  <% dialog.with_body do %>
+    <%= render "precious_metals/form", account: @account, url: precious_metals_path(return_to: params[:return_to]) %>
+  <% end %>
+<% end %>

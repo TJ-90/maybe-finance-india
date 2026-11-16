@@ -3,7 +3,10 @@
     <% unless params[:classification] == "liability" %>
       <%= render "account_type", accountable: Depository.new %>
       <%= render "account_type", accountable: Investment.new %>
+      <%= render "account_type", accountable: FixedDeposit.new %>
+      <%= render "account_type", accountable: ProvidentFund.new %>
       <%= render "account_type", accountable: Crypto.new %>
+      <%= render "account_type", accountable: PreciousMetal.new %>
       <%= render "account_type", accountable: Property.new %>
       <%= render "account_type", accountable: Vehicle.new %>
     <% end %>

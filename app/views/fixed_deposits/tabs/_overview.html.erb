@@ -1,0 +1,58 @@
+<%# locals: (account:) %>
+
+<% fd = account.fixed_deposit %>
+<% date_format = Current.family.date_format.presence || "%d-%m-%Y" %>
+
+<div class="grid grid-cols-3 gap-2">
+  <%= summary_card title: "Institution" do %>
+    <%= fd.institution_name.presence || "Unknown" %>
+  <% end %>
+
+  <%= summary_card title: "Interest rate" do %>
+    <%= number_to_percentage(fd.interest_rate, precision: 2) %>
+    <span class="text-sm text-secondary"><%= fd.compounding.humanize.downcase %></span>
+  <% end %>
+
+  <%= summary_card title: "Interest payout" do %>
+    <%= fd.payout.humanize %>
+  <% end %>
+
+  <%= summary_card title: "Start date" do %>
+    <%= fd.start_date&.strftime(date_format) %>
+  <% end %>
+
+  <%= summary_card title: "Maturity date" do %>
+    <%= fd.maturity_date&.strftime(date_format) %>
+    <% if fd.auto_renew? %>
+      <span class="text-sm text-secondary">auto-renews</span>
+    <% end %>
+  <% end %>
+
+  <%= summary_card title: fd.recurring? ? "Monthly installment" : "Amount invested" do %>
+    <%= format_money Money.new(fd.recurring? ? fd.monthly_installment : fd.principal, account.currency) %>
+  <% end %>
+
+  <%= summary_card title: "Current value" do %>
+    <%= format_money account.balance_money %>
+  <% end %>
+
+  <%= summary_card title: "Value at maturity" do %>
+    <%= format_money fd.value_money_on(fd.maturity_date) %>
+  <% end %>
+
+  <%= summary_card title: "Trend" do %>
+    <div class="flex items-center gap-1" style="color: <%= fd.trend.color %>">
+      <p class="text-xl font-medium"><%= fd.trend.value %></p>
+      <p>(<%= fd.trend.percent %>%)</p>
+    </div>
+  <% end %>
+</div>
+
+<div class="flex justify-center py-8">
+  <%= render DS::Link.new(
+    text: "Edit deposit details",
+    variant: "ghost",
+    href: edit_fixed_deposit_path(account),
+    frame: :modal
+  ) %>
+</div>

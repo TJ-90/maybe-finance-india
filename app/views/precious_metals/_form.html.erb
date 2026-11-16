@@ -1,0 +1,40 @@
+<%# locals: (account:, url:) %>
+
+<%= render "accounts/form", account: account, url: url, show_balance: false do |form| %>
+  <%= form.hidden_field :currency, value: account.currency %>
+
+  <%= form.select :subtype,
+                  PreciousMetal::SUBTYPES.map { |key, value| [ value[:long], key ] },
+                  { label: "Metal" } %>
+
+  <%= render "shared/ruler", classes: "my-4" %>
+
+  <div class="space-y-2">
+    <%= form.fields_for :accountable do |pm_form| %>
+      <div class="flex items-center gap-2">
+        <%= pm_form.number_field :weight_grams,
+                                 label: "Weight (grams)",
+                                 placeholder: "50",
+                                 min: 0,
+                                 step: 0.001,
+                                 required: true %>
+        <%= pm_form.select :purity,
+                           PreciousMetal::PURITIES.map { |key, value| [ value[:label], key ] },
+                           { label: "Purity" } %>
+        <%= pm_form.select :form,
+                           PreciousMetal::FORMS.map { |key, label| [ label, key ] },
+                           { label: "Form" } %>
+      </div>
+
+      <%= pm_form.money_field :price_per_gram,
+                              label: "Today's price per gram (24K gold / 999 silver)",
+                              default_currency: account.currency,
+                              hide_currency: true,
+                              required: account.new_record? %>
+
+      <p class="text-xs text-secondary">
+        Value = price per gram x weight x purity. Entering a price records a new valuation for today.
+      </p>
+    <% end %>
+  </div>
+<% end %>

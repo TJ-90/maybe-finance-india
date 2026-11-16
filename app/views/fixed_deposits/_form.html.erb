@@ -1,0 +1,54 @@
+<%# locals: (account:, url:) %>
+
+<%= render "accounts/form", account: account, url: url, show_balance: false do |form| %>
+  <%= form.hidden_field :currency, value: account.currency %>
+
+  <%= form.select :subtype,
+                  FixedDeposit::SUBTYPES.map { |key, value| [ value[:long], key ] },
+                  { label: "Type" } %>
+
+  <%= render "shared/ruler", classes: "my-4" %>
+
+  <div class="space-y-2">
+    <%= form.fields_for :accountable do |fd_form| %>
+      <%= fd_form.text_field :institution_name, label: "Bank / institution", placeholder: "HDFC Bank" %>
+
+      <div class="flex items-center gap-2">
+        <%= fd_form.money_field :principal,
+                                label: "Amount invested (FD, NSC, KVP...)",
+                                default_currency: account.currency,
+                                hide_currency: true %>
+        <%= fd_form.money_field :monthly_installment,
+                                label: "Monthly installment (RD only)",
+                                default_currency: account.currency,
+                                hide_currency: true %>
+      </div>
+
+      <div class="flex items-center gap-2">
+        <%= fd_form.number_field :interest_rate,
+                                 label: "Interest rate (% p.a.)",
+                                 placeholder: "7.0",
+                                 min: 0,
+                                 max: 99.999,
+                                 step: 0.001,
+                                 required: true %>
+        <%= fd_form.select :compounding,
+                           FixedDeposit::COMPOUNDING.keys.map { |key| [ key.humanize, key ] },
+                           { label: "Compounding" } %>
+        <%= fd_form.select :payout,
+                           FixedDeposit::PAYOUT_MONTHS.keys.map { |key| [ key.humanize, key ] },
+                           { label: "Interest payout" } %>
+      </div>
+
+      <div class="flex items-center gap-2">
+        <%= fd_form.date_field :start_date, label: "Start date", required: true %>
+        <%= fd_form.date_field :maturity_date, label: "Maturity date", required: true %>
+      </div>
+
+      <div class="flex items-center justify-between gap-2 pt-2">
+        <p class="text-sm text-primary">Auto-renew at maturity</p>
+        <%= fd_form.toggle :auto_renew %>
+      </div>
+    <% end %>
+  </div>
+<% end %>

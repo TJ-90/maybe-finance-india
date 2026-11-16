@@ -1,0 +1,6 @@
+<%= render DS::Dialog.new do |dialog| %>
+  <% dialog.with_header(title: "Enter deposit details") %>
+  <% dialog.with_body do %>
+    <%= render "fixed_deposits/form", account: @account, url: fixed_deposits_path(return_to: params[:return_to]) %>
+  <% end %>
+<% end %>

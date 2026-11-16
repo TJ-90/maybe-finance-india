@@ -7,8 +7,11 @@ class Import::AccountTypeMapping < Import::Mapping
     end
   end
 
+  # Fixed deposits need a rate and dates to be valid, which a name/amount account import cannot supply
+  NOT_IMPORTABLE_TYPES = %w[FixedDeposit].freeze
+
   def selectable_values
-    Accountable::TYPES.map { |type| [ type.titleize, type ] }
+    (Accountable::TYPES - NOT_IMPORTABLE_TYPES).map { |type| [ type.titleize, type ] }
   end
 
   def requires_selection?

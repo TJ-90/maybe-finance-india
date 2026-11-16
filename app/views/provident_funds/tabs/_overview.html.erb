@@ -1,0 +1,43 @@
+<%# locals: (account:) %>
+
+<% pf = account.provident_fund %>
+<% date_format = Current.family.date_format.presence || "%d-%m-%Y" %>
+<% rate = pf.rate_on(Date.current) %>
+
+<div class="grid grid-cols-3 gap-2">
+  <%= summary_card title: "Balance" do %>
+    <%= format_money account.balance_money %>
+  <% end %>
+
+  <%= summary_card title: "Interest rate" do %>
+    <%= rate ? number_to_percentage(rate, precision: 2) : "Not set" %>
+    <span class="text-sm text-secondary"><%= pf.interest_rate.present? ? "your override" : "default" %></span>
+  <% end %>
+
+  <%= summary_card title: "Interest method" do %>
+    <span class="text-base">
+      <%= pf.interest_method == :monthly_running_balance ? "Monthly running balance" : "Balance on the 5th" %>
+    </span>
+  <% end %>
+
+  <%= summary_card title: "Opened on" do %>
+    <%= pf.opened_on ? pf.opened_on.strftime(date_format) : "Unknown" %>
+  <% end %>
+
+  <%= summary_card title: "Maturity date" do %>
+    <%= pf.maturity_date ? pf.maturity_date.strftime(date_format) : "Not set" %>
+  <% end %>
+
+  <%= summary_card title: "Account number" do %>
+    <%= pf.account_number_last4.present? ? "XXXX #{pf.account_number_last4}" : "Not set" %>
+  <% end %>
+</div>
+
+<div class="flex justify-center py-8">
+  <%= render DS::Link.new(
+    text: "Edit account details",
+    variant: "ghost",
+    href: edit_provident_fund_path(account),
+    frame: :modal
+  ) %>
+</div>

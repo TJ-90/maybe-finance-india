@@ -16,6 +16,7 @@ class Security < ApplicationRecord
   has_many :trades, dependent: :nullify, class_name: "Trade"
   has_many :prices, dependent: :destroy
   has_many :family_security_overrides, dependent: :destroy
+  has_many :goal_allocations, dependent: :destroy
 
   enum :kind, KINDS.index_with(&:itself), prefix: true, validate: { allow_nil: true }
   enum :asset_class, ASSET_CLASSES.index_with(&:itself), prefix: true, validate: { allow_nil: true }

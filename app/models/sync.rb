@@ -184,7 +184,8 @@ class Sync < ApplicationRecord
     end
 
     def update_family_sync_timestamp
-      family.touch(:latest_sync_activity_at)
+      # The family itself may be what is being destroyed (which destroys its syncs too)
+      family.touch(:latest_sync_activity_at) if family.persisted?
     end
 
     def family

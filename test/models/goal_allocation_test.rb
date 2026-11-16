@@ -75,6 +75,19 @@ class GoalAllocationTest < ActiveSupport::TestCase
     assert_not @emergency.goal_allocations.new(account: @account, percentage: 41).valid?
   end
 
+  test "destroying an account or a security removes the allocations that point at it" do
+    security = Security.create!(ticker: "GOALTEST", exchange_operating_mic: "XNSE", asset_class: "equity")
+    account = accounts(:investment)
+    by_security = @home.goal_allocations.create!(account: account, security: security, percentage: 50)
+    by_account = @emergency.goal_allocations.create!(account: @account, percentage: 50)
+
+    security.destroy!
+    assert_not GoalAllocation.exists?(by_security.id)
+
+    @account.destroy!
+    assert_not GoalAllocation.exists?(by_account.id)
+  end
+
   test "the same account cannot be allocated twice to one goal" do
     @home.goal_allocations.create!(account: @account, percentage: 10)
 

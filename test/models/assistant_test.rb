@@ -14,6 +14,16 @@ class AssistantTest < ActiveSupport::TestCase
     @provider = mock
   end
 
+  test "instructions use the product name and India context" do
+    instructions = Assistant.config_for(@chat)[:instructions]
+
+    assert_includes instructions, Rails.application.config.x.product_name
+    assert_not_includes instructions, "Maybe"
+    assert_includes instructions, "lakh"
+    assert_includes instructions, "April 1 to March 31"
+    assert_includes instructions, "do NOT give tax advice or investment advice"
+  end
+
   test "errors get added to chat" do
     @assistant.expects(:get_model_provider).with("gpt-4.1").returns(@provider)
 

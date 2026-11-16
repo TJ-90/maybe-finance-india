@@ -62,6 +62,20 @@ module ApplicationHelper
     end
   end
 
+  def product_name
+    Rails.application.config.x.product_name
+  end
+
+  # Stripe billing is only available when both keys are configured
+  def stripe_configured?
+    ENV["STRIPE_SECRET_KEY"].present? && ENV["STRIPE_WEBHOOK_SECRET"].present?
+  end
+
+  # The Intercom chat widget is only available when it is configured
+  def intercom_configured?
+    ENV["INTERCOM_APP_ID"].present? && ENV["INTERCOM_IDENTITY_VERIFICATION_KEY"].present?
+  end
+
   def format_money(number_or_money, options = {})
     return nil unless number_or_money
 

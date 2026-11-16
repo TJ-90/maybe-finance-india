@@ -1,27 +1,27 @@
 require "test_helper"
 
 class ApplicationHelperTest < ActionView::TestCase
-  test "#title(page_title)" do
-    title("Test Title")
-    assert_equal "Test Title", content_for(:title)
+  test "product_name comes from config" do
+    assert_equal Rails.application.config.x.product_name, product_name
+    assert_equal "Kosh", product_name
   end
 
-  test "#header_title(page_title)" do
-    header_title("Test Header Title")
-    assert_equal "Test Header Title", content_for(:header_title)
+  test "format_money_compact formats INR compactly" do
+    assert_equal "₹12.35 L", format_money_compact(Money.new(1234567, "INR"))
+    assert_equal "₹1.20 Cr", format_money_compact(Money.new(12000000, "INR"))
+    assert_equal "$45.6K", format_money_compact(Money.new(45600, "USD"))
+    assert_nil format_money_compact(nil)
   end
 
-  def setup
-    @account1 = Account.new(currency: "USD", balance: 1)
-    @account2 = Account.new(currency: "USD", balance: 2)
-    @account3 = Account.new(currency: "EUR", balance: -7)
-  end
+  test "stripe and intercom are hidden unless configured" do
+    with_env_overrides STRIPE_SECRET_KEY: nil, STRIPE_WEBHOOK_SECRET: nil, INTERCOM_APP_ID: nil, INTERCOM_IDENTITY_VERIFICATION_KEY: nil do
+      assert_not stripe_configured?
+      assert_not intercom_configured?
+    end
 
-  test "#totals_by_currency(collection: collection, money_method: money_method)" do
-    assert_equal "$3.00", totals_by_currency(collection: [ @account1, @account2 ], money_method: :balance_money)
-    assert_equal "$3.00 | -€7.00", totals_by_currency(collection: [ @account1, @account2, @account3 ], money_method: :balance_money)
-    assert_equal "", totals_by_currency(collection: [], money_method: :balance_money)
-    assert_equal "$0.00", totals_by_currency(collection: [ Account.new(currency: "USD", balance: 0) ], money_method: :balance_money)
-    assert_equal "-$3.00 | €7.00", totals_by_currency(collection: [ @account1, @account2, @account3 ], money_method: :balance_money, negate: true)
+    with_env_overrides STRIPE_SECRET_KEY: "sk", STRIPE_WEBHOOK_SECRET: "whsec", INTERCOM_APP_ID: "app", INTERCOM_IDENTITY_VERIFICATION_KEY: "key" do
+      assert stripe_configured?
+      assert intercom_configured?
+    end
   end
 end

@@ -5,13 +5,14 @@ module Family::PlaidConnectable
     has_many :plaid_items, dependent: :destroy
   end
 
+  # Plaid does not cover India, so Indian families only get manual entry and import
   def can_connect_plaid_us?
-    plaid(:us).present?
+    !india? && plaid(:us).present?
   end
 
   # If Plaid provider is configured and user is in the EU region
   def can_connect_plaid_eu?
-    plaid(:eu).present? && self.eu?
+    !india? && plaid(:eu).present? && self.eu?
   end
 
   def create_plaid_item!(public_token:, item_name:, region:)

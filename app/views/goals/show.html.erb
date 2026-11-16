@@ -157,9 +157,9 @@
       Choose which accounts or holdings fund this goal. The same holding can serve several goals as long as the shares add up to 100% or less.
     </p>
 
-    <% if @goal.goal_allocations.any? %>
+    <% if @allocations.any? %>
       <ul class="divide-y divide-primary">
-        <% @goal.goal_allocations.each do |allocation| %>
+        <% @allocations.each do |allocation| %>
           <li class="flex items-center justify-between gap-4 py-2">
             <div class="min-w-0">
               <p class="text-sm text-primary truncate"><%= allocation.target_label %></p>
@@ -178,6 +178,8 @@
           </li>
         <% end %>
       </ul>
+    <% else %>
+      <p class="text-sm text-secondary">Nothing is linked to this goal yet. The required SIP above assumes you start from zero.</p>
     <% end %>
 
     <%= styled_form_with url: goal_goal_allocations_path(@goal), scope: :goal_allocation, class: "flex flex-col md:flex-row md:items-end gap-2" do |form| %>

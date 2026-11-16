@@ -86,7 +86,7 @@ class Holding::TaxLots
     end
 
     def trade_entries
-      scope = Entry.where(account_id: accounts.map(&:id), entryable_type: "Trade").includes(:entryable, :account)
+      scope = Entry.where(account_id: accounts.map(&:id), entryable_type: "Trade").includes(:account, entryable: :security)
       scope = scope.where("entries.date <= ?", as_of) if as_of
       # Buys before sells on the same day, so same-day round trips don't look oversold
       scope.to_a.sort_by { |entry| [ entry.date, entry.entryable.qty.positive? ? 0 : 1, entry.created_at ] }

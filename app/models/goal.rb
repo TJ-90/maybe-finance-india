@@ -70,7 +70,8 @@ class Goal < ApplicationRecord
 
   # Total of all allocations in the goal currency
   def allocated_value
-    goal_allocations.includes(:account, :security).to_a.sum(Money.new(0, currency), &:value)
+    allocations = goal_allocations.loaded? ? goal_allocations.to_a : goal_allocations.includes(:account, :security).to_a
+    allocations.sum(Money.new(0, currency), &:value)
   end
 
   # Average monthly expenses over the last six full months, in the goal currency. Zero when there

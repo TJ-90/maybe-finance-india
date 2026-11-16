@@ -10,7 +10,7 @@ class ImportsController < ApplicationController
   end
 
   def index
-    @imports = Current.family.imports
+    @imports = Current.family.imports.includes(:account)
 
     render layout: "settings"
   end

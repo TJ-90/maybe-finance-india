@@ -6,6 +6,9 @@ class GoalsController < ApplicationController
   end
 
   def show
+    # Load once so the projection, the rebalancer and the list below all share the same records
+    ActiveRecord::Associations::Preloader.new(records: [ @goal ], associations: { goal_allocations: %i[account security] }).call
+    @allocations = @goal.goal_allocations.to_a
     @projection = @goal.projection
     @rebalancer = @goal.rebalancer
     @allocation_options = allocation_options

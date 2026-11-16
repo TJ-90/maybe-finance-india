@@ -1,0 +1,20 @@
+home:
+  family: dylan_family
+  name: Home down payment
+  kind: home
+  target_amount: 2000000
+  currency: USD
+  target_date: <%= 8.years.from_now.to_date %>
+  monthly_sip: 15000
+
+emergency:
+  family: dylan_family
+  name: Emergency fund
+  kind: emergency_fund
+  target_amount: 300000
+  currency: USD
+  target_date: <%= 2.years.from_now.to_date %>
+  monthly_sip: 5000
+  initial_equity_pct: 0
+  final_equity_pct: 0
+  glide_path_years: 0

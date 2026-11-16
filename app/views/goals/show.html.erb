@@ -1,0 +1,189 @@
+<%= content_for :page_title, @goal.name %>
+
+<% date_format = Current.family.date_format.presence || "%d-%m-%Y" %>
+<% required_sip = @projection.required_monthly_sip %>
+<% allocated = @goal.allocated_value %>
+
+<div class="space-y-4 pb-20">
+  <header class="space-y-1">
+    <%= link_to goals_path, class: "text-sm text-secondary hover:text-primary inline-flex items-center gap-1" do %>
+      <%= icon("chevron-left", size: "sm") %> All goals
+    <% end %>
+
+    <div class="flex items-start justify-between gap-4">
+      <div>
+        <h1 class="text-xl font-medium text-primary"><%= @goal.name %></h1>
+        <p class="text-sm text-secondary"><%= @goal.kind_label %> &middot; by <%= @goal.target_date.strftime(date_format) %></p>
+      </div>
+
+      <div class="flex items-center gap-2">
+        <%= render DS::Link.new(text: "Edit", variant: "outline", icon: "pencil", href: edit_goal_path(@goal), frame: :modal) %>
+        <%= render DS::Button.new(
+          text: "Delete",
+          variant: "outline_destructive",
+          icon: "trash-2",
+          href: goal_path(@goal),
+          method: :delete,
+          confirm: CustomConfirm.for_resource_deletion("this goal")
+        ) %>
+      </div>
+    </div>
+  </header>
+
+  <section class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+    <div class="bg-container shadow-border-xs rounded-xl p-4">
+      <p class="text-xs text-secondary">Target (today's money)</p>
+      <p class="text-xl font-medium text-primary"><%= format_money_compact(@projection.money(@projection.target_today)) %></p>
+      <p class="text-xs text-secondary mt-1">
+        <%= format_money_compact(@projection.money(@projection.inflation_adjusted_target)) %> by <%= @goal.target_date.strftime(date_format) %>
+      </p>
+    </div>
+
+    <div class="bg-container shadow-border-xs rounded-xl p-4">
+      <p class="text-xs text-secondary">Projected corpus</p>
+      <p class="text-xl font-medium text-primary"><%= format_money_compact(@projection.money(@projection.projected_corpus)) %></p>
+      <% if @projection.on_track? %>
+        <p class="text-xs text-success mt-1">On track, surplus <%= format_money_compact(@projection.money(@projection.surplus)) %></p>
+      <% else %>
+        <p class="text-xs text-destructive mt-1">Shortfall <%= format_money_compact(@projection.money(@projection.shortfall)) %></p>
+      <% end %>
+    </div>
+
+    <div class="bg-container shadow-border-xs rounded-xl p-4">
+      <p class="text-xs text-secondary">Required monthly SIP</p>
+      <p class="text-xl font-medium text-primary"><%= required_sip ? format_money_compact(@projection.money(required_sip)) : "-" %></p>
+      <p class="text-xs text-secondary mt-1">
+        Now <%= format_money_compact(@goal.monthly_sip_money) %>, rising <%= number_to_percentage(@goal.sip_step_up_pct, precision: 0) %> a year
+      </p>
+    </div>
+
+    <div class="bg-container shadow-border-xs rounded-xl p-4">
+      <p class="text-xs text-secondary">Allocated so far</p>
+      <p class="text-xl font-medium text-primary"><%= format_money_compact(allocated) %></p>
+      <p class="text-xs text-secondary mt-1"><%= number_to_percentage(@projection.progress_pct, precision: 0) %> of target</p>
+    </div>
+  </section>
+
+  <% if @goal.retirement? %>
+    <p class="text-sm text-secondary">
+      Corpus needed at retirement: <span class="text-primary font-medium"><%= format_money_compact(@projection.money(@projection.retirement_corpus)) %></span>,
+      enough for <%= number_with_delimiter(@goal.life_expectancy - @goal.retirement_age) %> years of expenses that grow with inflation.
+    </p>
+  <% end %>
+
+  <section class="bg-container shadow-border-xs rounded-xl p-4 space-y-3">
+    <div class="flex items-center justify-between">
+      <h2 class="font-medium text-primary">Projection</h2>
+      <div class="flex items-center gap-3 text-xs text-secondary">
+        <span class="inline-flex items-center gap-1"><span class="inline-block w-3 h-0.5 bg-success"></span> Projected corpus</span>
+        <span class="inline-flex items-center gap-1"><span class="inline-block w-3 border-t-2 border-dashed border-secondary"></span> Inflation-adjusted target</span>
+      </div>
+    </div>
+
+    <% if @projection.months_to_target.positive? %>
+      <div id="goalChart"
+           class="w-full h-64"
+           data-controller="goal-chart"
+           data-goal-chart-currency-value="<%= @goal.currency %>"
+           data-goal-chart-data-value="<%= @projection.chart_data.to_json %>"></div>
+    <% else %>
+      <p class="text-sm text-secondary py-10 text-center">The target date has passed. Edit the goal to set a new date.</p>
+    <% end %>
+  </section>
+
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+    <section class="bg-container shadow-border-xs rounded-xl p-4 space-y-3">
+      <h2 class="font-medium text-primary">Glide path</h2>
+      <p class="text-sm text-secondary">
+        Equity stays at <%= number_to_percentage(@goal.initial_equity_pct, precision: 0) %> until
+        <%= @goal.glide_path_years %> <%= "year".pluralize(@goal.glide_path_years) %> before the target date,
+        then reduces to <%= number_to_percentage(@goal.final_equity_pct, precision: 0) %>.
+      </p>
+
+      <table class="w-full text-sm">
+        <thead>
+          <tr class="text-left text-xs text-secondary">
+            <th class="py-1 font-medium">Date</th>
+            <th class="py-1 font-medium text-right">Equity</th>
+            <th class="py-1 font-medium text-right">Debt</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% @goal.glide_path.table.each do |row| %>
+            <tr class="border-t border-primary">
+              <td class="py-1 text-primary"><%= row.date.strftime(date_format) %></td>
+              <td class="py-1 text-right text-primary"><%= number_to_percentage(row.equity_pct, precision: 0) %></td>
+              <td class="py-1 text-right text-secondary"><%= number_to_percentage(row.debt_pct, precision: 0) %></td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="bg-container shadow-border-xs rounded-xl p-4 space-y-3">
+      <h2 class="font-medium text-primary">Rebalancing</h2>
+
+      <% if @rebalancer.total.zero? %>
+        <p class="text-sm text-secondary">Allocate accounts or holdings to this goal to see rebalancing suggestions.</p>
+      <% else %>
+        <% split = @rebalancer.current_split %>
+        <p class="text-sm text-secondary">
+          Today's target is <%= number_to_percentage(@rebalancer.target_equity_pct, precision: 0) %> equity.
+          You hold <%= number_to_percentage(split[:equity], precision: 0) %> equity,
+          <%= number_to_percentage(split[:debt], precision: 0) %> debt,
+          <%= number_to_percentage(split[:gold], precision: 0) %> gold and
+          <%= number_to_percentage(split[:other], precision: 0) %> other.
+        </p>
+
+        <% if @rebalancer.suggestions.any? %>
+          <ul class="space-y-2">
+            <% @rebalancer.suggestions.each do |suggestion| %>
+              <li class="rounded-lg bg-warning/10 text-sm text-primary p-3">
+                Move <%= format_money_compact(suggestion.amount) %> from <%= suggestion.from %> to <%= suggestion.to %>
+                <span class="text-secondary">(<%= number_to_percentage(suggestion.drift.abs, precision: 1) %> points <%= suggestion.drift.positive? ? "above" : "below" %> target)</span>
+              </li>
+            <% end %>
+          </ul>
+        <% else %>
+          <p class="text-sm text-success">Within <%= Goal::Rebalancer::DRIFT_THRESHOLD.to_i %> points of target. No changes needed.</p>
+        <% end %>
+      <% end %>
+    </section>
+  </div>
+
+  <section class="bg-container shadow-border-xs rounded-xl p-4 space-y-3">
+    <h2 class="font-medium text-primary">Allocations</h2>
+    <p class="text-sm text-secondary">
+      Choose which accounts or holdings fund this goal. The same holding can serve several goals as long as the shares add up to 100% or less.
+    </p>
+
+    <% if @goal.goal_allocations.any? %>
+      <ul class="divide-y divide-primary">
+        <% @goal.goal_allocations.each do |allocation| %>
+          <li class="flex items-center justify-between gap-4 py-2">
+            <div class="min-w-0">
+              <p class="text-sm text-primary truncate"><%= allocation.target_label %></p>
+              <p class="text-xs text-secondary">
+                <%= number_to_percentage(allocation.percentage, precision: 0) %> &middot; <%= format_money_compact(allocation.value) %>
+              </p>
+            </div>
+
+            <%= render DS::Button.new(
+              variant: "icon",
+              icon: "trash-2",
+              href: goal_goal_allocation_path(@goal, allocation),
+              method: :delete,
+              confirm: CustomConfirm.for_resource_deletion("this allocation")
+            ) %>
+          </li>
+        <% end %>
+      </ul>
+    <% end %>
+
+    <%= styled_form_with url: goal_goal_allocations_path(@goal), scope: :goal_allocation, class: "flex flex-col md:flex-row md:items-end gap-2" do |form| %>
+      <%= form.select :target, @allocation_options, { label: "Account or holding", prompt: "Choose..." }, { required: true } %>
+      <%= form.number_field :percentage, label: "Share of it (%)", value: 100, min: 1, max: 100, step: "any", required: true %>
+      <%= form.submit "Add allocation" %>
+    <% end %>
+  </section>
+</div>

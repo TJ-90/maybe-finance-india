@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2026_11_17_040002) do
+ActiveRecord::Schema[7.2].define(version: 2026_11_17_070002) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pgcrypto"
   enable_extension "plpgsql"
@@ -306,6 +306,47 @@ ActiveRecord::Schema[7.2].define(version: 2026_11_17_040002) do
     t.jsonb "locked_attributes", default: {}
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+  end
+
+  create_table "goal_allocations", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.uuid "goal_id", null: false
+    t.uuid "account_id", null: false
+    t.uuid "security_id"
+    t.decimal "percentage", precision: 5, scale: 2, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["account_id", "security_id"], name: "index_goal_allocations_on_account_id_and_security_id"
+    t.index ["account_id"], name: "index_goal_allocations_on_account_id"
+    t.index ["goal_id", "account_id", "security_id"], name: "index_goal_allocations_on_goal_account_security", unique: true
+    t.index ["goal_id"], name: "index_goal_allocations_on_goal_id"
+    t.index ["security_id"], name: "index_goal_allocations_on_security_id"
+  end
+
+  create_table "goals", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.uuid "family_id", null: false
+    t.string "name", null: false
+    t.string "kind", default: "custom", null: false
+    t.decimal "target_amount", precision: 19, scale: 4, default: "0.0", null: false
+    t.string "currency", null: false
+    t.date "target_date", null: false
+    t.decimal "inflation_rate", precision: 5, scale: 2, default: "6.0", null: false
+    t.decimal "expected_equity_return", precision: 5, scale: 2, default: "12.0", null: false
+    t.decimal "expected_debt_return", precision: 5, scale: 2, default: "7.0", null: false
+    t.decimal "monthly_sip", precision: 19, scale: 4, default: "0.0", null: false
+    t.decimal "sip_step_up_pct", precision: 5, scale: 2, default: "10.0", null: false
+    t.decimal "initial_equity_pct", precision: 5, scale: 2, default: "70.0", null: false
+    t.decimal "final_equity_pct", precision: 5, scale: 2, default: "30.0", null: false
+    t.integer "glide_path_years", default: 5, null: false
+    t.text "notes"
+    t.integer "current_age"
+    t.integer "retirement_age"
+    t.integer "life_expectancy"
+    t.decimal "monthly_expenses_today", precision: 19, scale: 4
+    t.decimal "post_retirement_return", precision: 5, scale: 2, default: "8.0"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["family_id", "target_date"], name: "index_goals_on_family_id_and_target_date"
+    t.index ["family_id"], name: "index_goals_on_family_id"
   end
 
   create_table "holdings", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
@@ -948,6 +989,10 @@ ActiveRecord::Schema[7.2].define(version: 2026_11_17_040002) do
   add_foreign_key "family_exports", "families"
   add_foreign_key "family_security_overrides", "families"
   add_foreign_key "family_security_overrides", "securities"
+  add_foreign_key "goal_allocations", "accounts"
+  add_foreign_key "goal_allocations", "goals"
+  add_foreign_key "goal_allocations", "securities"
+  add_foreign_key "goals", "families"
   add_foreign_key "holdings", "accounts"
   add_foreign_key "holdings", "securities"
   add_foreign_key "impersonation_session_logs", "impersonation_sessions"

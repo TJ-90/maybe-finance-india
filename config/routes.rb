@@ -202,6 +202,15 @@ Rails.application.routes.draw do
   resources :securities, only: :index
   resources :mutual_funds, only: %i[index show]
 
+  resource :tax_center, only: :show, controller: "tax_center" do
+    get :realized_gains
+    get :harvesting
+    get :calculator
+    get :categories
+    get :export
+    patch "categories/:security_id", action: :update_category, as: :update_category
+  end
+
   resources :invite_codes, only: %i[index create]
 
   resources :invitations, only: [ :new, :create, :destroy ] do

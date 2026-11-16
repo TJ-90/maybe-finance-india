@@ -1,0 +1,102 @@
+<%= turbo_frame_tag "tax_realized_gains" do %>
+  <% estimate = @report.estimate %>
+
+  <div class="bg-container shadow-border-xs rounded-xl p-4 space-y-4" id="tax-realized-gains">
+    <div class="flex items-center justify-between gap-4">
+      <h2 id="realized-gains-heading" class="text-lg font-medium text-primary">Realized gains, FY <%= @report.label %></h2>
+      <%= link_to "Export CSV", export_tax_center_path(shared_params.merge(kind: "realized")), data: { turbo: false }, class: "text-sm text-secondary hover:text-primary underline" %>
+    </div>
+
+    <dl class="grid grid-cols-2 lg:grid-cols-4 gap-3 text-sm">
+      <% TaxCenterHelper::BUCKET_LABELS.except(:exempt).each do |bucket, label| %>
+        <div class="rounded-lg bg-container-inset p-3">
+          <dt class="text-secondary"><%= label %></dt>
+          <dd class="font-medium <%= tax_gain_class(estimate.totals[bucket]) %>"><%= tax_money(estimate.totals[bucket]) %></dd>
+        </div>
+      <% end %>
+    </dl>
+
+    <% if estimate.totals[:exempt].nonzero? %>
+      <p class="text-sm text-secondary">Exempt gains (not taxed): <%= tax_money(estimate.totals[:exempt]) %></p>
+    <% end %>
+
+    <dl class="grid grid-cols-2 lg:grid-cols-4 gap-3 text-sm">
+      <div class="rounded-lg bg-container-inset p-3">
+        <dt class="text-secondary">LTCG exemption limit</dt>
+        <dd class="font-medium text-primary"><%= tax_money(estimate.exemption_limit) %></dd>
+      </div>
+      <div class="rounded-lg bg-container-inset p-3">
+        <dt class="text-secondary">Exemption used</dt>
+        <dd class="font-medium text-primary"><%= tax_money(estimate.exemption_used) %></dd>
+      </div>
+      <div class="rounded-lg bg-container-inset p-3">
+        <dt class="text-secondary">Exemption remaining</dt>
+        <dd class="font-medium text-primary"><%= tax_money(estimate.exemption_remaining) %></dd>
+      </div>
+      <div class="rounded-lg bg-container-inset p-3">
+        <dt class="text-secondary">Estimated base tax (slab <%= @slab_rate.to_s("F").delete_suffix(".0") %>%)</dt>
+        <dd class="font-medium text-primary"><%= tax_money(estimate.tax) %></dd>
+      </div>
+    </dl>
+
+    <% if estimate.unabsorbed_short_loss.positive? || estimate.unabsorbed_long_loss.positive? %>
+      <p class="text-sm text-secondary">
+        Losses left after set-off within the year (carry-forward is not computed):
+        <%= tax_money(estimate.unabsorbed_short_loss + estimate.unabsorbed_long_loss) %>.
+        Short-term losses offset any gain; long-term losses offset only long-term gains.
+      </p>
+    <% end %>
+
+    <% if @report.redemption_rows.any? %>
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm text-primary" id="tax-redemptions">
+          <caption class="sr-only">Gains netted per redemption</caption>
+          <thead class="text-xs uppercase text-secondary">
+            <tr>
+              <th scope="col" class="text-left py-2 pr-3">Date</th>
+              <th scope="col" class="text-left py-2 pr-3">Scheme / security</th>
+              <th scope="col" class="text-left py-2 pr-3">Folio</th>
+              <th scope="col" class="text-right py-2 pr-3">Units</th>
+              <th scope="col" class="text-right py-2 pr-3">Proceeds</th>
+              <th scope="col" class="text-right py-2 pr-3">Cost</th>
+              <th scope="col" class="text-right py-2 pr-3">Short term</th>
+              <th scope="col" class="text-right py-2 pr-3">Long term</th>
+              <th scope="col" class="text-right py-2">Net gain</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-alpha-black-100">
+            <% @report.redemption_rows.each do |row| %>
+              <% redemption = row.redemption %>
+              <tr>
+                <td class="py-2 pr-3 whitespace-nowrap"><%= tax_date(redemption.date) %></td>
+                <td class="py-2 pr-3"><%= redemption.security.display_name %></td>
+                <td class="py-2 pr-3"><%= redemption.folio.presence || "-" %></td>
+                <td class="py-2 pr-3 text-right"><%= tax_units(redemption.qty) %></td>
+                <td class="py-2 pr-3 text-right"><%= tax_money(redemption.proceeds) %></td>
+                <td class="py-2 pr-3 text-right"><%= tax_money(redemption.cost) %></td>
+                <td class="py-2 pr-3 text-right <%= tax_gain_class(row.short_term_gain) %>"><%= tax_money(row.short_term_gain) %></td>
+                <td class="py-2 pr-3 text-right <%= tax_gain_class(row.long_term_gain) %>"><%= tax_money(row.long_term_gain) %></td>
+                <td class="py-2 text-right font-medium <%= tax_gain_class(row.gain) %>"><%= tax_money(row.gain) %></td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+    <% else %>
+      <p class="text-sm text-secondary">No sales in this financial year.</p>
+    <% end %>
+
+    <% if @report.warnings.any? %>
+      <details class="text-sm text-secondary">
+        <summary class="cursor-pointer">Notes (<%= @report.warnings.size %>)</summary>
+        <ul class="list-disc pl-5 mt-2 space-y-1">
+          <% @report.warnings.each do |note| %>
+            <li><%= note %></li>
+          <% end %>
+        </ul>
+      </details>
+    <% end %>
+
+    <%= render "tax_center/disclaimer" %>
+  </div>
+<% end %>

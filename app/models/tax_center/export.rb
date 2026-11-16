@@ -45,10 +45,10 @@ class TaxCenter::Export
     end
 
     def money(value)
-      value.to_d.round(2).to_s("F")
+      format("%.2f", value.to_d)
     end
 
     def number(value)
-      value.to_d.round(3).to_s("F")
+      format("%.3f", value.to_d)
     end
 end

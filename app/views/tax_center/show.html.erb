@@ -1,0 +1,71 @@
+<%= content_for :page_title, "Tax Center" %>
+
+<div class="space-y-4 pb-20">
+  <header class="space-y-1">
+    <h1 class="text-xl font-medium text-primary">Tax Center</h1>
+    <p class="text-sm text-secondary">Capital gains, tax harvesting and a sale tax calculator for your investment accounts.</p>
+  </header>
+
+  <div class="rounded-xl bg-container-inset border border-primary p-3" role="note">
+    <%= render "tax_center/disclaimer" %>
+  </div>
+
+  <% if @available_accounts.empty? %>
+    <div class="bg-container shadow-border-xs rounded-xl p-6 text-center text-sm text-secondary">
+      Add an investment account with trades to see your capital gains.
+    </div>
+  <% else %>
+    <%= form_with url: tax_center_path, method: :get, id: "tax-filters", class: "bg-container shadow-border-xs rounded-xl p-4 space-y-4" do |form| %>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div class="space-y-1">
+          <%= form.label :fy, "Financial year", class: "block text-sm font-medium text-primary" %>
+          <%= form.select :fy, options_for_select(@fy_options, @fy_start.year), {}, { class: "form-field__input text-sm border border-secondary rounded-lg w-full" } %>
+        </div>
+
+        <div class="space-y-1">
+          <%= form.label :slab, "Slab rate (%)", class: "block text-sm font-medium text-primary" %>
+          <%= form.number_field :slab, value: shared_params[:slab], min: 0, max: 100, step: "any", class: "form-field__input text-sm border border-secondary rounded-lg w-full" %>
+        </div>
+
+        <fieldset class="space-y-1">
+          <legend class="text-sm font-medium text-primary">Accounts (one person)</legend>
+          <p class="text-xs text-secondary">The LTCG exemption is per individual. Select only that person's accounts.</p>
+          <div class="space-y-1">
+            <% @available_accounts.each do |account| %>
+              <label class="flex items-center gap-2 text-sm text-primary">
+                <%= check_box_tag "account_ids[]", account.id, @selected_accounts.include?(account), id: "account_ids_#{account.id}", class: "checkbox checkbox--light" %>
+                <%= account.name %>
+              </label>
+            <% end %>
+          </div>
+        </fieldset>
+      </div>
+
+      <%= render DS::Button.new(text: "Apply", type: "submit", variant: "primary", size: :sm) %>
+    <% end %>
+
+    <section>
+      <%= turbo_frame_tag "tax_realized_gains", src: realized_gains_tax_center_path(shared_params) do %>
+        <%= render "entries/loading" %>
+      <% end %>
+    </section>
+
+    <section>
+      <%= turbo_frame_tag "tax_harvesting", src: harvesting_tax_center_path(shared_params) do %>
+        <%= render "entries/loading" %>
+      <% end %>
+    </section>
+
+    <section>
+      <%= turbo_frame_tag "tax_calculator", src: calculator_tax_center_path(shared_params) do %>
+        <%= render "entries/loading" %>
+      <% end %>
+    </section>
+
+    <section>
+      <%= turbo_frame_tag "tax_categories", src: categories_tax_center_path(shared_params) do %>
+        <%= render "entries/loading" %>
+      <% end %>
+    </section>
+  <% end %>
+</div>

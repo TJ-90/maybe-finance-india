@@ -1,0 +1,135 @@
+<%= turbo_frame_tag "tax_calculator" do %>
+  <% sim = @calculation.simulator %>
+
+  <div class="bg-container shadow-border-xs rounded-xl p-4 space-y-4" id="tax-calculator">
+    <h2 id="calculator-heading" class="text-lg font-medium text-primary">Tax calculator</h2>
+
+    <%= form_with url: calculator_tax_center_path, method: :get, class: "space-y-4" do |form| %>
+      <% shared_params.except(:account_ids).each do |key, value| %>
+        <%= hidden_field_tag key, value, id: "calc_#{key}" %>
+      <% end %>
+      <% shared_params[:account_ids].each do |id| %>
+        <%= hidden_field_tag "account_ids[]", id, id: "calc_account_#{id}" %>
+      <% end %>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div class="space-y-1 md:col-span-3">
+          <%= form.label :holding, "Holding", class: "block text-sm font-medium text-primary" %>
+          <%= form.select :holding,
+                          options_for_select(@calculation.options.map { |o| [ "#{o.label} - #{tax_units(o.units)} units", o.value ] }, params[:holding]),
+                          { include_blank: "Choose a holding" },
+                          { class: "form-field__input text-sm border border-secondary rounded-lg w-full" } %>
+        </div>
+
+        <div class="space-y-1">
+          <%= form.label :units, "Units to sell", class: "block text-sm font-medium text-primary" %>
+          <%= form.number_field :units, value: params[:units], min: 0, step: "0.001", class: "form-field__input text-sm border border-secondary rounded-lg w-full" %>
+        </div>
+
+        <div class="space-y-1">
+          <%= form.label :sale_date, "Sale date", class: "block text-sm font-medium text-primary" %>
+          <%= form.date_field :sale_date, value: @calculation.sale_date, class: "form-field__input text-sm border border-secondary rounded-lg w-full" %>
+        </div>
+
+        <div class="space-y-1">
+          <%= form.label :price, "Price per unit", class: "block text-sm font-medium text-primary" %>
+          <%= form.number_field :price, value: params[:price].presence || @calculation.default_price&.round(4)&.to_s("F"), min: 0, step: "any", class: "form-field__input text-sm border border-secondary rounded-lg w-full" %>
+        </div>
+
+        <div class="space-y-1">
+          <%= form.label :realized_stcg, "Equity STCG already realized this FY", class: "block text-sm font-medium text-primary" %>
+          <%= form.number_field :realized_stcg, value: params[:realized_stcg].presence || @calculation.default_realized(:stcg_equity), step: "any", class: "form-field__input text-sm border border-secondary rounded-lg w-full" %>
+        </div>
+
+        <div class="space-y-1">
+          <%= form.label :realized_ltcg, "Equity LTCG already realized this FY", class: "block text-sm font-medium text-primary" %>
+          <%= form.number_field :realized_ltcg, value: params[:realized_ltcg].presence || @calculation.default_realized(:ltcg_equity), step: "any", class: "form-field__input text-sm border border-secondary rounded-lg w-full" %>
+        </div>
+
+        <div class="space-y-1">
+          <%= form.label :only_held_over_months, "Only consider units held more than (months)", class: "block text-sm font-medium text-primary" %>
+          <%= form.number_field :only_held_over_months, value: params[:only_held_over_months], min: 0, step: 1, class: "form-field__input text-sm border border-secondary rounded-lg w-full" %>
+          <p class="text-xs text-warning">Planning view only. Your AMC or broker always sells the oldest units first and will not process a sale this way.</p>
+        </div>
+      </div>
+
+      <%= render DS::Button.new(text: "Calculate", type: "submit", variant: "primary", size: :sm) %>
+    <% end %>
+
+    <% if sim %>
+      <div class="space-y-3" id="calculator-result">
+        <dl class="grid grid-cols-2 lg:grid-cols-4 gap-3 text-sm">
+          <div class="rounded-lg bg-container-inset p-3">
+            <dt class="text-secondary">Proceeds</dt>
+            <dd class="font-medium text-primary"><%= tax_money(sim.proceeds) %></dd>
+          </div>
+          <div class="rounded-lg bg-container-inset p-3">
+            <dt class="text-secondary">Cost</dt>
+            <dd class="font-medium text-primary"><%= tax_money(sim.cost) %></dd>
+          </div>
+          <div class="rounded-lg bg-container-inset p-3">
+            <dt class="text-secondary">Gain</dt>
+            <dd class="font-medium <%= tax_gain_class(sim.gain) %>"><%= tax_money(sim.gain) %></dd>
+          </div>
+          <div class="rounded-lg bg-container-inset p-3">
+            <dt class="text-secondary">Estimated extra tax</dt>
+            <dd class="font-medium text-primary" id="calculator-tax"><%= tax_money(sim.incremental_tax) %></dd>
+          </div>
+        </dl>
+
+        <% if sim.shortfall.positive? %>
+          <p class="text-sm text-warning">Only <%= tax_units(sim.units) %> units are available to sell. <%= tax_units(sim.shortfall) %> units were left out.</p>
+        <% end %>
+
+        <% if @calculation.inputs[:only_held_over_months].present? %>
+          <p class="text-sm text-warning">Planning view: units held <%= @calculation.inputs[:only_held_over_months] %> months or less were skipped (<%= sim.skipped_lots.size %> lots).</p>
+        <% end %>
+
+        <details class="text-sm">
+          <summary class="cursor-pointer text-secondary">View FIFO details</summary>
+          <div class="overflow-x-auto mt-2">
+            <table class="w-full text-sm text-primary" id="calculator-lots">
+              <caption class="sr-only">FIFO lots consumed by this sale</caption>
+              <thead class="text-xs uppercase text-secondary">
+                <tr>
+                  <th scope="col" class="text-left py-2 pr-3">Bought</th>
+                  <th scope="col" class="text-right py-2 pr-3">Units</th>
+                  <th scope="col" class="text-right py-2 pr-3">Cost</th>
+                  <th scope="col" class="text-right py-2 pr-3">Proceeds</th>
+                  <th scope="col" class="text-left py-2 pr-3">Gain type</th>
+                  <th scope="col" class="text-right py-2 pr-3">Rate</th>
+                  <th scope="col" class="text-right py-2">Gain</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-alpha-black-100">
+                <% sim.lines.each do |line| %>
+                  <tr>
+                    <td class="py-2 pr-3 whitespace-nowrap"><%= tax_date(line.buy_date) %></td>
+                    <td class="py-2 pr-3 text-right"><%= tax_units(line.qty) %></td>
+                    <td class="py-2 pr-3 text-right"><%= tax_money(line.cost) %></td>
+                    <td class="py-2 pr-3 text-right"><%= tax_money(line.proceeds) %></td>
+                    <td class="py-2 pr-3"><%= tax_term_label(line.term) %> (<%= TaxCenterHelper::BUCKET_LABELS[line.bucket] %>)</td>
+                    <td class="py-2 pr-3 text-right"><%= tax_rate_label(line.classification) %></td>
+                    <td class="py-2 text-right <%= tax_gain_class(line.gain) %>"><%= tax_money(line.gain) %></td>
+                  </tr>
+                <% end %>
+              </tbody>
+            </table>
+          </div>
+          <% notes = sim.lines.flat_map(&:notes).uniq %>
+          <% if notes.any? %>
+            <ul class="list-disc pl-5 mt-2 space-y-1 text-secondary">
+              <% notes.each do |note| %>
+                <li><%= note %></li>
+              <% end %>
+            </ul>
+          <% end %>
+        </details>
+      </div>
+    <% elsif params[:holding].present? %>
+      <p class="text-sm text-secondary">Enter the units to sell and a price to see the estimate.</p>
+    <% end %>
+
+    <%= render "tax_center/disclaimer" %>
+  </div>
+<% end %>

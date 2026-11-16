@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2026_11_17_010001) do
+ActiveRecord::Schema[7.2].define(version: 2026_11_17_040002) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pgcrypto"
   enable_extension "plpgsql"
@@ -380,6 +380,8 @@ ActiveRecord::Schema[7.2].define(version: 2026_11_17_010001) do
     t.string "exchange_operating_mic_col_label"
     t.string "amount_type_strategy", default: "signed_amount"
     t.string "amount_type_inflow_value"
+    t.string "debit_col_label"
+    t.string "credit_col_label"
     t.index ["family_id"], name: "index_imports_on_family_id"
   end
 
@@ -756,9 +758,12 @@ ActiveRecord::Schema[7.2].define(version: 2026_11_17_010001) do
     t.uuid "merchant_id"
     t.jsonb "locked_attributes", default: {}
     t.string "kind", default: "standard", null: false
+    t.string "payment_mode"
+    t.string "reference_number"
     t.index ["category_id"], name: "index_transactions_on_category_id"
     t.index ["kind"], name: "index_transactions_on_kind"
     t.index ["merchant_id"], name: "index_transactions_on_merchant_id"
+    t.index ["payment_mode"], name: "index_transactions_on_payment_mode"
   end
 
   create_table "transfers", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|

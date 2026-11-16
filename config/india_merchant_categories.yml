@@ -1,0 +1,132 @@
+# Merchant -> category hints for imported Indian bank statements.
+#
+# Verify each financial year: merchants rebrand and merge. This file is a best-effort starting point.
+#
+# Each entry:
+#   name:      canonical merchant name (used for the FamilyMerchant that gets created)
+#   category:  must exactly match a name in Category.default_categories
+#   patterns:  case-insensitive, whole-word phrases matched against the parsed counterparty,
+#              the UPI VPA, and the cleaned narration. First matching entry wins, so list
+#              more specific entries before generic ones.
+#
+# A hint is applied only when the imported row has no category, the transaction attribute is not
+# locked, and nothing else (rule, AI) has categorised it. See TransactionImport#import!.
+merchants:
+  # Food delivery & dining
+  - name: Swiggy
+    category: Food Delivery & Dining
+    patterns: [swiggy, bundl technologies]
+  - name: Zomato
+    category: Food Delivery & Dining
+    patterns: [zomato, eternal limited]
+
+  # Groceries
+  - name: BigBasket
+    category: Groceries
+    patterns: [bigbasket, big basket, innovative retail concepts]
+  - name: Blinkit
+    category: Groceries
+    patterns: [blinkit, grofers]
+  - name: Zepto
+    category: Groceries
+    patterns: [zepto, kiranakart]
+  - name: DMart
+    category: Groceries
+    patterns: [dmart, avenue supermarts]
+
+  # Transport & fuel
+  - name: Uber
+    category: Transport & Fuel
+    patterns: [uber, uber india]
+  - name: Ola
+    category: Transport & Fuel
+    patterns: [ola, olacabs, ola cabs, ani technologies]
+  - name: Rapido
+    category: Transport & Fuel
+    patterns: [rapido, roppen transportation]
+  - name: IRCTC
+    category: Transport & Fuel
+    patterns: [irctc]
+
+  # Utilities (telecom, broadband, electricity)
+  - name: Airtel
+    category: Utilities
+    patterns: [airtel, bharti airtel]
+  - name: Jio
+    category: Utilities
+    patterns: [jio, reliance jio, jio platforms]
+  - name: Vi (Vodafone Idea)
+    category: Utilities
+    patterns: [vodafone, vodafone idea, vi postpaid]
+  - name: ACT Fibernet
+    category: Utilities
+    patterns: [act fibernet, act broadband, atria convergence]
+  - name: BESCOM
+    category: Utilities
+    patterns: [bescom]
+  - name: Tata Power
+    category: Utilities
+    patterns: [tata power]
+
+  # Entertainment & OTT (before Amazon so "Amazon Prime" wins)
+  - name: Netflix
+    category: Entertainment & OTT
+    patterns: [netflix]
+  - name: Hotstar
+    category: Entertainment & OTT
+    patterns: [hotstar, jiohotstar, disney hotstar]
+  - name: Spotify
+    category: Entertainment & OTT
+    patterns: [spotify]
+  - name: Amazon Prime
+    category: Entertainment & OTT
+    patterns: [amazon prime, prime video]
+
+  # Shopping
+  - name: Amazon
+    category: Shopping
+    patterns: [amazon, amazon pay india, amazon seller services]
+  - name: Flipkart
+    category: Shopping
+    patterns: [flipkart]
+  - name: Myntra
+    category: Shopping
+    patterns: [myntra]
+
+  # Insurance premiums
+  - name: LIC
+    category: Insurance Premiums
+    patterns: [lic, lic of india, life insurance corporation]
+  - name: HDFC Life
+    category: Insurance Premiums
+    patterns: [hdfc life, hdfclife, hdfc standard life]
+  - name: Star Health
+    category: Insurance Premiums
+    patterns: [star health]
+
+  # Investments & SIP (BSE StAR MF / NSE / ICCL mandates are how most SIPs are debited)
+  - name: BSE Limited
+    category: Investments & SIP
+    patterns: [bse limited, bse ltd, indian clearing corporation, iccl]
+  - name: NSE Clearing
+    category: Investments & SIP
+    patterns: [nse clearing, national securities clearing, nsccl, nse limited]
+  - name: Mutual Fund SIP
+    category: Investments & SIP
+    patterns: [amc sip, mutual fund, mf utilities, mfu]
+
+  # EMI / loan repayments
+  - name: Bajaj Finance
+    category: EMI & Loan Payments
+    patterns: [bajaj finance, bajaj finserv]
+  - name: Loan EMI
+    category: EMI & Loan Payments
+    patterns: [emi, loan]
+
+# Narration-level hints for statement lines that have no counterparty.
+# Matched against the cleaned narration produced by Transaction::NarrationParser.
+narrations:
+  - clean_name: Interest credit
+    category: Interest
+  - clean_name: Bank charges
+    category: Bank Charges & Fees

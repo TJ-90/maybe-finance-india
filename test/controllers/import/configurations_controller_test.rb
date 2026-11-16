@@ -49,6 +49,26 @@ class Import::ConfigurationsControllerTest < ActionDispatch::IntegrationTest
     assert_equal "Deposit Amt.", @import.credit_col_label
   end
 
+  test "a broker preset sent for a non-broker import is ignored, not a server error" do
+    patch import_configuration_url(@import), params: {
+      import: { date_col_label: "Date", date_format: "%Y-%m-%d", amount_col_label: "Amount", broker_preset: "zerodha" }
+    }
+
+    assert_redirected_to import_clean_url(@import)
+    assert_equal "Date", @import.reload.date_col_label
+  end
+
+  test "a broker preset is still saved for a broker tradebook import" do
+    broker_import = users(:family_admin).family.imports.create!(type: "BrokerTradebookImport", raw_file_str: "a,b\n1,2\n")
+
+    patch import_configuration_url(broker_import), params: {
+      import: { date_col_label: "a", date_format: "%Y-%m-%d", broker_preset: "mf_template" }
+    }
+
+    assert_redirected_to import_clean_url(broker_import)
+    assert_equal "mf_template", broker_import.reload.broker_preset
+  end
+
   test "updating a valid configuration regenerates rows" do
     TransactionImport.any_instance.expects(:generate_rows_from_csv).once
 

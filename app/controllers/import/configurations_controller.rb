@@ -35,6 +35,13 @@ class Import::ConfigurationsController < ApplicationController
     end
 
     def import_params
+      permitted = permitted_import_params
+      # Only broker tradebook imports have a preset; ignore it on other types instead of raising
+      permitted.delete(:broker_preset) unless @import.respond_to?(:broker_preset=)
+      permitted
+    end
+
+    def permitted_import_params
       params.require(:import).permit(
         :date_col_label,
         :amount_col_label,

@@ -27,6 +27,28 @@ class TransactionImportTest < ActiveSupport::TestCase
     assert @import.publishable?
   end
 
+  test "sync_mappings only removes stale mappings of its own import" do
+    other = Import.create!(family: @import.family, type: "TransactionImport")
+    other_mapping = other.mappings.create!(key: "OtherCategory", create_when_empty: true, type: "Import::CategoryMapping")
+
+    @import.update!(
+      raw_file_str: "date,name,amount,category\n01/01/2024,Txn1,100,Mine\n",
+      date_col_label: "date",
+      amount_col_label: "amount",
+      category_col_label: "category",
+      date_format: "%m/%d/%Y"
+    )
+    @import.generate_rows_from_csv
+    @import.reload
+    stale = @import.mappings.create!(key: "Stale", create_when_empty: true, type: "Import::CategoryMapping")
+
+    @import.sync_mappings
+
+    assert Import::Mapping.exists?(other_mapping.id)
+    assert_not Import::Mapping.exists?(stale.id)
+    assert @import.mappings.exists?(key: "Mine", type: "Import::CategoryMapping")
+  end
+
   test "imports transactions, categories, tags, and accounts" do
     import = <<~CSV
       date,name,amount,category,tags,account,notes

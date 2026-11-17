@@ -1,5 +1,5 @@
 class AccountsController < ApplicationController
-  before_action :set_account, only: %i[sync sparkline toggle_active show destroy]
+  before_action :set_account, only: %i[sync refresh_prices sparkline toggle_active show destroy]
   include Periodable
 
   def index
@@ -31,6 +31,12 @@ class AccountsController < ApplicationController
     end
 
     redirect_to account_path(@account)
+  end
+
+  # "Refresh prices now" on an investment account: the same jobs the schedule runs
+  def refresh_prices
+    MarketData.refresh_now
+    redirect_to account_path(@account), notice: "Refreshing prices. Values update in a few minutes."
   end
 
   def sparkline

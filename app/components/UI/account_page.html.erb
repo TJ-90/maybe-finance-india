@@ -7,7 +7,7 @@
     <%= render UI::Account::Chart.new(account: account, period: chart_period, view: chart_view) %>
 
     <% if investment_summary %>
-      <%= render "investments/summary_cards", summary: investment_summary, id: "account-investment-summary" %>
+      <%= render "investments/summary_cards", summary: investment_summary, id: "account-investment-summary", account: account %>
     <% end %>
 
     <div class="min-h-[800px]" data-testid="account-details">

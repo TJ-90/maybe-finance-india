@@ -60,7 +60,9 @@ Rails.application.routes.draw do
     resource :hosting, only: %i[show update] do
       delete :clear_cache, on: :collection
     end
-    resource :market_data, only: %i[show update]
+    resource :market_data, only: %i[show update] do
+      post :refresh_prices, on: :collection
+    end
     resource :billing, only: :show
     resource :security, only: :show
     resource :api_key, only: [ :show, :new, :create, :destroy ]
@@ -160,6 +162,7 @@ Rails.application.routes.draw do
   resources :accounts, only: %i[index new show destroy], shallow: true do
     member do
       post :sync
+      post :refresh_prices
       get :sparkline
       patch :toggle_active
     end

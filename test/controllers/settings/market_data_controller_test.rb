@@ -14,6 +14,21 @@ class Settings::MarketDataControllerTest < ActionDispatch::IntegrationTest
     assert_select "input[type=file][name=nav_file]"
   end
 
+  test "shows when prices were last refreshed and queues a refresh on request" do
+    sign_in users(:family_admin)
+
+    get settings_market_data_url
+    assert_select "[data-testid=prices-updated-at]", text: /Prices as of .* IST/
+
+    assert_enqueued_with(job: ImportMutualFundSchemesJob) do
+      assert_enqueued_with(job: ImportMarketDataJob) do
+        post refresh_prices_settings_market_data_url
+      end
+    end
+
+    assert_redirected_to settings_market_data_url
+  end
+
   test "admin can upload a NAVAll.txt" do
     sign_in users(:family_admin)
 

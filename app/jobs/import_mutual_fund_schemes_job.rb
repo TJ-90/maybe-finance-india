@@ -6,8 +6,8 @@
 class ImportMutualFundSchemesJob < ApplicationJob
   queue_as :scheduled
 
-  def perform
-    return unless MarketData.jobs_enabled?
+  def perform(manual: false)
+    return unless MarketData.jobs_enabled? || manual
 
     started_at = Time.current
     amfi = Provider::Registry.get_provider(:amfi)

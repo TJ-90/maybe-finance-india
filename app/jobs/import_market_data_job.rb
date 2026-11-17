@@ -16,9 +16,9 @@ class ImportMarketDataJob < ApplicationJob
   queue_as :scheduled
 
   def perform(opts)
-    return unless MarketData.jobs_enabled?
-
     opts = opts.symbolize_keys
+    return unless MarketData.jobs_enabled? || opts[:manual]
+
     mode = opts.fetch(:mode, :full)
     clear_cache = opts.fetch(:clear_cache, false)
     started_at = Time.current

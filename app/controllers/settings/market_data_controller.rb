@@ -25,6 +25,12 @@ class Settings::MarketDataController < ApplicationController
     redirect_to settings_market_data_path, alert: error.message
   end
 
+  # "Refresh prices now": queues the NAV import and the NSE/BSE price import, which re-value accounts afterwards
+  def refresh_prices
+    MarketData.refresh_now
+    redirect_to settings_market_data_path, notice: "Refreshing prices. Values update in a few minutes."
+  end
+
   private
     def ensure_admin
       redirect_to settings_market_data_path, alert: "Only an admin can import market data" unless Current.user.admin?
@@ -35,6 +41,7 @@ class Settings::MarketDataController < ApplicationController
       @last_nav_date = MutualFundScheme.last_nav_date
       @last_scheme_sync = MutualFundScheme.maximum(:updated_at)
       @last_price_date = Security::Price.maximum(:date)
+      @prices_updated_at = Security::Price.maximum(:updated_at)
       @last_rate_date = ExchangeRate.maximum(:date)
       @indian_market_data_enabled = Provider::Registry.get_provider(:amfi).present?
       @synth_configured = Provider::Registry.get_provider(:synth).present?

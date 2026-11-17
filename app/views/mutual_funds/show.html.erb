@@ -70,6 +70,19 @@
         <% end %>
       </section>
 
+      <section class="bg-container shadow-border-xs rounded-xl p-4" id="trailing-returns">
+        <h2 class="font-medium text-primary mb-3">Trailing returns (CAGR)</h2>
+        <dl class="grid grid-cols-3 gap-3 text-sm">
+          <% @trailing_returns.to_h.each do |years, cagr| %>
+            <div class="rounded-lg bg-container-inset p-3">
+              <dt class="text-secondary"><%= years %>Y</dt>
+              <dd class="font-medium <%= xirr_class(cagr) %>"><%= format_xirr(cagr) %></dd>
+            </div>
+          <% end %>
+        </dl>
+        <p class="text-xs text-secondary mt-3">From NAV history<%= " up to #{l(@trailing_returns.as_of, format: :long)}" if @trailing_returns.as_of %>. Shown as -- when the history does not go back that far.</p>
+      </section>
+
       <section class="bg-container shadow-border-xs rounded-xl p-4">
         <h2 class="font-medium text-primary mb-3">Details</h2>
         <dl class="space-y-2 text-sm">

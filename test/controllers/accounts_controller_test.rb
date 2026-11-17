@@ -42,6 +42,16 @@ class AccountsControllerTest < ActionDispatch::IntegrationTest
     assert_select "a[href*='precious_metals/new']"
   end
 
+  test "refresh prices queues the price jobs and goes back to the account" do
+    assert_enqueued_with(job: ImportMutualFundSchemesJob) do
+      assert_enqueued_with(job: ImportMarketDataJob) do
+        post refresh_prices_account_url(@account)
+      end
+    end
+
+    assert_redirected_to account_url(@account)
+  end
+
   test "should sync account" do
     post sync_account_url(@account)
     assert_redirected_to account_url(@account)

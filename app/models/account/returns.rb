@@ -16,9 +16,9 @@ module Account::Returns
 
   # Latest market value of everything held in the account (or of one security)
   def securities_value(security: nil)
-    holdings = current_holdings
-    holdings = holdings.where(security_id: security.id) if security
-    holdings.sum(:amount)
+    holdings = current_holdings_with_returns
+    holdings = holdings.select { |holding| holding.security_id == security.id } if security
+    holdings.sum(&:amount)
   end
 
   # Annualized return as a fraction (0.12 = 12%), or nil when it can't be computed.
@@ -44,9 +44,19 @@ module Account::Returns
   end
 
   # Current holdings that share this account instance, so each holding's returns reuse tax_lots
-  # instead of replaying the trades again
+  # instead of replaying the trades again. Loaded once per account instance: an account page asks for
+  # the value, the 1-day change, the prices-as-of time and the holdings rows, and the "current holdings"
+  # query scans every daily holding row, so repeating it slows the page (and every request queued
+  # behind it). `reload` starts afresh.
   def current_holdings_with_returns
-    current_holdings.includes(:security).to_a.each { |holding| holding.association(:account).target = self }
+    @current_holdings_with_returns ||= current_holdings.includes(:security).to_a.each { |holding| holding.association(:account).target = self }
+  end
+
+  def reload(*)
+    @current_holdings_with_returns = nil
+    @prices_last_updated_at = nil
+    @tax_lots = nil
+    super
   end
 
   # How much the securities moved in value since their previous price (Money), nil when no holding has one
@@ -68,6 +78,9 @@ module Account::Returns
 
   # When the prices behind the holdings were last written (a Time), nil without any
   def prices_last_updated_at
-    Security::Price.where(security_id: current_holdings.select(:security_id)).maximum(:updated_at)
+    return @prices_last_updated_at if defined?(@prices_last_updated_at) && @prices_last_updated_at
+
+    security_ids = current_holdings_with_returns.map(&:security_id)
+    @prices_last_updated_at = security_ids.empty? ? nil : Security::Price.where(security_id: security_ids).maximum(:updated_at)
   end
 end

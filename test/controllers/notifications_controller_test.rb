@@ -69,12 +69,12 @@ class NotificationsControllerTest < ActionDispatch::IntegrationTest
     get root_path
 
     assert_response :success
-    assert_select "a#notification-bell[href=?]", notifications_path, minimum: 1
-    assert_select "a#notification-bell span", text: "1", minimum: 1
+    assert_select "a[data-testid=notification-bell][href=?]", notifications_path, minimum: 1
+    assert_select "a[data-testid=notification-bell] span", text: "1", minimum: 1
 
     @notification.mark_read!
     get root_path
 
-    assert_select "a#notification-bell span", count: 0
+    assert_select "a[data-testid=notification-bell] span", count: 0
   end
 end

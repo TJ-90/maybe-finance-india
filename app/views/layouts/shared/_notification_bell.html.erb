@@ -2,7 +2,7 @@
 <% unread = Current.user.unread_notifications_count %>
 
 <%= link_to notifications_path,
-      id: "notification-bell",
+      data: { testid: "notification-bell" },
       class: "relative inline-flex items-center justify-center w-9 h-9 rounded-lg hover:bg-surface-hover",
       aria: { label: unread.positive? ? "Notifications, #{unread} unread" : "Notifications" } do %>
   <%= icon("bell") %>

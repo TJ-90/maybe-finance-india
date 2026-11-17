@@ -48,9 +48,12 @@ class IndiaFlowTest < ApplicationSystemTestCase
     assert_selector "#account-investment-summary", text: "XIRR"
     assert_selector "#account-investment-summary div", text: /XIRR\s*-?[\d.,]+%/
 
+    # The account page fires several lazy frame requests (sidebar sparklines, holdings, chat); a click
+    # made while they are still queued on the server waits behind them, so let them settle first.
+    assert_no_selector "turbo-frame[busy]", wait: 15
     click_link "Tax"
 
-    assert_selector "h1", text: "Tax Center"
+    assert_selector "h1", text: "Tax Center", wait: 15
     assert_text "Indicative estimates only"
     assert_text "Financial year"
   end

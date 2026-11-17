@@ -287,7 +287,10 @@ When a rule changes, add a dated entry. Do not overwrite history, because past f
 - **Rails 7.2 rejects migration timestamps more than a day in the future.** Use real current-date timestamps (`YYYYMMDDHHMMSS`), not invented later blocks. Keep them above the newest existing migration.
 - Lint with `bin/rubocop -f github -a app test config db/migrate lib`, never with no paths (it reformats `schema.rb`).
 - Data fixes go in rake tasks under `lib/tasks/data_migration.rake` (for example `rename_auto_named_trades`), with tests.
-- The owner must run `bin/rails db:migrate` after pulling. Say so in your report when you add a migration.
+- The owner must run `bin/rails db:migrate` after pulling. Say so in your report when you add a migration, and name any `data_migration:*` task that must follow it (for example `data_migration:resync_holdings_only_accounts` after the `tracks_cash` migration).
+- Only run `db:migrate` when the person explicitly asks for it, and only against the development database. Rails then rewrites `db/schema.rb`. Check `git diff db/schema.rb`:
+  - The one expected difference is the formatting of the pre-existing `accounts.classification` virtual column, which depends on the Postgres version. Restore it with `git checkout -- db/schema.rb`, and never commit that change.
+  - Any other difference means a hand-edited `schema.rb` does not match its migration. Fix the hand edit.
 
 ### No live network in tests
 - `test/test_helper.rb` sets `DISABLE_INDIAN_MARKET_DATA=true` and loads `webmock/minitest`, so tests can never reach AMFI, MFAPI, Yahoo or Frankfurter.
@@ -300,11 +303,15 @@ When a rule changes, add a dated entry. Do not overwrite history, because past f
 - Fixtures must be synthetic (fake names, PAN `ABCDE1234F`, made-up folios). See `test/fixtures/files/cas/` and `test/fixtures/files/imports/`.
 - CAS PDFs and their passwords are never persisted or logged.
 - Notification emails contain no amounts by default.
-- The only outbound requests are market data lookups, which send scheme codes, tickers and currency pairs, never amounts or names.
+- Outbound requests:
+  - **Market data lookups** send scheme codes, tickers and currency pairs, never amounts or names.
+  - **The AI assistant** is the other source. When it is configured, it sends questions, and the data its functions return, to the provider chosen in Settings → AI.
+  - **Auto-categorization and merchant detection** also send transaction descriptions to that provider.
 
 ### Testing environment notes
 - The Ruby version in `.ruby-version` may not be installable in a sandbox. If so, use a nearby Ruby with an unpinned copy of the Gemfile through `BUNDLE_GEMFILE`, and never commit changes to the `ruby` line of the repo `Gemfile` or the `RUBY VERSION` in `Gemfile.lock`. Use a separate test database per parallel worker (`POSTGRES_DB`).
-- **Baselines:** the unit suite still has only the 7 Plaid errors. The system suite has 61 tests (`test/system/`).
+- **Baselines:** the unit suite still has only the 7 Plaid errors. The system suite has 62 tests (`test/system/`), all passing.
+- **Known flaky test:** `ChatsTest#test_sidebar_shows_last_viewed_chat` (`test/system/chats_test.rb`) occasionally fails in a full system run on a timing issue and passes on rerun. Rerun it alone before treating it as a regression.
 - **System tests:** run with `CI=1` so Chrome is headless (`test/application_system_test_case.rb`). If the chromedriver and Chrome major versions differ, a wrapper that starts chromedriver with `--disable-build-check` works. Say in your report if you could not run them.
 - Adding a gem needs a written justification. Only `pdf-reader` was added for this fork. When adding one in a sandbox, copy only its lines into the repo `Gemfile.lock`.
 

@@ -258,6 +258,16 @@ All in `app/models/`. `Import::TYPES` lists them.
 ### Assistant
 `app/models/assistant/function/` exposes accounts, holdings (with XIRR), goals and tax summary. The assistant is told not to give tax or investment advice.
 
+### AI provider settings (Settings → AI)
+- `AiProviderSetting` (`app/models/ai_provider_setting.rb`): one per family (`Family#ai_provider_setting`). `provider` is `openai`, `openrouter` or `openai_compatible`; `api_key` is `encrypts`ed and **never rendered back** (the page shows "Saved key ending in ••••abcd", a "Replace key" field and "Remove key"); `base_url` (required for `openai_compatible`; https, or http only for localhost); `chat_model` and `fast_model` (free text, defaults OpenAI `gpt-4.1` / `gpt-4.1-mini`, OpenRouter `openai/gpt-4.1` / `openai/gpt-4.1-mini`, none for compatible); `openrouter_attribution` (sends `X-Title` from `product_name`, `HTTP-Referer` when the mailer host is set); `enabled`; last test status, message and time. Admin only (`Settings::AiProvidersController`).
+- **Resolution** (`LlmConfig.resolve(family)`, also behind `Family#llm_config`, `User#ai_available?` and the consent card): 1. the family's saved, enabled setting; 2. instance fallbacks in this order: `OPENAI_ACCESS_TOKEN` / `Setting.openai_access_token` (OpenAI), `OPENROUTER_API_KEY` (OpenRouter), `AI_BASE_URL` (OpenAI-compatible, with optional `AI_API_KEY`, `AI_CHAT_MODEL`, `AI_FAST_MODEL`; a chat model is required here).
+- **`Provider::Registry.llm_provider(family)` is the only place an LLM provider is built.** Do not construct `Provider::Openai` or `Provider::OpenaiCompatible` elsewhere, and do not call `get_provider(:openai)` for family work.
+- **Two API styles.** OpenAI keeps `Provider::Openai` (Responses API, `previous_response_id`). OpenRouter and OpenAI-compatible use `Provider::OpenaiCompatible` (Chat Completions via `ruby-openai`'s `client.chat`): streamed text deltas and tool calls whose arguments arrive in pieces (`ChatCompletionsStream`), tool results sent back as `role: "tool"` messages, history rebuilt from persisted messages (`Chat#conversation_history_before`, passed as `history:`; the Responses path ignores it), tools declared without `strict`, follow-up calls use `tool_choice: "none"`. Auto-categorization and merchant detection use `JsonCompletion`: `json_schema`, then `json_object`, then plain text (retrying only on 400/422) with tolerant JSON parsing.
+- The model used for a chat comes from the provider (`llm.chat_model`), not from the message's `ai_model` (which is just recorded). The old `MODELS` whitelist is gone.
+- "Test connection" (`AiProviderSetting::ConnectionTester`): `GET /models`, falling back to a 1-token completion when `/models` is 404/405/501. Messages are written by us (`Provider::LlmErrors`); neither messages nor logs contain the key or provider error bodies (chat errors scrub the key from provider detail).
+- ChatGPT Plus/Pro or Codex subscriptions do not include API access: do not add a "sign in with ChatGPT" flow.
+- Not verified against live OpenRouter, Ollama or other servers (tests use webmock stubs); streaming tool-call formats differ slightly between servers, so the first live run is a test.
+
 ## Conventions learned while building the India edition
 
 ### Financial and tax rules live in effective-dated YAML
@@ -313,6 +323,9 @@ When a rule changes, add a dated entry. Do not overwrite history, because past f
 | `GITHUB_REPO` | `owner/repo` for changelog and feedback links. Empty hides both. |
 | `SMTP_ADDRESS` | Gates notification email (with `SMTP_*` and `EMAIL_SENDER`). |
 | `SYNTH_API_KEY` | Optional fallback for non-Indian prices and rates. |
+| `OPENAI_ACCESS_TOKEN` | Instance-wide OpenAI key for the assistant (used when no family provider is saved in Settings → AI). |
+| `OPENROUTER_API_KEY` | Instance-wide OpenRouter key (implies the OpenRouter provider). |
+| `AI_BASE_URL` | Instance-wide OpenAI-compatible endpoint (for example `http://localhost:11434/v1`). Needs `AI_CHAT_MODEL`; optional `AI_API_KEY`, `AI_FAST_MODEL`. |
 | `SELF_HOSTED` | `true` for self-hosted mode (no paywall). |
 
 Document any new variable in `.env.example` and here.

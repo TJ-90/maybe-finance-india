@@ -129,6 +129,18 @@ class AssistantTest < ActiveSupport::TestCase
     end
   end
 
+  test "tool results carry the function name and arguments, and history excludes the current message" do
+    @chat.messages.create!(type: "AssistantMessage", content: "Earlier answer", ai_model: "gpt-4.1", created_at: 1.minute.ago)
+    history = @chat.conversation_history_before(@message)
+
+    assert_equal "assistant", history.last[:role]
+    assert_equal "Earlier answer", history.last[:content]
+    assert_not_includes history.map { |h| h[:content] }, @message.content
+
+    call = ToolCall::Function.new(provider_id: "c1", provider_call_id: "c1", function_name: "get_accounts", function_arguments: "{}", function_result: { a: 1 })
+    assert_equal({ call_id: "c1", name: "get_accounts", arguments: "{}", output: { "a" => 1 } }, call.to_result)
+  end
+
   private
     def provider_function_request(id:, call_id:, function_name:, function_args:)
       Provider::LlmConcept::ChatFunctionRequest.new(

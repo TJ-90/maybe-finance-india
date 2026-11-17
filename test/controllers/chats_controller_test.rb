@@ -20,6 +20,18 @@ class ChatsControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to chat_path(Chat.order(created_at: :desc).first, thinking: true)
   end
 
+  test "consent card links to Settings > AI when no provider is configured" do
+    @user.update!(ai_enabled: false)
+    Rails.application.config.app_mode.stubs(:self_hosted?).returns(true)
+    Setting.stubs(:openai_access_token).returns(nil)
+
+    with_env_overrides OPENAI_ACCESS_TOKEN: nil, OPENROUTER_API_KEY: nil, AI_BASE_URL: nil do
+      get chats_url
+      assert_select "a[href=?]", settings_ai_provider_path
+      assert_not_includes response.body, "OPENAI_ACCESS_TOKEN"
+    end
+  end
+
   test "shows chat" do
     get chat_url(chats(:one))
     assert_response :success

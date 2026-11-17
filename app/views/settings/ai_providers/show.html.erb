@@ -57,9 +57,9 @@
       </div>
 
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <%= form.text_field :chat_model, label: "Chat model", list: "ai-model-suggestions", autocomplete: "off",
+        <%= form.text_field :chat_model, label: "Chat model", list: "ai-model-suggestions", autocomplete: "off", data: { ai_provider_target: "chatModel" },
               placeholder: AiProviderSetting::DEFAULT_MODELS.dig(@setting.provider, :chat) || "Required" %>
-        <%= form.text_field :fast_model, label: "Fast model (categorization)", list: "ai-model-suggestions", autocomplete: "off",
+        <%= form.text_field :fast_model, label: "Fast model (categorization)", list: "ai-model-suggestions", autocomplete: "off", data: { ai_provider_target: "fastModel" },
               placeholder: AiProviderSetting::DEFAULT_MODELS.dig(@setting.provider, :fast) || "Required" %>
       </div>
       <datalist id="ai-model-suggestions" data-ai-provider-target="suggestions">

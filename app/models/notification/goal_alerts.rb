@@ -10,7 +10,7 @@ class Notification::GoalAlerts
   end
 
   def run!
-    snapshots = family.goals.ordered.map do |goal|
+    snapshots = family.goals.ordered.includes(:household_member).map do |goal|
       previous = goal.goal_snapshots.where(date: ...today).order(date: :desc).first
       snapshot = goal.record_snapshot!(date: today)
       notify_status_change(goal, previous, snapshot) if previous && previous.status != snapshot.status
@@ -28,13 +28,14 @@ class Notification::GoalAlerts
 
     def notify_status_change(goal, previous, snapshot)
       worse = snapshot.worse_than?(previous.status)
+      name = goal_label(goal)
       title, body =
         if snapshot.status == "on_track"
-          [ "#{goal.name} is back on track", "Your projection now reaches the target again." ]
+          [ "#{name} is back on track", "Your projection now reaches the target again." ]
         elsif worse
-          [ "#{goal.name} is #{snapshot.status_label.downcase}", "Status changed from #{previous.status_label.downcase} to #{snapshot.status_label.downcase}. Review the monthly SIP or the money allocated to this goal." ]
+          [ "#{name} is #{snapshot.status_label.downcase}", "Status changed from #{previous.status_label.downcase} to #{snapshot.status_label.downcase}. Review the monthly SIP or the money allocated to this goal." ]
         else
-          [ "#{goal.name} improved to #{snapshot.status_label.downcase}", "Status changed from #{previous.status_label.downcase} to #{snapshot.status_label.downcase}." ]
+          [ "#{name} improved to #{snapshot.status_label.downcase}", "Status changed from #{previous.status_label.downcase} to #{snapshot.status_label.downcase}." ]
         end
 
       users.each do |user|
@@ -59,7 +60,7 @@ class Notification::GoalAlerts
       worst = snapshots.max_by { |snapshot| [ GoalSnapshot::SEVERITY.fetch(snapshot.status), snapshot.shortfall ] }
 
       body = "#{snapshots.size} #{"goal".pluralize(snapshots.size)}: #{count_text}."
-      body += " #{worst.goal.name} needs the most attention." if worst.status != "on_track"
+      body += " #{goal_label(worst.goal)} needs the most attention." if worst.status != "on_track"
       detail = worst.status == "on_track" ? nil : status_detail(worst.goal, worst)
 
       users.each do |user|
@@ -68,6 +69,11 @@ class Notification::GoalAlerts
           url: url_helpers.goals_path, dedupe_key: "goal_summary:#{today.strftime("%Y-%m")}"
         )
       end
+    end
+
+    # "Rahul's Retirement" for a goal that belongs to a household member, else the goal name
+    def goal_label(goal)
+      goal.household_member ? "#{goal.household_member.name}'s #{goal.name}" : goal.name
     end
 
     def money(amount, currency)

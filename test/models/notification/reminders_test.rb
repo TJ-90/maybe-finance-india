@@ -42,6 +42,18 @@ class Notification::RemindersTest < ActiveSupport::TestCase
     assert_equal "stale_account:#{@account.id}:2026-11", notification.dedupe_key
   end
 
+  test "a stale account that belongs to a member names the owner" do
+    rahul = @family.household_members.create!(name: "Rahul", relationship: "self", residency_status: "nri")
+    @account.update!(household_member: rahul)
+    create_folio_trade(@account, @fund, qty: 10, price: 100, date: @today - 40)
+
+    reminders.stale_accounts
+
+    notification = notifications("stale_account").first
+    assert_equal "Rahul's #{@account.name} needs an update", notification.title
+    assert_match(/Rahul's #{Regexp.escape(@account.name)} hasn't been updated in 40 days/, notification.body)
+  end
+
   test "a recent trade means no reminder" do
     create_folio_trade(@account, @fund, qty: 10, price: 100, date: @today - 34)
 
@@ -270,6 +282,43 @@ class Notification::RemindersTest < ActiveSupport::TestCase
     assert_equal "tax_year_end:2026", notification.dedupe_key
     assert_match(/₹/, notification.detail)
     assert_no_match(/₹/, notification.body)
+  end
+
+  test "with household members the tax reminder is per member, names them and dedupes per member" do
+    asha = @family.household_members.create!(name: "Asha", relationship: "spouse", residency_status: "resident")
+    rahul = @family.household_members.create!(name: "Rahul", relationship: "self", residency_status: "nri")
+    @account.update!(household_member: rahul)
+    long_term_gain_setup
+    asha_account = create_investment_account(@family, name: "Asha demat")
+    asha_account.update!(household_member: asha)
+    create_folio_trade(asha_account, @fund, qty: 100, price: 100, date: Date.new(2025, 1, 10), folio: "F9")
+    march = Date.new(2027, 3, 10)
+
+    travel_to march do
+      assert_difference -> { notifications("tax_year_end").count }, 2 do
+        reminders(today: march).tax_year_end
+        reminders(today: march + 5).tax_year_end
+      end
+    end
+
+    keys = notifications("tax_year_end").pluck(:dedupe_key)
+    assert_equal [ "tax_year_end:2026:#{asha.id}", "tax_year_end:2026:#{rahul.id}" ].sort, keys.sort
+    assert_equal [ "Review Asha's tax harvesting before 31 March", "Review Rahul's tax harvesting before 31 March" ],
+                 notifications("tax_year_end").pluck(:title).sort
+  end
+
+  test "a member with nothing to harvest gets no tax reminder" do
+    rahul = @family.household_members.create!(name: "Rahul", relationship: "self", residency_status: "nri")
+    asha = @family.household_members.create!(name: "Asha", relationship: "spouse", residency_status: "resident")
+    @account.update!(household_member: rahul)
+    long_term_gain_setup # only Rahul's account holds gains
+
+    travel_to Date.new(2027, 3, 10) do
+      reminders(today: Date.new(2027, 3, 10)).tax_year_end
+    end
+
+    assert_equal [ "tax_year_end:2026:#{rahul.id}" ], notifications("tax_year_end").pluck(:dedupe_key)
+    assert_not_includes notifications("tax_year_end").pluck(:dedupe_key), "tax_year_end:2026:#{asha.id}"
   end
 
   test "no tax reminder outside March" do

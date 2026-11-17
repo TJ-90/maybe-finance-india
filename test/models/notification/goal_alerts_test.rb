@@ -27,6 +27,16 @@ class Notification::GoalAlertsTest < ActiveSupport::TestCase
     end
   end
 
+  test "a goal that belongs to a member names the member" do
+    member = @family.household_members.create!(name: "Rahul", relationship: "self", residency_status: "nri")
+    @goal.update!(household_member: member)
+    run_alerts("on_track", date: @today - 1)
+
+    run_alerts("off_track")
+
+    assert_equal "Rahul's #{@goal.name} is off track", @users.first.notifications.find_by!(kind: "goal_status").title
+  end
+
   test "tells every family user when a goal slips" do
     run_alerts("on_track", date: @today - 1)
 

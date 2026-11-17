@@ -25,17 +25,19 @@ class Notification::Reminders
   def stale_accounts
     threshold = preferences.stale_data_days
 
-    family.accounts_with_investments.each do |account|
+    family.accounts_with_investments.includes(:household_member).each do |account|
       feed = Account::FeedHistory.new(account, today: today)
       key = "stale_account:#{account.id}:#{today.strftime("%Y-%m")}"
       link = feed.import_link
 
+      label = account_label(account)
+
       if feed.stale?(threshold)
-        notify("stale_account", key, "#{account.name} needs an update",
-               "No new trades or imports for #{feed.days_since_fed} days. #{link.label} to keep returns and tax estimates accurate.", link.path)
+        notify("stale_account", key, "#{label} needs an update",
+               "#{account.household_member ? "#{label} hasn't been updated in #{feed.days_since_fed} days." : "No new trades or imports for #{feed.days_since_fed} days."} #{link.label} to keep returns and tax estimates accurate.", link.path)
       elsif (missed = feed.missed_sips).any?
         names = missed.map { |sip| sip.security.display_name }.to_sentence
-        notify("stale_account", key, "Expected SIP missing in #{account.name}",
+        notify("stale_account", key, "Expected SIP missing in #{label}",
                "No purchase of #{names} this month, although one usually arrives around the #{missed.first.expected_on.day.ordinalize}. #{link.label} if it went through.", link.path)
       end
     end
@@ -66,17 +68,21 @@ class Notification::Reminders
     end
   end
 
-  # 1-31 March: remind when unused LTCG exemption and long-term gains are both available
+  # 1-31 March: remind when unused LTCG exemption and long-term gains are both available. The exemption
+  # is per person, so with household members there is one reminder per member (naming them, deduped per
+  # member); a family with no members gets one reminder over all its investment accounts.
   def tax_year_end
     return unless today.month == 3
 
-    harvester = tax_harvester
-    return unless harvester.exemption_remaining.positive? && harvester.recommended_ltcg >= MIN_WORTHWHILE_LTCG
-
-    money = ->(amount) { Money.new(amount, family.currency).format_compact }
-    notify("tax_year_end", "tax_year_end:#{Period.financial_year_start(today).year}", "Review tax harvesting before 31 March",
-           "You may still have unused long-term capital gains exemption this financial year.", url_helpers.tax_center_path,
-           detail: "Up to #{money.call(harvester.recommended_ltcg)} of long-term gains can be booked within the #{money.call(harvester.exemption_remaining)} exemption left.")
+    members = family.household_members.ordered.to_a
+    if members.empty?
+      remind_tax_harvesting(nil, family.accounts_with_investments.to_a)
+    else
+      investment_accounts = family.accounts_with_investments.to_a
+      members.each do |member|
+        remind_tax_harvesting(member, investment_accounts.select { |account| account.household_member_id == member.id })
+      end
+    end
   end
 
   private
@@ -97,10 +103,40 @@ class Notification::Reminders
             .uniq.select(&:kind_mutual_fund?)
     end
 
-    # Per account set, since household members don't have their own accounts yet: every investment account
-    def tax_harvester
-      accounts = family.accounts_with_investments.to_a
-      report = TaxCenter::Report.new(family: family, accounts: accounts, financial_year_start: Period.financial_year_start(today))
+    # "Rahul's Zerodha Demat" for an owned account, else the plain account name
+    def account_label(account)
+      owner = account.household_member
+      owner ? "#{owner.name}'s #{account.name}" : account.name
+    end
+
+    def remind_tax_harvesting(member, accounts)
+      return if accounts.empty?
+
+      harvester = tax_harvester(member, accounts)
+      return unless harvester.exemption_remaining.positive? && harvester.recommended_ltcg >= MIN_WORTHWHILE_LTCG
+
+      money = ->(amount) { Money.new(amount, family.currency).format_compact }
+      year = Period.financial_year_start(today).year
+      if member
+        title = "Review #{member.name}'s tax harvesting before 31 March"
+        body = "#{member.name} may still have unused long-term capital gains exemption this financial year."
+        key = "tax_year_end:#{year}:#{member.id}"
+        url = url_helpers.tax_center_path(member_id: member.id)
+      else
+        title = "Review tax harvesting before 31 March"
+        body = "You may still have unused long-term capital gains exemption this financial year."
+        key = "tax_year_end:#{year}"
+        url = url_helpers.tax_center_path
+      end
+
+      notify("tax_year_end", key, title, body, url,
+             detail: "Up to #{money.call(harvester.recommended_ltcg)} of long-term gains can be booked within the #{money.call(harvester.exemption_remaining)} exemption left.")
+    end
+
+    # One person's accounts, with their residency and slab rate (the exemption is per individual)
+    def tax_harvester(member, accounts)
+      report = TaxCenter::Report.new(family: family, accounts: accounts, financial_year_start: Period.financial_year_start(today),
+                                     slab_rate: member&.tax_slab_rate || 30, residency: TaxCenter::Residency.new(member: member))
       TaxCenter::Harvester.new(family: family, report: report, date: today)
     end
 

@@ -1,0 +1,19 @@
+<h1>Hi <%= @user.first_name.presence || "there" %>,</h1>
+
+<p>Here is what changed in <%= product_name %>:</p>
+
+<% @notifications.each do |notification| %>
+  <p style="text-align: left;">
+    <strong><%= notification.title %></strong><br>
+    <% if notification.body.present? %><%= notification.body %><br><% end %>
+    <% if @include_amounts && notification.detail.present? %><%= notification.detail %><br><% end %>
+    <%= link_to "Open in #{product_name}", absolute_url(notification.url) %>
+  </p>
+<% end %>
+
+<p><%= link_to "See all notifications", @inbox_url, class: "button" %></p>
+
+<p class="footer">
+  <% unless @include_amounts %>Amounts are left out of this email on purpose. <% end %>
+  <%= link_to "Change email settings", @settings_url %>
+</p>

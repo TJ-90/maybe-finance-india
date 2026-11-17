@@ -159,4 +159,30 @@ class GoalsControllerTest < ActionDispatch::IntegrationTest
     end
     assert_response :not_found
   end
+
+  test "show has an empty status history until there are two daily checks" do
+    get goal_path(@goal)
+
+    assert_response :success
+    assert_select "#goal-status-history", text: /after a couple of checks/
+  end
+
+  test "show charts progress and names the last status change" do
+    { 3 => "on_track", 2 => "on_track", 1 => "at_risk", 0 => "at_risk" }.each_with_index do |(days_ago, status), index|
+      @goal.goal_snapshots.create!(date: Date.current - days_ago, status: status, progress_pct: 10 + index * 5)
+    end
+
+    get goal_path(@goal)
+
+    assert_response :success
+    assert_select "#goal-status-history svg polyline[points]"
+    assert_select "#last-status-change", text: /on track to at risk/
+  end
+
+  test "index shows at risk and off track as their own badges" do
+    Goal::Projection.any_instance.stubs(:status).returns("at_risk")
+    get goals_path
+
+    assert_select "##{dom_id(@goal)}", text: /At risk/
+  end
 end

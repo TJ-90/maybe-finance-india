@@ -61,9 +61,15 @@ Rails.application.routes.draw do
       delete :clear_cache, on: :collection
     end
     resource :market_data, only: %i[show update]
+    resource :notifications, only: %i[show update]
     resource :billing, only: :show
     resource :security, only: :show
     resource :api_key, only: [ :show, :new, :create, :destroy ]
+  end
+
+  resources :notifications, only: %i[index update] do
+    get :open, on: :member
+    post :mark_all_read, on: :collection
   end
 
   resource :subscription, only: %i[new show create] do

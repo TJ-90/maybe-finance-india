@@ -1,0 +1,31 @@
+<%# locals: (health:) %>
+
+<% worst = health.worst %>
+
+<div class="bg-container shadow-border-xs rounded-xl space-y-3 p-4" id="goals-health">
+  <div class="flex items-center justify-between">
+    <h2 class="text-lg font-medium text-primary">Goals health</h2>
+    <%= link_to "View goals", goals_path, class: "text-sm text-secondary hover:text-primary" %>
+  </div>
+
+  <ul class="grid grid-cols-3 gap-3 text-center">
+    <% health.counts.each do |status, count| %>
+      <li class="rounded-lg bg-container-inset p-3">
+        <p class="text-xl font-medium text-primary"><%= count %></p>
+        <p class="text-xs text-secondary"><%= GoalSnapshot.status_label(status) %></p>
+      </li>
+    <% end %>
+  </ul>
+
+  <% if worst %>
+    <%= link_to goal_path(worst.goal), class: "flex items-center justify-between gap-4 text-sm hover:bg-surface-hover rounded-lg p-2 -m-2" do %>
+      <div class="min-w-0">
+        <p class="text-primary font-medium truncate"><%= worst.goal.name %></p>
+        <p class="text-secondary">Needs attention first &middot; shortfall <%= format_money_compact(Money.new(worst.shortfall, worst.goal.currency)) %></p>
+      </div>
+      <%= goal_status_badge(worst.status) %>
+    <% end %>
+  <% else %>
+    <p class="text-sm text-secondary">Every goal is on track.</p>
+  <% end %>
+</div>

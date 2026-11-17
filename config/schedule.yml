@@ -24,3 +24,21 @@ run_security_health_checks:
   class: "SecurityHealthCheckJob"
   queue: "scheduled"
   description: "Runs security health checks at 7:30 AM IST Monday through Friday to detect issues with security data"
+
+monitor_goals:
+  cron: "30 19 * * *" # 1:00 AM IST every day (after the 12:00 AM IST market data refresh and re-valuation)
+  class: "MonitorGoalsJob"
+  queue: "scheduled"
+  description: "Snapshots every goal's health and raises goal status alerts at 1:00 AM IST"
+
+send_reminders:
+  cron: "0 20 * * *" # 1:30 AM IST every day
+  class: "SendRemindersJob"
+  queue: "scheduled"
+  description: "Raises stale data, stale NAV, insurance premium and year-end tax reminders at 1:30 AM IST"
+
+send_notification_digests:
+  cron: "30 3 * * *" # 9:00 AM IST every day
+  class: "SendNotificationDigestsJob"
+  queue: "scheduled"
+  description: "Emails unread notifications to users who opted in, when SMTP is configured, at 9:00 AM IST"

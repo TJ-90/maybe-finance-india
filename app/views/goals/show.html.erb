@@ -91,6 +91,8 @@
     <% end %>
   </section>
 
+  <%= render "goals/status_history", goal: @goal, date_format: date_format %>
+
   <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
     <section class="bg-container shadow-border-xs rounded-xl p-4 space-y-3">
       <h2 class="font-medium text-primary">Glide path</h2>

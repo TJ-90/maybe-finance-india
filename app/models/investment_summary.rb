@@ -34,9 +34,39 @@ class InvestmentSummary
     gain.amount / invested.amount
   end
 
+  # Same as gain_percent; the name used on the cards
+  def absolute_return
+    gain_percent
+  end
+
   def xirr
     return @xirr if defined?(@xirr)
 
     @xirr = family.portfolio_xirr(accounts: accounts)
+  end
+
+  # How much the holdings moved in value since their previous price, in the family currency. Nil when no
+  # holding has a previous price.
+  def one_day_change
+    return @one_day_change if defined?(@one_day_change)
+
+    changes = accounts.filter_map { |account| account.one_day_change&.exchange_to(family.currency, fallback_rate: 1) }
+    @one_day_change = changes.empty? ? nil : Money.new(changes.sum(&:amount), family.currency)
+  end
+
+  # One-day change as a fraction of yesterday's value
+  def one_day_change_percent
+    change = one_day_change
+    return nil if change.nil?
+
+    previous = current_value.amount - change.amount
+    previous.positive? ? change.amount / previous : nil
+  end
+
+  # When the prices behind the figures were last refreshed (a Time), nil when there are none
+  def prices_as_of
+    return @prices_as_of if defined?(@prices_as_of)
+
+    @prices_as_of = accounts.filter_map(&:prices_last_updated_at).max
   end
 end

@@ -27,6 +27,11 @@ class Security < ApplicationRecord
 
   scope :online, -> { where(offline: false) }
 
+  # Trailing 1Y / 3Y / 5Y CAGR from the stored prices (Security::TrailingReturns)
+  def trailing_returns
+    @trailing_returns ||= Security::TrailingReturns.for_security(self)
+  end
+
   def current_price
     @current_price ||= find_or_fetch_price
     return nil if @current_price.nil?

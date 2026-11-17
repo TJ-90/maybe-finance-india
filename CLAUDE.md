@@ -195,6 +195,7 @@ Sidekiq handles asynchronous tasks:
 - `Security` (`app/models/security.rb`) has `kind` (`KINDS`: stock, etf, mutual_fund, bond, gold, other), `asset_class` (`ASSET_CLASSES`: equity, debt, hybrid, gold, international, other), `tax_category` (`TAX_CATEGORIES`: equity, debt, other_listed, other_unlisted, exempt), and `isin`. The enums use prefixes: `kind_mutual_fund?`, `asset_class_equity?`, `tax_category_debt?`.
 - Funds are classified from AMFI category names in `MutualFundScheme` (`infer_asset_class`, `infer_tax_category`). A wrong guess changes tax treatment.
 - **Always read classification through `security.effective_tax_category(family)` / `effective_asset_class(family)`**, which honour `FamilySecurityOverride` (per-family override, unique per family and security). Never read the raw column in tax code. Overrides are edited in the Tax Center Categories tab (`TaxCenter::CategoryMapping`).
+- **Units vs shares:** `Security#units?` (AMFI funds, mutual fund and ETF kinds), `#unit_noun` ("units"/"shares") and `#unit_noun_singular`. Show quantities with `HoldingsHelper#format_holding_qty` (funds to 3 decimals, stocks to 1), never a hardcoded "shares". `Trade.build_name` is unchanged, so ETF trades are still named "shares of <ticker>".
 - `Security#display_name` is the name to show. Trades are named after it: `Trade.build_name` gives "Buy 3.368 units of <Fund name>" for funds and "shares" for stocks. Every importer and the trade form call it.
 - A fund that AMFI does not know yet (from a CAS import) is kept as an offline security named after its ISIN, and relinked to its scheme code by a later NAV import (`MutualFundScheme.relink_offline_securities!`).
 - `trades.folio_number` identifies a folio. Lots are grouped per folio.
@@ -203,6 +204,14 @@ Sidekiq handles asynchronous tasks:
 - `Xirr` (`app/models/xirr.rb`): Newton with bisection fallback; nil when it cannot be computed.
 - `Holding::Returns` (invested, gain, absolute %, XIRR, 1-day change, CAGR since first purchase, "--" under one year), `Account::Returns` (account and portfolio level, `prices_last_updated_at`), `InvestmentSummary`. These are model methods: do not compute returns in views.
 - `Holding::TaxLots`: FIFO lots per folio and per account. It is shared by returns and the Tax Center.
+
+### Holdings-only investment accounts (`tracks_cash`)
+- `investments.tracks_cash` (migration `20261117120001_add_tracks_cash_to_investments.rb`, default true) and `Account#holdings_only?`. A holdings-only account has no cash: cash stays 0 and the balance is the market value of the holdings. `Balance::BaseCalculator` counts trades as **non-cash** flows for these accounts. XIRR still uses the trade cash flows.
+- Defaults by subtype (`Investment::NO_CASH_SUBTYPES`, `Investment.tracks_cash_by_default?`): `mutual_fund`, `nps_tier1`, `nps_tier2`, `ulip` are forced holdings-only on create (`Account#apply_cash_tracking_default`). `demat`, `brokerage`, `pms_aif` and `angel` track cash by default; the investment form has a "This account holds cash" checkbox (`InvestmentsController` permits `tracks_cash`).
+- CAS, Groww, MF-template and broker imports create holdings-only accounts (`create_investor_account!`); MF presets create subtype `mutual_fund`, others `demat`.
+- UI: the "Brokerage cash" row, the value tooltip and the Cash chart option are hidden for holdings-only accounts.
+- Data fix after the migration: `bin/rails data_migration:resync_holdings_only_accounts` (queues a re-sync of those accounts).
+- **Gotcha, do not regress:** order histories record purchases but not the bank SIP debits that funded them. If an imported MF account tracks cash, cash goes negative by everything ever invested and the account value is wrong. So: never make imported MF accounts cash-tracking, and never count trades as cash flows for holdings-only accounts.
 
 ### Indian instruments and generated entries
 - Accountables: `FixedDeposit` (fd, rd, nsc, kvp, scss, pomis, corporate_fd; `FixedDeposit::Accruer`), `ProvidentFund` (epf, vpf, ppf, ssy; `ProvidentFund::InterestCalculator`, `::InterestPoster`), `PreciousMetal` (gold and silver by weight and purity). Bank accounts get NRE/NRO subtypes.
@@ -218,6 +227,7 @@ Sidekiq handles asynchronous tasks:
 
 ### Tax Center
 - `app/models/tax_center/` and `app/controllers/tax_center_controller.rb`. Pieces: `Rules` (reads the YAML), `Calculation`, `Report` (redemption-wise gains like a CAMS/KFintech statement), `GainLine`, `Estimate` (set-off and indicative tax), `Harvester` (LTCG and loss harvesting up to the exemption), `SaleSimulator`, `Residency`, `InterestIncome`, `CategoryMapping`, `Export` (CSV).
+- The Categories tab select is wide (`md:col-span-5`) and shows the full label as a tooltip (`TaxCenterHelper::CATEGORY_LABELS`).
 - Lots are **FIFO per folio** (`Holding::TaxLots`).
 - Rules are **effective-dated** in `config/india_capital_gains.yml`: holding periods, LTCG/STCG rates by transfer date, the Sec 112A exemption (₹1.25 L from FY 2024-25), Sec 50AA specified-MF rules, grandfathering cutoff, and a `residency:` section (NRI TDS rates and notes, resident notes, interest TDS thresholds).
 - Same for Resident and NRI: capital-gains rates and the 112A exemption. NRI gets an estimated TDS on each sale (4% cess added, surcharge and DTAA not modelled) and an interest section (NRE exempt, NRO taxable). Residents get notes only.
@@ -225,9 +235,14 @@ Sidekiq handles asynchronous tasks:
 
 ### Goals, snapshots and notifications
 - `Goal` (`app/models/goal.rb`): kinds retirement, education, home, vehicle, wedding, travel, emergency_fund, custom. Collaborators: `Goal::Projection` (inflation-adjusted corpus, SIP with step-up), `Goal::GlidePath`, `Goal::Rebalancer`, `Goal::Health` (dashboard card). `GoalAllocation` links holdings to goals by percentage. Retirement goals use the member's date of birth.
+- The goal status-history chart scales its y-axis to the data range (`GoalsHelper#progress_chart_range`, `#progress_polyline_points`), so small moves are visible.
 - `GoalSnapshot`: one row per goal per day (unique on goal and date), status `on_track` / `at_risk` / `off_track`. Written by `MonitorGoalsJob` (01:00 IST) through `Goal#record_snapshot!`. Idempotent.
 - `Notification` (`app/models/notification.rb`) with per-user `NotificationPreference`. `Notification.notify` takes a `dedupe_key` so a reminder is raised once per window. Producers: `Notification::GoalAlerts` (status changes, monthly summary) and `Notification::Reminders` (stale investment data, stale NAVs, insurance premium due, March tax review), run by `SendRemindersJob` (01:30 IST). `SendNotificationDigestsJob` (09:00 IST) emails the digest.
 - **Email is sent only when `SMTP_ADDRESS` is set and the user opted in** (`Notification.email_delivery_configured?`). Emails contain **no amounts** unless the user turns that on.
+
+### Holdings table layout
+- The holdings table (`app/views/holdings/`, `HoldingsHelper#holdings_grid_classes`) is a 4-column grid (name, value and quantity, total return, XIRR) sized with Tailwind v4 container queries (`@container` / `@md:`) off the container width, not the viewport. Weight and average cost sit under the name. Below `@md` the rows stack.
+- **Rule:** no horizontal scroll, and do not reintroduce wide fixed min-widths. With both sidebars open the main column can be only about 500-600 px. Guard: `test/system/holdings_test.rb`.
 
 ### Imports
 All in `app/models/`. `Import::TYPES` lists them.
@@ -236,6 +251,7 @@ All in `app/models/`. `Import::TYPES` lists them.
 - **Broker tradebooks:** `BrokerTradebookImport` (a `TradeImport`) with `Import::BrokerPreset` over `config/india_broker_presets.yml`: `zerodha_console`, `mf_template` (defined by this app), `groww_mf_orders` (Groww mutual fund order history), `generic_broker` (best-effort). Preset-driven rows need no column mapping.
 - **Fund-name matching** (for exports with no ISIN or scheme code, such as Groww): `MutualFundScheme::NameMatcher` accepts only a single clear winner and never guesses; the rest goes to the "Match your funds" step (`Import::SchemeMapping`). It needs the AMFI list loaded.
 - **Excel:** every CSV-based import also accepts `.xlsx`. `Import::XlsxReader` converts the first sheet to CSV with no extra gem (size caps, no DTDs or external entities). Numeric date cells become `YYYY-MM-DD`. Binary `.xls` is not supported.
+- Upload copy is format-neutral: the flash says "Excel file uploaded successfully." for a converted workbook, and labels say "file", not "CSV". `Import#csv_sample` skips blank rows.
 - Imports are idempotent: re-importing does not duplicate trades.
 - Statement layouts are mostly unverified against real exports. Labels in the UI and `docs/india.md` say which. When you add a preset, only mark it confirmed if a real export was checked.
 
@@ -278,6 +294,7 @@ When a rule changes, add a dated entry. Do not overwrite history, because past f
 
 ### Testing environment notes
 - The Ruby version in `.ruby-version` may not be installable in a sandbox. If so, use a nearby Ruby with an unpinned copy of the Gemfile through `BUNDLE_GEMFILE`, and never commit changes to the `ruby` line of the repo `Gemfile` or the `RUBY VERSION` in `Gemfile.lock`. Use a separate test database per parallel worker (`POSTGRES_DB`).
+- **Baselines:** the unit suite still has only the 7 Plaid errors. The system suite has 61 tests (`test/system/`).
 - **System tests:** run with `CI=1` so Chrome is headless (`test/application_system_test_case.rb`). If the chromedriver and Chrome major versions differ, a wrapper that starts chromedriver with `--disable-build-check` works. Say in your report if you could not run them.
 - Adding a gem needs a written justification. Only `pdf-reader` was added for this fork. When adding one in a sandbox, copy only its lines into the repo `Gemfile.lock`.
 

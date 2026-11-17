@@ -89,6 +89,8 @@ class Demo::Generator
       sync_family_accounts!(family)
 
       create_goals!(family)
+      create_goal_history!(family)
+      create_notifications!(family)
       # Auto-fill current-month budget based on recent spending averages
       generate_budget_auto_fill!(family)
 
@@ -596,6 +598,92 @@ class Demo::Generator
       allocate(education, @mf_account, 100, security: @securities[:flexi])
       allocate(emergency, @fd, 100)
       allocate(emergency, @mf_account, 100, security: @securities[:liquid])
+    end
+
+    GOAL_HISTORY_DAYS = 90
+
+    # Goal snapshots for the last ~90 days, so the status-history chart has data. Today's snapshot is the
+    # real projection. Earlier days are derived from it: the corpus grows towards today as SIPs are paid,
+    # and Aarav's education goal is scripted to have been off track, then slipped to "at risk" 12 days ago
+    # after the family raised its SIP, so there is a status change to show.
+    def create_goal_history!(family)
+      family.goals.each do |goal|
+        today = goal.record_snapshot!(date: Date.current)
+        scripted = goal.kind == "education"
+        target = today.target_corpus
+        at_risk_gap = target * Goal::Projection::AT_RISK_SHORTFALL_RATIO
+
+        (1..GOAL_HISTORY_DAYS).each do |days_ago|
+          growth = 1 - 0.12 * days_ago / GOAL_HISTORY_DAYS + 0.004 * Math.sin(days_ago / 4.0)
+          projected = today.projected_corpus * growth
+          projected = target - at_risk_gap * (days_ago > 12 ? 2.4 : 0.8) if scripted
+          shortfall = [ target - projected, 0 ].max
+          status = shortfall.zero? ? "on_track" : (shortfall <= at_risk_gap ? "at_risk" : "off_track")
+          next_sip = today.required_sip && (today.required_sip * (1 + shortfall / [ target, 1 ].max))
+
+          goal.goal_snapshots.create!(
+            date: Date.current - days_ago, status: status, projected_corpus: projected.round(2), target_corpus: target,
+            shortfall: shortfall.round(2), required_sip: next_sip&.round(2),
+            progress_pct: [ today.progress_pct * (1 - 0.15 * days_ago / GOAL_HISTORY_DAYS), 0 ].max.round(2)
+          )
+        end
+      end
+    end
+
+    # A handful of realistic notifications, written through Notification.notify with the same kinds,
+    # dedupe keys and wording the daily jobs use (so running them later doesn't repeat these). They are
+    # raised for both logins; the older ones are marked read.
+    def create_notifications!(family)
+      users = family.users.where(active: true).to_a
+
+      family.goals.each do |goal|
+        change = goal.last_status_change
+        next unless change
+
+        snapshot, previous = change
+        label = goal.household_member ? "#{goal.household_member.name}'s #{goal.name}" : goal.name
+        improved = !snapshot.worse_than?(previous.status)
+        title = snapshot.status == "on_track" ? "#{label} is back on track" : "#{label} #{improved ? "improved to" : "is"} #{snapshot.status_label.downcase}"
+        body = "Status changed from #{previous.status_label.downcase} to #{snapshot.status_label.downcase}."
+        detail = snapshot.status == "on_track" ? nil : "Shortfall #{Money.new(snapshot.shortfall, goal.currency).format_compact}"
+        raised_at = [ snapshot.date.in_time_zone.change(hour: 1, min: 5), Time.current ].min # when the daily goal check ran
+        users.each do |user|
+          notification = Notification.notify(user: user, kind: "goal_status", title: title, body: body, detail: detail,
+                                             url: "/goals/#{goal.id}", dedupe_key: "goal_status:#{goal.id}:#{snapshot.date.iso8601}")
+          notification&.update_columns(created_at: raised_at, updated_at: raised_at)
+        end
+      end
+
+      # The investment account that has gone longest without data (the daily job raises the same reminder)
+      feeds = [ @zerodha, @mf_account ].map { |account| Account::FeedHistory.new(account) }
+      stale = feeds.select { |candidate| candidate.stale?(NotificationPreference::DEFAULT_STALE_DATA_DAYS) }.max_by(&:days_since_fed)
+      if stale
+        account = stale.account
+        link = stale.import_link
+        label = account.household_member ? "#{account.household_member.name}'s #{account.name}" : account.name
+        users.each do |user|
+          Notification.notify(user: user, kind: "stale_account", title: "#{label} needs an update",
+                              body: "#{label} hasn't been updated in #{stale.days_since_fed} days. #{link.label} to keep returns and tax estimates accurate.",
+                              url: link.path, dedupe_key: "stale_account:#{account.id}:#{Date.current.strftime("%Y-%m")}")
+        end
+      end
+
+      counts = family.goals.map { |goal| goal.latest_snapshot.status }.tally
+      summary = GoalSnapshot::STATUSES.filter_map { |status, label| "#{counts[status]} #{label.downcase}" if counts[status] }.join(", ")
+      month_start = Date.current.beginning_of_month
+      users.each do |user|
+        notification = Notification.notify(user: user, kind: "goal_summary", title: "Your goals this month",
+                                           body: "#{family.goals.count} goals: #{summary}.", url: "/goals",
+                                           dedupe_key: "goal_summary:#{month_start.strftime("%Y-%m")}")
+        notification&.update_columns(created_at: month_start.in_time_zone.change(hour: 1, min: 5), updated_at: month_start.in_time_zone.change(hour: 1, min: 5))
+      end
+
+      users.each { |user| Notification::Reminders.new(user).premium_due }
+
+      # Everything but the newest few has been seen
+      users.each do |user|
+        user.notifications.newest_first.offset(3).each(&:mark_read!)
+      end
     end
 
     def allocate(goal, account, percentage, security: nil)

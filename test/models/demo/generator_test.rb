@@ -13,6 +13,7 @@ class Demo::GeneratorTest < ActiveSupport::TestCase
     assert_investments
     assert_bank_lines
     assert_planning
+    assert_monitoring
     assert_assistant
   end
 
@@ -70,6 +71,11 @@ class Demo::GeneratorTest < ActiveSupport::TestCase
         assert security.prices.exists?(date: Date.current), "#{security.ticker} has no price for today"
       end
 
+      trade_names = @family.entries.where(entryable_type: "Trade").pluck(:name)
+      assert trade_names.any?
+      assert trade_names.all? { |name| name.match?(/\A(Buy|Sell) [\d.]+ (units of Sample .+ Fund - Direct Plan - Growth|shares of [A-Z]+)\z/) }, trade_names.uniq.inspect
+      assert trade_names.none? { |name| name.match?(/\b9000\d\d\b/) }
+
       assert_equal 3, funds.current_holdings.count
       assert demat.current_holdings.count.positive?
     end
@@ -93,6 +99,23 @@ class Demo::GeneratorTest < ActiveSupport::TestCase
       assert report.lines.any?, "expected realized gains in the current financial year"
 
       assert @family.investment_summary.xirr
+    end
+
+    def assert_monitoring
+      @family.goals.each do |goal|
+        assert_operator goal.goal_snapshots.count, :>=, 90, "#{goal.name} has no status history"
+        assert_equal Date.current, goal.latest_snapshot.date
+      end
+
+      education = @family.goals.find_by!(kind: "education")
+      assert education.last_status_change, "expected a status change in the demo history"
+
+      admin = @family.users.find_by!(role: "admin")
+      kinds = admin.notifications.pluck(:kind)
+      assert_includes kinds, "goal_status"
+      assert_includes kinds, "stale_account"
+      assert admin.notifications.unread.any?
+      assert_no_match(/\d{3}/, admin.notifications.find_by!(kind: "goal_status").title)
     end
 
     def assert_assistant

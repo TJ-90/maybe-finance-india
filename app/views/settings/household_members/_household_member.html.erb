@@ -1,0 +1,43 @@
+<%# locals: (member:) %>
+
+<div id="<%= dom_id(member) %>" class="flex justify-between items-center gap-4 p-4 bg-container">
+  <div class="flex items-center gap-3 min-w-0 grow">
+    <span class="h-8 w-8 shrink-0 rounded-full inline-flex items-center justify-center text-sm font-medium" style="background-color: <%= hex_with_alpha(member.color, 0.15) %>; color: <%= member.color %>;" aria-hidden="true">
+      <%= member.name.first.to_s.upcase %>
+    </span>
+
+    <div class="min-w-0 space-y-0.5">
+      <div class="flex items-center gap-2">
+        <p class="text-primary text-sm font-medium truncate"><%= member.name %></p>
+        <span class="text-xs text-secondary bg-surface-inset rounded-full px-2 py-0.5"><%= member.relationship_label %></span>
+        <span class="text-xs text-primary bg-surface-inset rounded-full px-2 py-0.5 font-medium"><%= member.residency_label %></span>
+        <% if Current.user.household_member_id == member.id %>
+          <span class="text-xs text-secondary">Your login</span>
+        <% end %>
+      </div>
+
+      <p class="text-sm text-secondary truncate">
+        <%= pluralize(member.accounts.size, "account") %>
+        <% if member.age %>
+          &middot; <%= member.age %> years
+        <% end %>
+        &middot; <%= HouseholdMember::TAX_REGIMES[member.tax_regime] %><% if member.slab_rate %>, <%= member.slab_rate.to_s("F").delete_suffix(".0").delete_suffix(".00") %>% slab<% end %>
+      </p>
+    </div>
+  </div>
+
+  <div class="justify-self-end">
+    <%= render DS::Menu.new do |menu| %>
+      <% menu.with_item(variant: "link", text: "Edit", href: edit_settings_household_member_path(member), icon: "pencil", data: { turbo_frame: "modal" }) %>
+
+      <% menu.with_item(
+        variant: "button",
+        text: "Remove",
+        href: settings_household_member_path(member),
+        method: :delete,
+        icon: "trash-2",
+        confirm: CustomConfirm.for_resource_deletion(member.name)
+      ) %>
+    <% end %>
+  </div>
+</div>

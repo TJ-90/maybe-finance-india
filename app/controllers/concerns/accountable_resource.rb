@@ -80,8 +80,15 @@ module AccountableResource
 
     def account_params
       params.require(:account).permit(
-        :name, :balance, :subtype, :currency, :accountable_type, :return_to,
+        :name, :balance, :subtype, :currency, :accountable_type, :return_to, :household_member_id,
         accountable_attributes: self.class.permitted_accountable_attributes
-      )
+      ).tap { |permitted| own_household_member_only(permitted) }
+    end
+
+    # The "Belongs to" choice must be one of this family's members; anything else means Joint / household
+    def own_household_member_only(permitted)
+      return unless permitted.key?(:household_member_id)
+
+      permitted[:household_member_id] = nil unless Current.family.household_members.exists?(id: permitted[:household_member_id])
     end
 end

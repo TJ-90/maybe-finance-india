@@ -15,8 +15,28 @@
       Add an investment account with trades to see your capital gains.
     </div>
   <% else %>
+    <% unless @members.any? %>
+      <div class="rounded-xl bg-container-inset border border-primary p-4 text-sm space-y-1" data-testid="household-prompt">
+        <p class="font-medium text-primary">Set up your household for per-person tax</p>
+        <p class="text-secondary">
+          The LTCG exemption is per individual, and an NRI is taxed differently from a resident.
+          Add yourself and your family under Household, give each person their accounts and tell us whether they are a Resident or an NRI.
+          Until then, choose the accounts of one person below.
+        </p>
+        <%= link_to "Set up household", settings_household_members_path, class: "inline-block text-sm text-primary underline" %>
+      </div>
+    <% end %>
+
     <%= form_with url: tax_center_path, method: :get, id: "tax-filters", class: "bg-container shadow-border-xs rounded-xl p-4 space-y-4" do |form| %>
       <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <% if @members.any? %>
+          <div class="space-y-1">
+            <%= form.label :member_id, "Person", class: "block text-sm font-medium text-primary" %>
+            <%= form.select :member_id, options_for_select(@members.map { |member| [ member.display_label, member.id ] }, @member.id), {}, { class: "form-field__input text-sm border border-secondary rounded-lg w-full" } %>
+            <p class="text-xs text-secondary">The LTCG exemption is per individual, so each person is shown separately.</p>
+          </div>
+        <% end %>
+
         <div class="space-y-1">
           <%= form.label :fy, "Financial year", class: "block text-sm font-medium text-primary" %>
           <%= form.select :fy, options_for_select(@fy_options, @fy_start.year), {}, { class: "form-field__input text-sm border border-secondary rounded-lg w-full" } %>
@@ -24,28 +44,54 @@
 
         <div class="space-y-1">
           <%= form.label :slab, "Slab rate (%)", class: "block text-sm font-medium text-primary" %>
-          <%= form.number_field :slab, value: shared_params[:slab], min: 0, max: 100, step: "any", class: "form-field__input text-sm border border-secondary rounded-lg w-full" %>
+          <%= form.number_field :slab, value: params[:slab].presence, placeholder: @slab_rate.to_s("F").delete_suffix(".0"), min: 0, max: 100, step: "any", class: "form-field__input text-sm border border-secondary rounded-lg w-full" %>
+          <p class="text-xs text-secondary">
+            Leave blank to use <%= @member ? "#{@member.first_name}'s" : "the default" %> rate of <%= @slab_rate.to_s("F").delete_suffix(".0") %>%.
+          </p>
         </div>
+      </div>
 
-        <fieldset class="space-y-1">
-          <legend class="text-sm font-medium text-primary">Accounts (one person)</legend>
-          <p class="text-xs text-secondary">The LTCG exemption is per individual. Select only that person's accounts.</p>
+      <details class="rounded-lg border border-primary p-3" <%= "open" if @members.empty? || params[:account_ids].present? %>>
+        <summary class="cursor-pointer text-sm font-medium text-primary">Advanced: choose accounts</summary>
+        <fieldset class="space-y-1 mt-3">
+          <legend class="text-xs text-secondary">
+            <% if @members.any? %>
+              By default the selected person's own investment accounts are used. Tick accounts here for joint holdings or to combine accounts. Residency still follows the person above.
+            <% else %>
+              The LTCG exemption is per individual. Select only that person's accounts.
+            <% end %>
+          </legend>
           <div class="space-y-1">
             <% @available_accounts.each do |account| %>
               <label class="flex items-center gap-2 text-sm text-primary">
-                <%= check_box_tag "account_ids[]", account.id, @selected_accounts.include?(account), id: "account_ids_#{account.id}", class: "checkbox checkbox--light" %>
+                <%= check_box_tag "account_ids[]", account.id, params[:account_ids].present? ? @selected_accounts.include?(account) : (@members.empty? && @selected_accounts.include?(account)), id: "account_ids_#{account.id}", class: "checkbox checkbox--light" %>
                 <%= account.name %>
+                <span class="text-xs text-secondary">(<%= account.owner_name %>)</span>
               </label>
             <% end %>
           </div>
         </fieldset>
-      </div>
+      </details>
 
       <%= render DS::Button.new(text: "Apply", type: "submit", variant: "primary", size: :sm) %>
     <% end %>
 
+    <% if @selected_accounts.empty? %>
+      <div class="bg-container shadow-border-xs rounded-xl p-6 text-center text-sm text-secondary" data-testid="no-member-accounts">
+        <%= @member ? "#{@member.name} has no investment accounts yet. Set the owner of an account under Belongs to when you edit it, or choose accounts above." : "Choose at least one investment account above." %>
+      </div>
+    <% end %>
+
+    <%= render "tax_center/residency_notes", residency: @residency %>
+
     <section>
       <%= turbo_frame_tag "tax_realized_gains", src: realized_gains_tax_center_path(shared_params) do %>
+        <%= render "entries/loading" %>
+      <% end %>
+    </section>
+
+    <section>
+      <%= turbo_frame_tag "tax_interest", src: interest_tax_center_path(shared_params) do %>
         <%= render "entries/loading" %>
       <% end %>
     </section>

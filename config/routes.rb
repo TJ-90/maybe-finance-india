@@ -57,6 +57,7 @@ Rails.application.routes.draw do
   namespace :settings do
     resource :profile, only: [ :show, :destroy ]
     resource :preferences, only: :show
+    resources :household_members, except: :show
     resource :hosting, only: %i[show update] do
       delete :clear_cache, on: :collection
     end
@@ -207,6 +208,7 @@ Rails.application.routes.draw do
 
   resource :tax_center, only: :show, controller: "tax_center" do
     get :realized_gains
+    get :interest
     get :harvesting
     get :calculator
     get :categories

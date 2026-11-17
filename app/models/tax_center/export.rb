@@ -9,15 +9,18 @@ class TaxCenter::Export
 
   def realized_gains_csv
     CSV.generate do |csv|
-      csv << [ "Financial year", "Account", "Scheme / security", "Folio", "Sell date", "Units", "Proceeds", "Cost", "Net gain", "Short-term gain", "Long-term gain" ]
+      nri = @report.residency.nri?
+      header = [ "Financial year", "Account", "Scheme / security", "Folio", "Sell date", "Units", "Proceeds", "Cost", "Net gain", "Short-term gain", "Long-term gain" ]
+      csv << (nri ? header + [ "Estimated TDS (NRI)" ] : header)
 
       @report.redemption_rows.each do |row|
         redemption = row.redemption
-        csv << [
+        line = [
           @report.label, text(redemption.account.name), text(redemption.security.display_name), text(redemption.folio),
           redemption.date.iso8601, number(redemption.qty), money(redemption.proceeds), money(redemption.cost),
           money(row.gain), money(row.short_term_gain), money(row.long_term_gain)
         ]
+        csv << (nri ? line + [ money(row.tds) ] : line)
       end
     end
   end

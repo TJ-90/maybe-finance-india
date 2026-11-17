@@ -19,11 +19,12 @@ class Goal < ApplicationRecord
   EXPENSE_LOOKBACK_MONTHS = 6
 
   belongs_to :family
+  belongs_to :household_member, optional: true
   has_many :goal_allocations, dependent: :destroy
 
   monetize :target_amount, :monthly_sip, :monthly_expenses_today
 
-  before_validation :default_retirement_target_date, :default_blank_amounts
+  before_validation :age_from_household_member, :default_retirement_target_date, :default_blank_amounts
 
   validates :name, :currency, presence: true
   validates :kind, inclusion: { in: KINDS.keys }
@@ -36,6 +37,7 @@ class Goal < ApplicationRecord
   validates :initial_equity_pct, :final_equity_pct, numericality: { greater_than_or_equal_to: 0, less_than_or_equal_to: 100 }
   validates :glide_path_years, numericality: { only_integer: true, greater_than_or_equal_to: 0, less_than_or_equal_to: 50 }
   validate :retirement_fields_valid, if: :retirement?
+  validate :household_member_in_family
 
   scope :ordered, -> { order(:target_date, :name) }
 
@@ -91,7 +93,26 @@ class Goal < ApplicationRecord
     Money.new(average_monthly_expenses.amount * months, currency)
   end
 
+  # Name of the person this goal is for, or the whole household
+  def owner_name
+    household_member&.name || Account::Ownership::JOINT_LABEL
+  end
+
   private
+    # A retirement goal for a member with a date of birth uses their real age, so it never goes stale
+    def age_from_household_member
+      return unless retirement?
+
+      age = household_member&.age
+      self.current_age = age if age
+    end
+
+    def household_member_in_family
+      return if household_member.blank? || household_member.family_id == family_id
+
+      errors.add(:household_member, "must belong to the same household")
+    end
+
     # Retirement targets are derived from expenses, and a blank SIP means none yet
     def default_blank_amounts
       self.target_amount = 0 if target_amount.blank? && retirement?

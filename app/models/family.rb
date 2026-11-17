@@ -20,6 +20,7 @@ class Family < ApplicationRecord
   has_many :imports, dependent: :destroy
   has_many :family_exports, dependent: :destroy
   has_many :family_security_overrides, dependent: :destroy
+  has_many :household_members, dependent: :destroy
 
   has_many :entries, through: :accounts
   has_many :transactions, through: :accounts
@@ -96,6 +97,11 @@ class Family < ApplicationRecord
 
   def india?
     country == "IN"
+  end
+
+  # Whether anyone has been added under Settings > Household yet
+  def household_set_up?
+    household_members.exists?
   end
 
   def eu?

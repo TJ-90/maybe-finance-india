@@ -37,13 +37,12 @@ class BalanceSheet
     assets.total - liabilities.total
   end
 
-  # Net worth split into market assets, retirement funds, cash, property & vehicles, other and liabilities
-  def india_breakdown
-    @india_breakdown ||= IndiaBreakdown.new(
-      asset_accounts: account_totals.asset_accounts,
-      liabilities_total: liabilities.total,
-      currency: family.currency
-    )
+  # Net worth split into market assets, retirement funds, cash, property & vehicles, other and liabilities.
+  # `owner` limits it to one person's accounts: a HouseholdMember, :joint for accounts that belong to
+  # nobody, or nil for everyone.
+  def india_breakdown(owner: nil)
+    @india_breakdowns ||= {}
+    @india_breakdowns[owner.respond_to?(:id) ? owner.id : owner] ||= build_india_breakdown(owner)
   end
 
   def net_worth_series(period: Period.last_30_days)
@@ -61,6 +60,20 @@ class BalanceSheet
   private
     def sync_status_monitor
       @sync_status_monitor ||= SyncStatusMonitor.new(family)
+    end
+
+    def build_india_breakdown(owner)
+      assets = owned_by(account_totals.asset_accounts, owner)
+      liabilities_total = owner.nil? ? liabilities.total : Money.new(owned_by(account_totals.liability_accounts, owner).sum(&:converted_balance), family.currency)
+
+      IndiaBreakdown.new(asset_accounts: assets, liabilities_total: liabilities_total, currency: family.currency)
+    end
+
+    def owned_by(rows, owner)
+      return rows if owner.nil?
+
+      owner_id = owner == :joint ? nil : owner.id
+      rows.select { |row| row.household_member_id == owner_id }
     end
 
     def account_totals

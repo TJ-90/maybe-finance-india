@@ -61,7 +61,8 @@ class TaxCenter::Calculation
       realized_stcg: decimal_or_zero(inputs[:realized_stcg]),
       realized_ltcg: decimal_or_zero(inputs[:realized_ltcg]),
       only_held_over_months: inputs[:only_held_over_months].presence,
-      rules: report.rules
+      rules: report.rules,
+      residency: report.residency
     )
   end
 

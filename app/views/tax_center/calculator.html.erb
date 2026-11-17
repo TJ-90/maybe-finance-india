@@ -8,7 +8,7 @@
       <% shared_params.except(:account_ids).each do |key, value| %>
         <%= hidden_field_tag key, value, id: "calc_#{key}" %>
       <% end %>
-      <% shared_params[:account_ids].each do |id| %>
+      <% Array(shared_params[:account_ids]).each do |id| %>
         <%= hidden_field_tag "account_ids[]", id, id: "calc_account_#{id}" %>
       <% end %>
 
@@ -77,6 +77,13 @@
           </div>
         </dl>
 
+        <% if @residency.nri? %>
+          <div class="rounded-lg bg-container-inset p-3 text-sm" data-testid="calculator-tds">
+            <span class="text-secondary">Estimated TDS the AMC or broker deducts from this sale:</span>
+            <strong class="text-primary" id="calculator-tds-amount"><%= tax_money(sim.tds) %></strong>
+          </div>
+        <% end %>
+
         <% if sim.shortfall.positive? %>
           <p class="text-sm text-warning">Only <%= tax_units(sim.units) %> units are available to sell. <%= tax_units(sim.shortfall) %> units were left out.</p>
         <% end %>
@@ -129,6 +136,8 @@
     <% elsif params[:holding].present? %>
       <p class="text-sm text-secondary">Enter the units to sell and a price to see the estimate.</p>
     <% end %>
+
+    <%= render "tax_center/residency_notes", residency: @residency, estimate_only: true %>
 
     <%= render "tax_center/disclaimer" %>
   </div>

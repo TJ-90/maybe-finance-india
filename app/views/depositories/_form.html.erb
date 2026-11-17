@@ -1,7 +1,18 @@
 <%# locals: (account:, url:) %>
 
+<% nri_household = Current.family.household_members.exists?(residency_status: "nri") %>
+<% subtypes = Depository::SUBTYPES.to_a %>
+<%# With an NRI in the household, NRE and NRO come first: an NRI cannot hold an ordinary savings account %>
+<% subtypes = subtypes.partition { |key, _| %w[nre nro].include?(key) }.flatten(1) if nri_household %>
+
 <%= render "accounts/form", account: account, url: url do |form| %>
   <%= form.select :subtype,
-                 Depository::SUBTYPES.map { |k, v| [v[:long], k] },
+                 subtypes.map { |k, v| [v[:long], k] },
                  { label: true, prompt: t("depositories.form.subtype_prompt"), include_blank: t("depositories.form.none") } %>
+
+  <% if nri_household %>
+    <p class="text-xs text-secondary" data-testid="nre-nro-hint">
+      For an NRI member choose NRE (money earned abroad, interest exempt in India) or NRO (income earned in India, interest taxable).
+    </p>
+  <% end %>
 <% end %>

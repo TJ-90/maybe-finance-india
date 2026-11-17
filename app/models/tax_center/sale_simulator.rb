@@ -3,12 +3,13 @@
 # `only_held_over_months` is a planning view: it skips lots held for that many months or less, so you can see
 # the tax if only older units were sold. An AMC always redeems FIFO, so it will not process a sale that way.
 class TaxCenter::SaleSimulator
-  attr_reader :lines, :estimate, :baseline, :units_requested, :shortfall
+  attr_reader :lines, :estimate, :baseline, :units_requested, :shortfall, :residency
 
   def initialize(family:, lots:, units:, sale_date:, price:, slab_rate: 30, realized_stcg: 0, realized_ltcg: 0,
-                 only_held_over_months: nil, rules: TaxCenter::Rules.current)
+                 only_held_over_months: nil, rules: TaxCenter::Rules.current, residency: nil)
     @family = family
     @rules = rules
+    @residency = residency || TaxCenter::Residency.new(rules: rules)
     @sale_date = sale_date
     @price = BigDecimal(price.to_s)
     @units_requested = BigDecimal(units.to_s)
@@ -28,6 +29,11 @@ class TaxCenter::SaleSimulator
   # Extra tax caused by this sale, on top of what was already realized
   def incremental_tax
     estimate.tax - baseline.tax
+  end
+
+  # Estimated TDS the AMC or broker deducts from this sale (NRI only; zero otherwise)
+  def tds
+    residency.tds_for_lines(lines, sale_date)
   end
 
   def gain

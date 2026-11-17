@@ -5,6 +5,12 @@
                   ProvidentFund::SUBTYPES.map { |key, value| [ value[:long], key ] },
                   { label: "Type" } %>
 
+  <% if Current.family.household_members.exists?(residency_status: "nri") %>
+    <p class="text-xs text-secondary" data-testid="nri-pf-hint">
+      NRI members: no new PPF can be opened (an existing one continues to maturity but cannot be extended), and a Sukanya Samriddhi account must be closed if the girl child becomes an NRI.
+    </p>
+  <% end %>
+
   <%= render "shared/ruler", classes: "my-4" %>
 
   <div class="space-y-2">

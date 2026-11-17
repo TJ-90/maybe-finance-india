@@ -27,7 +27,10 @@
                 <th scope="col" class="text-left py-2 pr-3">Folio</th>
                 <th scope="col" class="text-right py-2 pr-3">Units to sell</th>
                 <th scope="col" class="text-right py-2 pr-3">Est. proceeds</th>
-                <th scope="col" class="text-right py-2">LTCG</th>
+                <th scope="col" class="text-right py-2 pr-3">LTCG</th>
+                <% if @residency.nri? %>
+                  <th scope="col" class="text-right py-2">Est. TDS</th>
+                <% end %>
               </tr>
             </thead>
             <tbody class="divide-y divide-alpha-black-100">
@@ -37,7 +40,10 @@
                   <td class="py-2 pr-3"><%= rec.folio.presence || "-" %></td>
                   <td class="py-2 pr-3 text-right"><%= tax_units(rec.units) %></td>
                   <td class="py-2 pr-3 text-right"><%= tax_money(rec.proceeds) %></td>
-                  <td class="py-2 text-right font-medium text-success"><%= tax_money(rec.gain) %></td>
+                  <td class="py-2 pr-3 text-right font-medium text-success"><%= tax_money(rec.gain) %></td>
+                  <% if @residency.nri? %>
+                    <td class="py-2 text-right"><%= tax_money(@residency.tds_for_gain(:equity_ltcg, rec.gain, Date.current)) %></td>
+                  <% end %>
                 </tr>
               <% end %>
             </tbody>
@@ -87,6 +93,8 @@
         <p class="text-sm text-secondary">No holdings are at a loss.</p>
       <% end %>
     </div>
+
+    <%= render "tax_center/residency_notes", residency: @residency, estimate_only: true %>
 
     <%= render "tax_center/disclaimer" %>
   </div>

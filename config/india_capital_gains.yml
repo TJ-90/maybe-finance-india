@@ -83,3 +83,66 @@ categories:
   # Sovereign Gold Bonds redeemed with RBI at maturity
   exempt:
     exempt: true
+
+# ---------------------------------------------------------------------------------------------------
+# Residential status (resident vs NRI). Verify each financial year.
+#
+# Capital-gains RATES and the Sec 112A exemption above are the same for residents and NRIs, so this
+# section only holds what DIFFERS: the TDS an AMC / broker deducts from an NRI's sale proceeds (Sec 195),
+# default slab rates, interest-income rules and the notes shown for each status. All TDS figures are
+# ESTIMATES: surcharge and DTAA relief are not modelled and the 4% cess is added on top of the rates.
+# `effective_from` lists are keyed by the TRANSFER date, like the rates above.
+# ---------------------------------------------------------------------------------------------------
+residency:
+  # Slab rate to start from when a member has none set. Residents are asked for theirs.
+  default_slab_rate:
+    nri: 30
+
+  nri:
+    tds:
+      cess_percent: 4
+      surcharge_note: "Surcharge (10% to 37%, depending on total income) is not included. The AMC or broker adds it when the gain is large."
+      dtaa_note: "Relief under a double taxation avoidance agreement (DTAA) is not modelled. Claim it with a lower-deduction certificate or when you file your return."
+      # TDS rates by what is sold, in % before cess. Effective-dated by sale date.
+      rates:
+        - effective_from: 1900-01-01
+          equity_stcg: 15      # Sec 111A before 23 Jul 2024
+          equity_ltcg: 10      # Sec 112A before 23 Jul 2024
+          debt_mf: 30          # specified (debt) mutual fund, taxed at the NRI's slab rate: TDS at 30%
+          other_stcg: 30       # other short-term gains taxed at slab: TDS at 30%
+          other_ltcg: 20       # Sec 112 (with indexation before 23 Jul 2024)
+        - effective_from: 2024-07-23
+          equity_stcg: 20
+          equity_ltcg: 12.5
+          debt_mf: 30
+          other_stcg: 30
+          other_ltcg: 12.5
+      # VERIFY: whether the AMC / broker lets the Rs 1.25 lakh Sec 112A exemption reduce the NRI's TDS.
+      # In practice TDS is deducted on the whole gain and the exemption is claimed as a refund when the
+      # return is filed, so the estimate below does NOT apply the exemption. Confirm with your AMC.
+      ltcg_equity_exemption_reduces_tds: false
+    notes:
+      - "As an NRI, the AMC or broker deducts TDS from every sale at the rates below, on the gain, before paying you."
+      - "The Rs 1.25 lakh exemption on equity LTCG applies to NRIs too, but TDS is usually deducted on the whole gain. You claim the difference as a refund in your Indian return."
+      - "Unused basic exemption limit cannot be set off against capital gains, and the Sec 87A rebate is not available."
+
+  resident:
+    notes:
+      - "As a resident you can set off any unused basic exemption limit against short-term gains under Sec 111A and long-term gains under Sec 112A. This is not computed here."
+      - "The Sec 87A rebate may reduce the tax on your total income, but it does not apply to the special-rate gains in Sec 111A and 112A. It is not computed here."
+      - "Mutual fund sales by residents carry no TDS. You pay the tax as advance tax or when you file."
+
+  interest:
+    # VERIFY each year: bank TDS thresholds for residents (Sec 194A), per bank and per year.
+    resident_tds_threshold:
+      - effective_from: 1900-01-01
+        general: 40000
+        senior_citizen: 50000
+      - effective_from: 2025-04-01
+        general: 50000
+        senior_citizen: 100000
+    resident_tds_rate: 10
+    nri_nro_tds_rate: 30       # Sec 195 on NRO account interest, before surcharge and cess
+    epf_contribution_limit:    # Interest on employee EPF contributions above this a year is taxable
+      with_employer_contribution: 250000
+      without_employer_contribution: 500000

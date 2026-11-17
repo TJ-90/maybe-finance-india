@@ -157,4 +157,27 @@ class CasImportTest < ActiveSupport::TestCase
       @import.publish_later
     end
   end
+
+  test "a new investor account gets the member whose name matches, the chosen member, or stays joint" do
+    load_fixture("cams_detailed")
+    asha = @family.household_members.create!(name: "Asha Kumar", relationship: "spouse", residency_status: "resident")
+    mapping = @import.mappings.accounts.first
+
+    assert_equal asha, mapping.owner # "Mutual Funds – Asha" names her
+
+    rahul = @family.household_members.create!(name: "Rahul", relationship: "self", residency_status: "nri")
+    mapping.update!(value: rahul.id)
+    publish!
+
+    assert_equal rahul, @family.accounts.find_by!(name: "Mutual Funds – Asha").household_member
+  end
+
+  test "choosing joint creates an account with no owner" do
+    load_fixture("cams_detailed")
+    @family.household_members.create!(name: "Asha Kumar", relationship: "spouse", residency_status: "resident")
+    @import.mappings.accounts.first.update!(value: Import::AccountMapping::JOINT_VALUE)
+    publish!
+
+    assert_nil @family.accounts.find_by!(name: "Mutual Funds – Asha").household_member_id
+  end
 end

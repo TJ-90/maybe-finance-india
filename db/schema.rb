@@ -35,6 +35,7 @@ ActiveRecord::Schema[7.2].define(version: 2026_11_17_110003) do
     t.decimal "cash_balance", precision: 19, scale: 4, default: "0.0"
     t.jsonb "locked_attributes", default: {}
     t.string "status", default: "active"
+    t.uuid "household_member_id"
     t.index ["accountable_id", "accountable_type"], name: "index_accounts_on_accountable_id_and_accountable_type"
     t.index ["accountable_type"], name: "index_accounts_on_accountable_type"
     t.index ["currency"], name: "index_accounts_on_currency"
@@ -42,6 +43,7 @@ ActiveRecord::Schema[7.2].define(version: 2026_11_17_110003) do
     t.index ["family_id", "id"], name: "index_accounts_on_family_id_and_id"
     t.index ["family_id", "status"], name: "index_accounts_on_family_id_and_status"
     t.index ["family_id"], name: "index_accounts_on_family_id"
+    t.index ["household_member_id"], name: "index_accounts_on_household_member_id"
     t.index ["import_id"], name: "index_accounts_on_import_id"
     t.index ["plaid_account_id"], name: "index_accounts_on_plaid_account_id"
     t.index ["status"], name: "index_accounts_on_status"
@@ -360,8 +362,10 @@ ActiveRecord::Schema[7.2].define(version: 2026_11_17_110003) do
     t.decimal "post_retirement_return", precision: 5, scale: 2, default: "8.0"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.uuid "household_member_id"
     t.index ["family_id", "target_date"], name: "index_goals_on_family_id_and_target_date"
     t.index ["family_id"], name: "index_goals_on_family_id"
+    t.index ["household_member_id"], name: "index_goals_on_household_member_id"
   end
 
   create_table "holdings", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
@@ -377,6 +381,21 @@ ActiveRecord::Schema[7.2].define(version: 2026_11_17_110003) do
     t.index ["account_id", "security_id", "date", "currency"], name: "idx_on_account_id_security_id_date_currency_5323e39f8b", unique: true
     t.index ["account_id"], name: "index_holdings_on_account_id"
     t.index ["security_id"], name: "index_holdings_on_security_id"
+  end
+
+  create_table "household_members", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.uuid "family_id", null: false
+    t.string "name", null: false
+    t.string "relationship", null: false
+    t.string "residency_status", null: false
+    t.date "date_of_birth"
+    t.string "pan_last4"
+    t.decimal "slab_rate", precision: 5, scale: 2
+    t.string "tax_regime", default: "new", null: false
+    t.string "color"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["family_id"], name: "index_household_members_on_family_id"
   end
 
   create_table "impersonation_session_logs", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
@@ -999,8 +1018,10 @@ ActiveRecord::Schema[7.2].define(version: 2026_11_17_110003) do
     t.text "goals", default: [], array: true
     t.datetime "set_onboarding_preferences_at"
     t.datetime "set_onboarding_goals_at"
+    t.uuid "household_member_id"
     t.index ["email"], name: "index_users_on_email", unique: true
     t.index ["family_id"], name: "index_users_on_family_id"
+    t.index ["household_member_id"], name: "index_users_on_household_member_id"
     t.index ["last_viewed_chat_id"], name: "index_users_on_last_viewed_chat_id"
     t.index ["otp_secret"], name: "index_users_on_otp_secret", unique: true, where: "(otp_secret IS NOT NULL)"
   end
@@ -1024,6 +1045,7 @@ ActiveRecord::Schema[7.2].define(version: 2026_11_17_110003) do
   end
 
   add_foreign_key "accounts", "families"
+  add_foreign_key "accounts", "household_members", on_delete: :nullify
   add_foreign_key "accounts", "imports"
   add_foreign_key "accounts", "plaid_accounts"
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
@@ -1045,8 +1067,10 @@ ActiveRecord::Schema[7.2].define(version: 2026_11_17_110003) do
   add_foreign_key "goal_allocations", "securities"
   add_foreign_key "goal_snapshots", "goals"
   add_foreign_key "goals", "families"
+  add_foreign_key "goals", "household_members", on_delete: :nullify
   add_foreign_key "holdings", "accounts"
   add_foreign_key "holdings", "securities"
+  add_foreign_key "household_members", "families"
   add_foreign_key "impersonation_session_logs", "impersonation_sessions"
   add_foreign_key "impersonation_sessions", "users", column: "impersonated_id"
   add_foreign_key "impersonation_sessions", "users", column: "impersonator_id"
@@ -1086,4 +1110,5 @@ ActiveRecord::Schema[7.2].define(version: 2026_11_17_110003) do
   add_foreign_key "transfers", "transactions", column: "outflow_transaction_id", on_delete: :cascade
   add_foreign_key "users", "chats", column: "last_viewed_chat_id"
   add_foreign_key "users", "families"
+  add_foreign_key "users", "household_members", on_delete: :nullify
 end

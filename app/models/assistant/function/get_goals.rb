@@ -21,7 +21,7 @@ class Assistant::Function::GetGoals < Assistant::Function
     {
       as_of_date: Date.current,
       currency: family.currency,
-      goals: family.goals.ordered.includes(goal_allocations: [ :account, :security ]).map { |goal| goal_data(goal) }
+      goals: family.goals.ordered.includes(:household_member, goal_allocations: [ :account, :security ]).map { |goal| goal_data(goal) }
     }
   end
 
@@ -33,6 +33,7 @@ class Assistant::Function::GetGoals < Assistant::Function
 
       {
         name: goal.name,
+        owner: goal.owner_name,
         kind: goal.kind,
         target_date: goal.target_date,
         target_in_todays_money: money(projection.target_today, goal.currency),

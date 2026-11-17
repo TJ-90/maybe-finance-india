@@ -7,7 +7,10 @@ class PagesController < ApplicationController
     @balance_sheet = Current.family.balance_sheet
     @accounts = Current.family.accounts.visible.with_attached_logo
     @upcoming_premiums = Current.family.insurance_policies.premium_due_within(30.days).to_a
-    @investment_summary = Current.family.investment_summary
+    @household_members = Current.family.household_members.ordered.to_a
+    @member_filter = member_filter
+    @breakdown = @balance_sheet.india_breakdown(owner: @member_filter)
+    @investment_summary = Current.family.investment_summary(accounts: investment_accounts_for(@member_filter))
     @goal_health = Goal::Health.new(Current.family)
 
     period_param = params[:cashflow_period]
@@ -62,6 +65,20 @@ class PagesController < ApplicationController
   end
 
   private
+    # ?member=<id> shows one person, ?member=joint the accounts nobody owns, anything else everyone
+    def member_filter
+      return :joint if params[:member] == "joint"
+
+      @household_members.find { |member| member.id == params[:member] }
+    end
+
+    def investment_accounts_for(filter)
+      accounts = Current.family.accounts_with_investments
+      return accounts if filter.nil?
+
+      accounts.where(household_member_id: filter == :joint ? nil : filter.id)
+    end
+
     def github_provider
       Provider::Registry.get_provider(:github)
     end

@@ -1,0 +1,48 @@
+<header class="flex items-center justify-between">
+  <h1 class="text-primary text-xl font-medium">Household</h1>
+
+  <%= render DS::Link.new(
+    text: "Add member",
+    variant: "primary",
+    icon: "plus",
+    href: new_settings_household_member_path,
+    frame: :modal
+  ) %>
+</header>
+
+<p class="text-sm text-secondary">
+  The people whose money this is. Each account can belong to one person, and the Tax Center works out tax for one person at a time,
+  because the LTCG exemption is per individual and an NRI is taxed differently from a resident.
+</p>
+
+<div class="bg-container rounded-xl shadow-border-xs p-4">
+  <% if @members.any? %>
+    <div class="rounded-xl bg-container-inset space-y-1 p-1">
+      <div class="flex items-center gap-1.5 px-4 py-2 text-xs font-medium text-secondary uppercase">
+        <p>Members</p>
+        <span class="text-subdued">&middot;</span>
+        <p><%= @members.size %></p>
+      </div>
+
+      <div class="bg-container rounded-lg shadow-border-xs">
+        <div class="overflow-hidden rounded-lg">
+          <%= render partial: "settings/household_members/household_member", collection: @members, as: :member, spacer_template: "shared/ruler" %>
+        </div>
+      </div>
+    </div>
+  <% else %>
+    <div class="flex justify-center items-center py-20">
+      <div class="text-center flex flex-col items-center max-w-[300px]">
+        <p class="text-primary mb-1 font-medium text-sm">No household members yet</p>
+        <p class="text-secondary mb-3 text-sm">Add yourself first, then your spouse and anyone else whose accounts you track.</p>
+
+        <%= render DS::Link.new(
+          text: "Add member",
+          icon: "plus",
+          href: new_settings_household_member_path,
+          frame: :modal
+        ) %>
+      </div>
+    </div>
+  <% end %>
+</div>

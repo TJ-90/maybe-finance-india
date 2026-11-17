@@ -1,0 +1,62 @@
+<%= turbo_frame_tag "tax_interest" do %>
+  <div class="bg-container shadow-border-xs rounded-xl p-4 space-y-4" id="tax-interest">
+    <h2 id="interest-heading" class="text-lg font-medium text-primary">
+      Interest income, FY <%= @interest.label %>
+      <% if @member %>
+        <span class="text-sm font-normal text-secondary">for <%= @member.name %></span>
+      <% end %>
+    </h2>
+
+    <% if @interest.rows.any? %>
+      <dl class="grid grid-cols-2 gap-3 text-sm">
+        <div class="rounded-lg bg-container-inset p-3">
+          <dt class="text-secondary">Taxable interest</dt>
+          <dd class="font-medium text-primary" id="interest-taxable"><%= tax_money(@interest.taxable_total) %></dd>
+        </div>
+        <div class="rounded-lg bg-container-inset p-3">
+          <dt class="text-secondary">Exempt interest</dt>
+          <dd class="font-medium text-primary" id="interest-exempt"><%= tax_money(@interest.exempt_total) %></dd>
+        </div>
+      </dl>
+
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm text-primary" id="interest-rows">
+          <caption class="sr-only">Interest credited by account</caption>
+          <thead class="text-xs uppercase text-secondary">
+            <tr>
+              <th scope="col" class="text-left py-2 pr-3">Account</th>
+              <th scope="col" class="text-right py-2 pr-3">Interest</th>
+              <th scope="col" class="text-left py-2 pr-3">Treatment</th>
+              <th scope="col" class="text-left py-2">Notes</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-alpha-black-100">
+            <% @interest.rows.each do |row| %>
+              <tr>
+                <td class="py-2 pr-3 align-top"><%= row.account.name %><span class="block text-xs text-secondary"><%= row.label %></span></td>
+                <td class="py-2 pr-3 text-right align-top"><%= tax_money(row.amount) %></td>
+                <td class="py-2 pr-3 align-top"><%= row.exempt ? "Exempt" : "Taxable" %></td>
+                <td class="py-2 text-xs text-secondary align-top">
+                  <%= row.notes.join(" ") %>
+                  <% if row.tds %>
+                    <span class="block text-primary">Estimated TDS: <%= tax_money(row.tds) %></span>
+                  <% end %>
+                </td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+    <% else %>
+      <p class="text-sm text-secondary">No interest was credited in this financial year.</p>
+    <% end %>
+
+    <ul class="list-disc pl-5 space-y-1 text-xs text-secondary">
+      <% @interest.notes.each do |note| %>
+        <li><%= note %></li>
+      <% end %>
+    </ul>
+
+    <%= render "tax_center/disclaimer" %>
+  </div>
+<% end %>

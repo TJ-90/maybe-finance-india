@@ -48,6 +48,53 @@ class TaxCenter::Rules
     BigDecimal((entry ? entry[:amount] : 0).to_s)
   end
 
+  # --- Residential status (the `residency:` section of the config) ---------------------------------
+
+  # Default slab rate (BigDecimal %) for a residency status, or nil when the person should be asked
+  def default_slab_rate(status)
+    value = @config.dig(:residency, :default_slab_rate, status.to_s.to_sym)
+    value && BigDecimal(value.to_s)
+  end
+
+  def residency_notes(status)
+    Array(@config.dig(:residency, status.to_s.to_sym, :notes))
+  end
+
+  # TDS rates (% before cess) an AMC or broker deducts from an NRI's sale proceeds, by sale date.
+  # Keys: :equity_stcg, :equity_ltcg, :debt_mf, :other_stcg, :other_ltcg
+  def nri_tds_rates(date)
+    entry = effective_entry(@config.dig(:residency, :nri, :tds, :rates), date, key: :effective_from)
+    entry.except(:effective_from).transform_values { |rate| BigDecimal(rate.to_s) }
+  end
+
+  def nri_tds_cess_percent
+    BigDecimal(@config.dig(:residency, :nri, :tds, :cess_percent).to_s)
+  end
+
+  def nri_tds_surcharge_note
+    @config.dig(:residency, :nri, :tds, :surcharge_note)
+  end
+
+  def nri_tds_dtaa_note
+    @config.dig(:residency, :nri, :tds, :dtaa_note)
+  end
+
+  # Whether the Sec 112A exemption lowers the TDS an NRI sees (it normally does not: it is a refund claim)
+  def nri_tds_considers_ltcg_exemption?
+    @config.dig(:residency, :nri, :tds, :ltcg_equity_exemption_reduces_tds) == true
+  end
+
+  # Interest-income rules: { resident_tds_rate:, nri_nro_tds_rate:, epf_contribution_limit: { ... } }
+  def interest_rules
+    @config.dig(:residency, :interest)
+  end
+
+  # { general:, senior_citizen: } bank TDS thresholds for residents, for the year containing `date`
+  def resident_interest_tds_threshold(date)
+    entry = effective_entry(interest_rules.fetch(:resident_tds_threshold), date, key: :effective_from)
+    entry.slice(:general, :senior_citizen).transform_values { |amount| BigDecimal(amount.to_s) }
+  end
+
   # The category actually used for tax, after resolving unknown categories and debt purchase-date rules
   def resolve_category(category, buy_date:)
     category = category.presence || DEFAULT_CATEGORY

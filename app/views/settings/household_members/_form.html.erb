@@ -1,0 +1,36 @@
+<%# locals: (member:) %>
+
+<%= styled_form_with model: member, url: (member.persisted? ? settings_household_member_path(member) : settings_household_members_path), class: "space-y-4" do |form| %>
+  <% if member.errors.any? %>
+    <%= render "shared/form_errors", model: member %>
+  <% end %>
+
+  <div class="space-y-2">
+    <div class="flex items-center gap-2">
+      <%= form.text_field :name, label: "Name", required: true %>
+      <%= form.select :relationship, HouseholdMember::RELATIONSHIPS.map { |key, label| [ label, key ] }, { label: "Relationship" } %>
+    </div>
+
+    <%= render "settings/household_members/residency_field",
+               name: "household_member[residency_status]", selected: member.residency_status, id_prefix: "household_member_residency_status" %>
+
+    <div class="flex items-center gap-2">
+      <%= form.date_field :date_of_birth, label: "Date of birth (optional)", max: Date.current %>
+      <%= form.text_field :pan_last4, label: "PAN, last 4 characters (optional)", maxlength: 4, placeholder: "234F" %>
+    </div>
+
+    <div class="flex items-center gap-2">
+      <%= form.number_field :slab_rate, label: "Income tax slab rate (%)", min: 0, max: 100, step: 0.01,
+                            placeholder: "30 for an NRI, otherwise your own" %>
+      <%= form.select :tax_regime, HouseholdMember::TAX_REGIMES.map { |key, label| [ label, key ] }, { label: "Tax regime" } %>
+    </div>
+    <p class="text-xs text-secondary">The slab rate is the rate your last rupee of income is taxed at. It starts the Tax Center estimates. An NRI starts at 30%.</p>
+
+    <label class="flex items-center gap-2 text-sm text-primary">
+      <%= check_box_tag :link_current_user, "1", Current.user.household_member_id == member.id && member.persisted?, class: "checkbox checkbox--light" %>
+      This person is me (the login I am using)
+    </label>
+  </div>
+
+  <%= form.submit %>
+<% end %>

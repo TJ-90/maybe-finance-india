@@ -21,7 +21,7 @@ class Assistant::Function::GetHoldings < Assistant::Function
   end
 
   def call(params = {})
-    accounts = family.accounts_with_investments.includes(:entries).to_a
+    accounts = family.accounts_with_investments.includes(:entries, :household_member).to_a
     summary = family.investment_summary(accounts: accounts)
 
     {
@@ -45,6 +45,7 @@ class Assistant::Function::GetHoldings < Assistant::Function
     def account_data(account)
       {
         name: account.name,
+        owner: account.owner_name,
         currency: account.currency,
         # Holdings share the account, so its trades are replayed once, not once per holding
         holdings: account.current_holdings_with_returns.map { |holding| holding_data(holding) }

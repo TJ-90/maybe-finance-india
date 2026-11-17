@@ -1,0 +1,26 @@
+<%# locals: (residency:, estimate_only: false) %>
+
+<%# estimate_only: just the caveat that sits next to an NRI TDS figure %>
+<% if residency.nri? && estimate_only %>
+  <p class="text-xs text-secondary" data-testid="nri-tds-estimate-note">
+    Every NRI TDS figure is an estimate. It includes <%= residency.cess_percent.to_s("F").delete_suffix(".0") %>% cess.
+    <%= residency.surcharge_note %> <%= residency.dtaa_note %>
+  </p>
+<% elsif residency.known? && !estimate_only %>
+  <div class="rounded-xl bg-container-inset border border-primary p-3 space-y-2 text-sm" data-testid="residency-notes">
+    <p class="font-medium text-primary"><%= residency.member.name %> is a <%= residency.label %></p>
+
+    <ul class="list-disc pl-5 space-y-1 text-secondary">
+      <% residency.notes.each do |note| %>
+        <li><%= note %></li>
+      <% end %>
+    </ul>
+
+    <% if residency.nri? %>
+      <p class="text-xs text-secondary">
+        Every NRI TDS figure is an estimate. It includes <%= residency.cess_percent.to_s("F").delete_suffix(".0") %>% cess.
+        <%= residency.surcharge_note %> <%= residency.dtaa_note %>
+      </p>
+    <% end %>
+  </div>
+<% end %>

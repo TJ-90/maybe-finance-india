@@ -36,6 +36,19 @@ class TradeImport < Import
     end
   end
 
+  # Used by Import::AccountMapping when "Add as new account" is chosen: trades need an investment account
+  def create_investor_account!(name, owner: nil)
+    family.accounts.create_or_find_by!(name: name) do |new_account|
+      new_account.balance = 0
+      new_account.cash_balance = 0
+      new_account.currency = family.currency
+      new_account.accountable = Investment.new
+      new_account.subtype = "demat"
+      new_account.import = self
+      new_account.household_member = owner
+    end
+  end
+
   def mapping_steps
     base = []
     base << Import::AccountMapping if account.nil?

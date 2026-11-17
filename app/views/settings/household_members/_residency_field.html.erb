@@ -1,0 +1,29 @@
+<%# locals: (name:, selected: nil, id_prefix: "residency", required: true) %>
+
+<%# Resident or NRI is a required choice with no default: nothing is checked until the person picks %>
+<fieldset class="space-y-2" data-testid="residency-field">
+  <legend class="text-sm font-medium text-primary">Residential status<% if required %> <span class="text-destructive">*</span><% end %></legend>
+
+  <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+    <label for="<%= id_prefix %>_resident" class="flex items-start gap-2 rounded-lg border border-primary p-3 cursor-pointer text-sm [&:has(input:checked)]:bg-container-inset">
+      <%= radio_button_tag name, "resident", selected == "resident", id: "#{id_prefix}_resident", required: required, class: "mt-0.5" %>
+      <span>
+        <span class="block font-medium text-primary">Resident</span>
+        <span class="block text-xs text-secondary">Lived in India 182 days or more this year (or the usual tests). Unused basic exemption can be set off against gains and the 87A rebate may apply.</span>
+      </span>
+    </label>
+
+    <label for="<%= id_prefix %>_nri" class="flex items-start gap-2 rounded-lg border border-primary p-3 cursor-pointer text-sm [&:has(input:checked)]:bg-container-inset">
+      <%= radio_button_tag name, "nri", selected == "nri", id: "#{id_prefix}_nri", required: required, class: "mt-0.5" %>
+      <span>
+        <span class="block font-medium text-primary">NRI</span>
+        <span class="block text-xs text-secondary">Non-resident Indian. TDS is deducted on sales, there is no basic-exemption set-off or 87A rebate, and bank accounts should be NRE or NRO.</span>
+      </span>
+    </label>
+  </div>
+
+  <p class="text-xs text-secondary">
+    This changes the TDS estimate in the Tax Center, the basic-exemption set-off and 87A notes, whether NRE/NRO accounts are suggested,
+    and the PPF and Sukanya Samriddhi warnings. Residency can differ each financial year, so check it for the year you look at.
+  </p>
+</fieldset>

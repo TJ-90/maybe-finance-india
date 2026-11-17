@@ -1,7 +1,7 @@
 # Realized capital gains for one financial year across a set of accounts (one person's accounts, since
 # the LTCG exemption is per individual), with the netted per-redemption view and an indicative tax estimate.
 class TaxCenter::Report
-  RedemptionRow = Struct.new(:redemption, :lines, keyword_init: true) do
+  RedemptionRow = Struct.new(:redemption, :lines, :tds, keyword_init: true) do
     def short_term_gain
       lines.select { |l| l.term == :short }.sum(&:gain)
     end
@@ -15,10 +15,13 @@ class TaxCenter::Report
     end
   end
 
-  attr_reader :family, :accounts, :slab_rate, :rules
+  attr_reader :family, :accounts, :slab_rate, :rules, :residency
 
-  def initialize(family:, accounts:, financial_year_start: Period.financial_year_start(Date.current), slab_rate: 30, tax_lots: nil, rules: TaxCenter::Rules.current)
+  # residency: a TaxCenter::Residency. For an NRI the report adds the estimated TDS deducted on each sale.
+  def initialize(family:, accounts:, financial_year_start: Period.financial_year_start(Date.current), slab_rate: 30, tax_lots: nil,
+                 rules: TaxCenter::Rules.current, residency: nil)
     @family = family
+    @residency = residency || TaxCenter::Residency.new(rules: rules)
     @accounts = accounts.to_a
     @financial_year_start = financial_year_start
     @slab_rate = BigDecimal(slab_rate.to_s)
@@ -44,8 +47,14 @@ class TaxCenter::Report
 
   def redemption_rows
     @redemption_rows ||= tax_lots.redemptions_between(period.start_date, period.end_date).map do |redemption|
-      RedemptionRow.new(redemption: redemption, lines: redemption.lots.map { |lot| line_for(lot) })
+      lines = redemption.lots.map { |lot| line_for(lot) }
+      RedemptionRow.new(redemption: redemption, lines: lines, tds: residency.tds_for_lines(lines, redemption.date))
     end.sort_by { |row| [ row.redemption.date, row.redemption.security.display_name ] }
+  end
+
+  # Estimated TDS an AMC or broker deducts on this year's sales (NRI only; zero otherwise)
+  def tds_total
+    redemption_rows.sum(BigDecimal("0")) { |row| row.tds }
   end
 
   def exemption_limit

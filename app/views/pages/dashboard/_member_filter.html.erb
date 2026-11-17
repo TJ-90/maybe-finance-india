@@ -1,0 +1,14 @@
+<%# locals: (members:, selected:) %>
+
+<%# Limits the net worth breakdown and the Investments card to one person %>
+<nav class="flex flex-wrap items-center gap-2 text-sm" aria-label="Show accounts of" id="member-filter">
+  <span class="text-secondary">Show</span>
+  <% options = [ [ "All", nil, nil ] ] + members.map { |member| [ member.name, member.id, member ] } + [ [ "Joint", "joint", :joint ] ] %>
+  <% options.each do |label, value, member| %>
+    <% active = (member.nil? && selected.nil?) || (member == :joint && selected == :joint) || (member.is_a?(HouseholdMember) && selected == member) %>
+    <%= link_to label,
+                root_path(request.query_parameters.except("member").merge(value ? { member: value } : {})),
+                class: class_names("rounded-full px-3 py-1 border", active ? "bg-container text-primary border-primary font-medium" : "text-secondary border-transparent hover:bg-surface-hover"),
+                aria: { current: (active ? "true" : nil) } %>
+  <% end %>
+</nav>

@@ -49,6 +49,8 @@ Rails.application.routes.draw do
   resource :onboarding, only: :show do
     collection do
       get :preferences
+      get :household
+      post :household, action: :save_household
       get :goals
       get :trial
     end
@@ -57,6 +59,7 @@ Rails.application.routes.draw do
   namespace :settings do
     resource :profile, only: [ :show, :destroy ]
     resource :preferences, only: :show
+    resources :household_members, except: :show
     resource :hosting, only: %i[show update] do
       delete :clear_cache, on: :collection
     end
@@ -120,7 +123,9 @@ Rails.application.routes.draw do
     resource :confirm, only: :show, module: :import
 
     resources :rows, only: %i[show update], module: :import
-    resources :mappings, only: :update, module: :import
+    resources :mappings, only: :update, module: :import do
+      patch :owner, on: :member
+    end
   end
 
   resources :holdings, only: %i[index new show destroy]
@@ -216,6 +221,7 @@ Rails.application.routes.draw do
 
   resource :tax_center, only: :show, controller: "tax_center" do
     get :realized_gains
+    get :interest
     get :harvesting
     get :calculator
     get :categories

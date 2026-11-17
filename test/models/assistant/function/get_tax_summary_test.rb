@@ -36,6 +36,17 @@ class Assistant::Function::GetTaxSummaryTest < ActiveSupport::TestCase
   test "schema requires the financial year parameter for strict mode" do
     schema = Assistant::Function::GetTaxSummary.new(@user).params_schema
 
-    assert_equal [ "financial_year_start" ], schema[:required]
+    assert_equal [ "financial_year_start", "member" ], schema[:required]
+  end
+
+  test "takes a household member and reports their residency and NRI TDS" do
+    family = @user.family
+    nri = family.household_members.create!(name: "Rahul", relationship: "self", residency_status: "nri")
+
+    result = Assistant::Function::GetTaxSummary.new(@user).call("member" => "rahul", "financial_year_start" => nil)
+
+    assert_equal "NRI", result[:member][:residency_status]
+    assert_equal nri.name, result[:member][:name]
+    assert result.key?(:estimated_tds_deducted_for_nri)
   end
 end

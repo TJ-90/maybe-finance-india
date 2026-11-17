@@ -11,6 +11,19 @@
 
     <%= form.text_field :name, placeholder: t(".name_placeholder"), required: "required", label: t(".name_label") %>
 
+    <% members = Current.family.household_members.ordered.to_a %>
+    <% if members.any? %>
+      <%# A new account starts out as the signed-in person's own when their login is linked to a member %>
+      <% owner_id = account.persisted? ? account.household_member_id : (account.household_member_id || Current.user.household_member_id) %>
+      <%= form.select :household_member_id,
+                      [ [ Account::Ownership::JOINT_LABEL, "" ] ] + members.map { |member| [ member.display_label, member.id ] },
+                      { label: "Belongs to", selected: owner_id } %>
+    <% end %>
+
+    <% account.residency_warnings.each do |warning| %>
+      <%= render DS::Alert.new(message: warning, variant: :warning) %>
+    <% end %>
+
     <% if show_balance && !account.linked? %>
       <%= form.money_field :balance, label: balance_label || t(".balance"), required: true, default_currency: Current.family.currency %>
     <% end %>

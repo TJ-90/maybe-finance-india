@@ -1,0 +1,43 @@
+<%# locals: (mapping:) %>
+
+<%# Shown for accounts that will be created by this import: whose account is it? %>
+<% members = mapping.import.family.household_members.ordered.to_a %>
+<% current_owner = mapping.owner %>
+
+<div class="mt-3 space-y-2 text-sm" data-testid="import-owner" id="<%= dom_id(mapping, :owner) %>">
+  <% if members.any? %>
+    <%= form_with url: owner_import_mapping_path(mapping.import, mapping), method: :patch, data: { controller: "auto-submit-form" }, class: "flex items-center gap-2" do %>
+      <%= label_tag dom_id(mapping, :owner_select), "Whose account is this?", class: "text-secondary shrink-0" %>
+      <%= select_tag :household_member_id,
+                     options_for_select([ [ Account::Ownership::JOINT_LABEL, Import::AccountMapping::JOINT_VALUE ] ] + members.map { |member| [ member.display_label, member.id ] }, current_owner&.id || Import::AccountMapping::JOINT_VALUE),
+                     id: dom_id(mapping, :owner_select),
+                     class: "form-field__input border border-secondary rounded-lg px-3 py-1.5 text-sm",
+                     data: { auto_submit_form_target: "auto", autosubmit_trigger_event: "change" } %>
+    <% end %>
+  <% else %>
+    <p class="text-secondary">Whose account is this? Add the person below, or leave it joint.</p>
+  <% end %>
+
+  <details>
+    <summary class="cursor-pointer text-secondary">Someone new? Add a person</summary>
+
+    <%= form_with url: owner_import_mapping_path(mapping.import, mapping), method: :patch, class: "mt-2 space-y-3 rounded-lg border border-primary p-3" do %>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+        <div class="space-y-1">
+          <%= label_tag "new_member_name_#{mapping.id}", "Name", class: "block text-secondary" %>
+          <%= text_field_tag "new_member[name]", nil, id: "new_member_name_#{mapping.id}", required: true, autocomplete: "off", class: "form-field__input border border-secondary rounded-lg px-3 py-1.5 w-full text-sm" %>
+        </div>
+        <div class="space-y-1">
+          <%= label_tag "new_member_relationship_#{mapping.id}", "Relationship", class: "block text-secondary" %>
+          <%= select_tag "new_member[relationship]",
+                         options_for_select(HouseholdMember::RELATIONSHIPS.map { |key, label| [ label, key ] }, members.any? { |member| member.myself? } ? "spouse" : "self"),
+                         id: "new_member_relationship_#{mapping.id}", class: "form-field__input border border-secondary rounded-lg px-3 py-1.5 w-full text-sm" %>
+        </div>
+      </div>
+
+      <%= render "settings/household_members/residency_field", name: "new_member[residency_status]", id_prefix: "new_member_residency_#{mapping.id}" %>
+
+      <%= render DS::Button.new(text: "Add person", type: "submit", variant: "outline", size: :sm) %>
+    <% end %>
+  </details>
+</div>

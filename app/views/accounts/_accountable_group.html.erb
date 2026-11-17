@@ -35,7 +35,7 @@
             <div class="flex items-center gap-2 mb-0.5">
               <%= tag.p account.name, class: class_names("text-sm text-primary font-medium truncate", "animate-pulse" => account.syncing?) %>
             </div>
-            <%= tag.p account.short_subtype_label, class: "text-sm text-secondary truncate" %>
+            <%= tag.p account_subtitle(account, account.short_subtype_label), class: "text-sm text-secondary truncate" %>
           </div>
 
           <div class="ml-auto text-right grow h-10">

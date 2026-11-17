@@ -3,6 +3,7 @@ class User < ApplicationRecord
 
   belongs_to :family
   belongs_to :last_viewed_chat, class_name: "Chat", optional: true
+  belongs_to :household_member, optional: true
   has_many :sessions, dependent: :destroy
   has_many :chats, dependent: :destroy
   has_many :api_keys, dependent: :destroy
@@ -16,6 +17,7 @@ class User < ApplicationRecord
 
   validates :email, presence: true, uniqueness: true, format: { with: URI::MailTo::EMAIL_REGEXP }
   validate :ensure_valid_profile_image
+  validate :household_member_in_family
   validates :default_period, inclusion: { in: Period::PERIODS.keys }
   normalizes :email, with: ->(email) { email.strip.downcase }
   normalizes :unconfirmed_email, with: ->(email) { email&.strip&.downcase }
@@ -170,6 +172,12 @@ class User < ApplicationRecord
   end
 
   private
+    def household_member_in_family
+      return if household_member.blank? || household_member.family_id == family_id
+
+      errors.add(:household_member, "must belong to the same household")
+    end
+
     def ensure_valid_profile_image
       return unless profile_image.attached?
 

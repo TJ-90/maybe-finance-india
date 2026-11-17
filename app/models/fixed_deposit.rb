@@ -128,6 +128,16 @@ class FixedDeposit < ApplicationRecord
     FixedDeposit::Accruer.new(self).accrue!
   end
 
+  # Interest that builds up inside the deposit between two dates (cumulative FD, RD, NSC...): growth in
+  # value minus what was deposited in the period. Payout FDs pay their interest out as income entries,
+  # so they have none here.
+  def interest_accrued_between(from, to)
+    return BigDecimal("0") if start_date.nil? || payout_fd? || to < from
+
+    growth = value_on(to) - value_on(from - 1.day)
+    (growth - deposited_between(from, to)).round(2)
+  end
+
   def trend
     Trend.new(current: account.balance_money, previous: account.first_valuation_amount)
   end
@@ -144,6 +154,15 @@ class FixedDeposit < ApplicationRecord
   end
 
   private
+    def deposited_between(from, to)
+      if recurring?
+        count = (0...tenure_months).count { |k| (start_date >> k).between?(from, to) }
+        monthly_installment.to_d * count
+      else
+        start_date.between?(from, to) ? principal.to_d : BigDecimal("0")
+      end
+    end
+
     def valuation_end(date)
       return date if auto_renew? && !recurring?
 

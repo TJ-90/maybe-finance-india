@@ -39,6 +39,14 @@
       </div>
     </dl>
 
+    <% if @residency.nri? %>
+      <div class="rounded-lg bg-container-inset p-3 text-sm" data-testid="realized-tds">
+        <span class="text-secondary">Estimated TDS deducted by the AMC or broker on this year's sales:</span>
+        <strong class="text-primary" id="realized-tds-total"><%= tax_money(@report.tds_total) %></strong>
+        <span class="block text-xs text-secondary mt-1">Rates: <%= @residency.tds_rate_summary(@report.period.end_date) %>, plus cess. The LTCG exemption is claimed as a refund when you file.</span>
+      </div>
+    <% end %>
+
     <% if estimate.unabsorbed_short_loss.positive? || estimate.unabsorbed_long_loss.positive? %>
       <p class="text-sm text-secondary">
         Losses left after set-off within the year (carry-forward is not computed):
@@ -61,7 +69,10 @@
               <th scope="col" class="text-right py-2 pr-3">Cost</th>
               <th scope="col" class="text-right py-2 pr-3">Short term</th>
               <th scope="col" class="text-right py-2 pr-3">Long term</th>
-              <th scope="col" class="text-right py-2">Net gain</th>
+              <th scope="col" class="text-right py-2 pr-3">Net gain</th>
+              <% if @residency.nri? %>
+                <th scope="col" class="text-right py-2">Est. TDS</th>
+              <% end %>
             </tr>
           </thead>
           <tbody class="divide-y divide-alpha-black-100">
@@ -76,7 +87,10 @@
                 <td class="py-2 pr-3 text-right"><%= tax_money(redemption.cost) %></td>
                 <td class="py-2 pr-3 text-right <%= tax_gain_class(row.short_term_gain) %>"><%= tax_money(row.short_term_gain) %></td>
                 <td class="py-2 pr-3 text-right <%= tax_gain_class(row.long_term_gain) %>"><%= tax_money(row.long_term_gain) %></td>
-                <td class="py-2 text-right font-medium <%= tax_gain_class(row.gain) %>"><%= tax_money(row.gain) %></td>
+                <td class="py-2 pr-3 text-right font-medium <%= tax_gain_class(row.gain) %>"><%= tax_money(row.gain) %></td>
+                <% if @residency.nri? %>
+                  <td class="py-2 text-right"><%= tax_money(row.tds) %></td>
+                <% end %>
               </tr>
             <% end %>
           </tbody>
@@ -96,6 +110,8 @@
         </ul>
       </details>
     <% end %>
+
+    <%= render "tax_center/residency_notes", residency: @residency, estimate_only: true %>
 
     <%= render "tax_center/disclaimer" %>
   </div>

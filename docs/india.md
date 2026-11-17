@@ -172,12 +172,26 @@ before they produce wrong numbers, but wrong numbers are possible.
 
 ## Demo data
 
-`rake demo_data:default` loads an Indian household: an HDFC savings account with UPI/NEFT/NACH narrations, an ICICI
-card, a Zerodha demat (RELIANCE, TCS, INFY, NIFTYBEES on NSE), three mutual funds with folio numbers, EPF, PPF, an FD,
-a home loan, gold, a flat, two insurance policies and three goals. Log in as `user@example.com` / `password`.
+`rake demo_data:default` loads an Indian household of two people. Rahul (you, an NRI working in Dubai) has an NRE and an
+NRO savings account (with quarterly interest) and a Zerodha demat (RELIANCE, TCS, INFY, NIFTYBEES on NSE). Asha (his
+wife, a Resident) has an HDFC savings account with UPI/NEFT/NACH narrations, an ICICI card, three mutual funds with
+folio numbers, EPF, PPF, an FD and gold. The flat and the home loan are joint. There are also two insurance policies and
+three goals. Log in as `user@example.com` / `password` (you are Rahul); the Tax Center shows both residencies, with an
+estimated TDS on Rahul's sales. The wife's login is `partner_user@example.com`.
 
 The demo uses made-up mutual fund schemes (codes `900001` to `900003`) and seeds a price for every day, so generating
 it never touches the network. Share prices follow a synthetic curve and are not real market history.
+
+## Household members and residency
+
+Settings, Household lists the people whose money you track. Each has a required Resident or NRI choice (never defaulted),
+an optional date of birth, PAN last four, slab rate and tax regime. Accounts and goals can belong to a person ("Belongs
+to"), and the dashboard can filter the net worth breakdown and the Investments card with `?member=`. The Tax Center works
+one person at a time. Capital-gains rates and the Rs 1.25 lakh equity exemption are the same for both statuses. For an
+NRI it adds an estimated TDS on every sale (the `residency:` section of `config/india_capital_gains.yml`, 4% cess
+added, surcharge and DTAA not modelled), and an interest section (NRE exempt, NRO taxable with TDS). Residents get
+notes on the basic-exemption set-off and the 87A rebate. The NRI TDS treatment of the exemption is marked verify in the
+config. Imports ask "Whose account is this?" when they create a new account.
 
 ## Privacy
 

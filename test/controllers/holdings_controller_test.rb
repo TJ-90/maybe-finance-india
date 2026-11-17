@@ -87,4 +87,29 @@ class HoldingsControllerTest < ActionDispatch::IntegrationTest
 
     assert_select "p", text: "1Y 20.0% · 3Y -- · 5Y --"
   end
+
+  test "stock holdings are labelled in shares and the cash row shows for accounts that hold cash" do
+    get holdings_url(account_id: @account.id)
+
+    assert_match "shares", response.body
+    assert_no_match(/\bunits\b/, response.body.gsub(/<script.*?<\/script>/m, ""))
+    assert_match "Brokerage cash", response.body
+  end
+
+  test "mutual fund holdings are labelled in units and a holdings-only account has no cash row" do
+    account = families(:dylan_family).accounts.create!(
+      name: "Fund account", accountable: Investment.new, subtype: "mutual_fund", balance: 1000, currency: "INR"
+    )
+    fund = Security.create!(ticker: "900911", name: "Sample Index Fund - Direct Plan - Growth", exchange_operating_mic: Security::AMFI_MIC, kind: "mutual_fund")
+    account.holdings.create!(security: fund, date: Date.current, qty: 4903.9, price: 154.08, amount: 755_600, currency: "INR")
+    account.update!(balance: 755_600)
+
+    get holdings_url(account_id: account.id)
+
+    assert_response :success
+    assert_match "4903.9 units", response.body
+    assert_match "per unit", response.body
+    assert_no_match(/\bshares\b/, response.body.gsub(/<script.*?<\/script>/m, ""))
+    assert_no_match "Brokerage cash", response.body
+  end
 end

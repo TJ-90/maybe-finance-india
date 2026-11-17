@@ -47,4 +47,10 @@ class ImportPreambleTest < ActiveSupport::TestCase
 
     assert_equal [ "Date", "Narration", "Debit", "Credit" ], Import.parse_csv_str(cleaned, col_sep: ";").headers
   end
+
+  test "the configuration sample skips blank rows under the header" do
+    import = Import.new(raw_file_str: "Scheme,Units,Amount\n,,\n,,\nSigma Fund,10,1000\nOmega Fund,5,500\nThird Fund,1,100\n", col_sep: ",")
+
+    assert_equal [ [ "Sigma Fund", "10", "1000" ], [ "Omega Fund", "5", "500" ] ], import.csv_sample.map(&:fields)
+  end
 end

@@ -83,6 +83,7 @@ class Import::UploadsControllerTest < ActionDispatch::IntegrationTest
 
     assert_redirected_to import_configuration_url(import, template_hint: true)
     assert_equal [ "date", "ticker", "qty", "price" ], import.reload.csv_headers
+    assert_equal "Excel file uploaded successfully.", flash[:notice]
   end
 
   test "an old binary xls file is refused with advice" do

@@ -20,6 +20,7 @@ class Goal < ApplicationRecord
 
   belongs_to :family
   has_many :goal_allocations, dependent: :destroy
+  has_many :goal_snapshots, dependent: :destroy
 
   monetize :target_amount, :monthly_sip, :monthly_expenses_today
 
@@ -62,6 +63,32 @@ class Goal < ApplicationRecord
 
   def projection(today: Date.current)
     Goal::Projection.new(self, today: today)
+  end
+
+  # Writes (or refreshes) the snapshot for `date`. Safe to run any number of times a day: there is
+  # one snapshot per goal and date.
+  def record_snapshot!(date: Date.current)
+    projection = projection(today: date)
+
+    goal_snapshots.find_or_initialize_by(date: date).tap do |snapshot|
+      snapshot.update!(
+        status: projection.status,
+        progress_pct: projection.progress_pct,
+        projected_corpus: projection.projected_corpus,
+        target_corpus: projection.inflation_adjusted_target,
+        required_sip: projection.required_monthly_sip,
+        shortfall: projection.shortfall
+      )
+    end
+  end
+
+  def latest_snapshot
+    goal_snapshots.order(date: :desc).first
+  end
+
+  # The most recent snapshot whose status differs from the one before it, as [snapshot, previous]
+  def last_status_change
+    goal_snapshots.order(:date).to_a.each_cons(2).select { |before, after| before.status != after.status }.last&.reverse
   end
 
   def rebalancer(today: Date.current)

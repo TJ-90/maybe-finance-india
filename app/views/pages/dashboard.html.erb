@@ -47,6 +47,11 @@
         <%= render "pages/dashboard/investments", summary: @investment_summary %>
       </section>
     <% end %>
+    <% if @goal_health.any? %>
+      <section>
+        <%= render "pages/dashboard/goals_health", health: @goal_health %>
+      </section>
+    <% end %>
     <section>
       <%= render "pages/dashboard/balance_sheet", balance_sheet: @balance_sheet %>
     </section>

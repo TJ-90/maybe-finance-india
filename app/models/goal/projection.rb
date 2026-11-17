@@ -108,6 +108,18 @@ class Goal::Projection
     projected_corpus >= inflation_adjusted_target - 0.005
   end
 
+  # Share of the inflation-adjusted target a goal may miss by and still count as "at risk" rather
+  # than "off track"
+  AT_RISK_SHORTFALL_RATIO = 0.10
+
+  # on_track: the projection reaches the target. at_risk: it misses by no more than 10% of the
+  # target. off_track: it misses by more.
+  def status
+    return "on_track" if on_track?
+
+    shortfall <= inflation_adjusted_target * AT_RISK_SHORTFALL_RATIO ? "at_risk" : "off_track"
+  end
+
   # Percentage of the inflation-adjusted target already covered by allocated money, capped at 100
   def progress_pct
     target = inflation_adjusted_target

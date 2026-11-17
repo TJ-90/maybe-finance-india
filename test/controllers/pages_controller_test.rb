@@ -116,4 +116,24 @@ class PagesControllerTest < ActionDispatch::IntegrationTest
     assert_select "h2", text: "Test Release"
     # Should not crash even with nil values
   end
+
+  test "dashboard shows goals health with counts and the worst goal first" do
+    goals(:home).goal_snapshots.create!(date: Date.current, status: "off_track", shortfall: 500_000)
+    goals(:emergency).goal_snapshots.create!(date: Date.current, status: "on_track")
+
+    get root_path
+
+    assert_response :success
+    assert_select "#goals-health", text: /Goals health/
+    assert_select "#goals-health li", text: /1\s*Off track/
+    assert_select "#goals-health li", text: /1\s*On track/
+    assert_select "#goals-health a[href=?]", goal_path(goals(:home))
+  end
+
+  test "dashboard hides goals health without goals" do
+    Goal.destroy_all
+    get root_path
+
+    assert_select "#goals-health", count: 0
+  end
 end

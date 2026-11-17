@@ -14,9 +14,16 @@
   <% if snapshots.size < 2 %>
     <p class="text-sm text-secondary">The goal is checked once a day. A progress chart shows up here after a couple of checks.</p>
   <% else %>
-    <svg viewBox="0 0 300 80" class="w-full h-20 text-success" role="img" aria-label="Progress towards the target over time" preserveAspectRatio="none">
-      <polyline points="<%= progress_polyline_points(snapshots) %>" fill="none" stroke="currentColor" stroke-width="2" vector-effect="non-scaling-stroke" />
-    </svg>
+    <% low, high = progress_chart_range(snapshots) %>
+    <div class="flex gap-2" id="goal-status-chart">
+      <div class="flex flex-col justify-between text-xs text-secondary text-right w-10 shrink-0" aria-hidden="true">
+        <span><%= number_to_percentage(high, precision: 1) %></span>
+        <span><%= number_to_percentage(low, precision: 1) %></span>
+      </div>
+      <svg viewBox="0 0 300 80" class="w-full h-20 text-success" role="img" aria-label="Progress towards the target over time, from <%= number_to_percentage(low, precision: 1) %> to <%= number_to_percentage(high, precision: 1) %>" preserveAspectRatio="none">
+        <polyline points="<%= progress_polyline_points(snapshots) %>" fill="none" stroke="currentColor" stroke-width="2" vector-effect="non-scaling-stroke" />
+      </svg>
+    </div>
     <p class="text-xs text-secondary">
       Progress from <%= snapshots.first.date.strftime(date_format) %> to <%= snapshots.last.date.strftime(date_format) %>:
       <%= number_to_percentage(snapshots.first.progress_pct, precision: 0) %> to <%= number_to_percentage(snapshots.last.progress_pct, precision: 0) %> of the target.

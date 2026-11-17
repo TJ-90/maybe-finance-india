@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2026_11_17_070002) do
+ActiveRecord::Schema[7.2].define(version: 2026_11_17_110003) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pgcrypto"
   enable_extension "plpgsql"
@@ -322,6 +322,21 @@ ActiveRecord::Schema[7.2].define(version: 2026_11_17_070002) do
     t.index ["security_id"], name: "index_goal_allocations_on_security_id"
   end
 
+  create_table "goal_snapshots", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.uuid "goal_id", null: false
+    t.date "date", null: false
+    t.string "status", null: false
+    t.decimal "progress_pct", precision: 7, scale: 2, default: "0.0", null: false
+    t.decimal "projected_corpus", precision: 19, scale: 4, default: "0.0", null: false
+    t.decimal "target_corpus", precision: 19, scale: 4, default: "0.0", null: false
+    t.decimal "required_sip", precision: 19, scale: 4
+    t.decimal "shortfall", precision: 19, scale: 4, default: "0.0", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["goal_id", "date"], name: "index_goal_snapshots_on_goal_id_and_date", unique: true
+    t.index ["goal_id"], name: "index_goal_snapshots_on_goal_id"
+  end
+
   create_table "goals", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
     t.uuid "family_id", null: false
     t.string "name", null: false
@@ -588,6 +603,37 @@ ActiveRecord::Schema[7.2].define(version: 2026_11_17_070002) do
     t.index ["category"], name: "index_mutual_fund_schemes_on_category"
     t.index ["isin_growth"], name: "index_mutual_fund_schemes_on_isin_growth"
     t.index ["scheme_code"], name: "index_mutual_fund_schemes_on_scheme_code", unique: true
+  end
+
+  create_table "notification_preferences", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.uuid "user_id", null: false
+    t.boolean "email_enabled", default: false, null: false
+    t.boolean "include_amounts", default: false, null: false
+    t.boolean "monthly_summary", default: true, null: false
+    t.integer "stale_data_days", default: 35, null: false
+    t.string "disabled_kinds", default: [], null: false, array: true
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["user_id"], name: "index_notification_preferences_on_user_id", unique: true
+  end
+
+  create_table "notifications", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.uuid "user_id", null: false
+    t.uuid "family_id", null: false
+    t.string "kind", null: false
+    t.string "title", null: false
+    t.text "body"
+    t.text "detail"
+    t.string "url"
+    t.string "dedupe_key"
+    t.datetime "read_at"
+    t.datetime "emailed_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["family_id"], name: "index_notifications_on_family_id"
+    t.index ["user_id", "dedupe_key"], name: "index_notifications_on_user_id_and_dedupe_key", unique: true, where: "(dedupe_key IS NOT NULL)"
+    t.index ["user_id", "read_at"], name: "index_notifications_on_user_id_and_read_at"
+    t.index ["user_id"], name: "index_notifications_on_user_id"
   end
 
   create_table "oauth_access_grants", force: :cascade do |t|
@@ -997,6 +1043,7 @@ ActiveRecord::Schema[7.2].define(version: 2026_11_17_070002) do
   add_foreign_key "goal_allocations", "accounts"
   add_foreign_key "goal_allocations", "goals"
   add_foreign_key "goal_allocations", "securities"
+  add_foreign_key "goal_snapshots", "goals"
   add_foreign_key "goals", "families"
   add_foreign_key "holdings", "accounts"
   add_foreign_key "holdings", "securities"
@@ -1011,6 +1058,9 @@ ActiveRecord::Schema[7.2].define(version: 2026_11_17_070002) do
   add_foreign_key "merchants", "families"
   add_foreign_key "messages", "chats"
   add_foreign_key "mobile_devices", "users"
+  add_foreign_key "notification_preferences", "users"
+  add_foreign_key "notifications", "families"
+  add_foreign_key "notifications", "users"
   add_foreign_key "oauth_access_grants", "oauth_applications", column: "application_id"
   add_foreign_key "oauth_access_tokens", "oauth_applications", column: "application_id"
   add_foreign_key "plaid_accounts", "plaid_items"

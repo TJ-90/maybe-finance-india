@@ -1,0 +1,17 @@
+Hi <%= @user.first_name.presence || "there" %>,
+
+Here is what changed in <%= product_name %>:
+
+<% @notifications.each do |notification| -%>
+* <%= notification.title %>
+<% if notification.body.present? -%>
+  <%= notification.body %>
+<% end -%>
+<% if @include_amounts && notification.detail.present? -%>
+  <%= notification.detail %>
+<% end -%>
+  <%= absolute_url(notification.url) %>
+
+<% end -%>
+See all notifications: <%= @inbox_url %>
+Change email settings: <%= @settings_url %>

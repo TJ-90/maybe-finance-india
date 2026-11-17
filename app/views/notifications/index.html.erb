@@ -1,0 +1,59 @@
+<%= content_for :page_title, "Notifications" %>
+
+<div class="space-y-4 pb-20">
+  <header class="flex items-center justify-between gap-2">
+    <div>
+      <h1 class="text-primary text-xl font-medium">Notifications</h1>
+      <p class="text-sm text-secondary"><%= @unread_count.positive? ? "#{@unread_count} unread" : "You're all caught up" %></p>
+    </div>
+
+    <div class="flex items-center gap-2">
+      <%= render DS::Link.new(text: "Settings", variant: "outline", icon: "settings", href: settings_notifications_path) %>
+      <% if @unread_count.positive? %>
+        <%= render DS::Button.new(text: "Mark all as read", variant: "outline", icon: "check-check", href: mark_all_read_notifications_path, method: :post) %>
+      <% end %>
+    </div>
+  </header>
+
+  <% if @notifications.any? %>
+    <ul id="notifications" class="bg-container shadow-border-xs rounded-xl divide-y divide-alpha-black-100">
+      <% @notifications.each do |notification| %>
+        <%= tag.li id: dom_id(notification), class: "flex items-start justify-between gap-4 p-4" do %>
+          <div class="min-w-0 space-y-1">
+            <div class="flex items-center gap-2">
+              <% unless notification.read? %>
+                <span class="inline-block w-2 h-2 rounded-full bg-destructive shrink-0" aria-label="Unread"></span>
+              <% end %>
+              <p class="text-sm text-primary <%= notification.read? ? "" : "font-medium" %>"><%= notification.title %></p>
+            </div>
+            <% if notification.body.present? %>
+              <p class="text-sm text-secondary"><%= notification.body %></p>
+            <% end %>
+            <% if notification.detail.present? %>
+              <p class="text-sm text-secondary"><%= notification.detail %></p>
+            <% end %>
+            <p class="text-xs text-secondary">
+              <%= Notification::KINDS[notification.kind] %> &middot; <%= time_ago_in_words(notification.created_at) %> ago
+            </p>
+          </div>
+
+          <div class="flex items-center gap-2 shrink-0">
+            <% if notification.url.present? %>
+              <%= render DS::Link.new(text: "Open", variant: "outline", href: open_notification_path(notification)) %>
+            <% end %>
+            <% unless notification.read? %>
+              <%= render DS::Button.new(text: "Mark read", variant: "ghost", href: notification_path(notification), method: :patch) %>
+            <% end %>
+          </div>
+        <% end %>
+      <% end %>
+    </ul>
+  <% else %>
+    <div class="bg-container shadow-border-xs rounded-xl flex justify-center items-center py-20">
+      <div class="text-center max-w-[320px] space-y-1">
+        <p class="text-primary font-medium text-sm">No notifications yet</p>
+        <p class="text-secondary text-sm">Goal status changes, stale data, insurance premiums and year-end tax reminders show up here.</p>
+      </div>
+    </div>
+  <% end %>
+</div>

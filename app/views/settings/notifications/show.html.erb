@@ -1,0 +1,62 @@
+<%= content_for :page_title, "Notifications" %>
+
+<%= styled_form_with model: @preferences, url: settings_notifications_path, method: :patch, scope: :notification_preference, class: "space-y-4" do |form| %>
+  <%= settings_section title: "Email", subtitle: "The bell in the top bar always works. Email is optional and off by default." do %>
+    <div class="space-y-4">
+      <% unless @email_available %>
+        <p class="text-sm text-secondary" id="email-unavailable">
+          This server has no email settings (<code>SMTP_ADDRESS</code>), so emails can't be sent. You will still see everything in the app.
+        </p>
+      <% end %>
+
+      <div class="flex items-center justify-between gap-4">
+        <div>
+          <label for="notification_preference_email_enabled" class="text-sm font-medium text-primary">Email me a daily digest</label>
+          <p class="text-sm text-secondary">Sent only when something new needs your attention.</p>
+        </div>
+        <%= render DS::Toggle.new(id: "notification_preference_email_enabled", name: "notification_preference[email_enabled]", checked: @preferences.email_enabled?, disabled: !@email_available) %>
+      </div>
+
+      <div class="flex items-center justify-between gap-4">
+        <div>
+          <label for="notification_preference_include_amounts" class="text-sm font-medium text-primary">Include amounts in emails</label>
+          <p class="text-sm text-secondary">Off by default: emails say what changed and link to the app, without any figures.</p>
+        </div>
+        <%= render DS::Toggle.new(id: "notification_preference_include_amounts", name: "notification_preference[include_amounts]", checked: @preferences.include_amounts?, disabled: !@email_available) %>
+      </div>
+    </div>
+  <% end %>
+
+  <%= settings_section title: "What to notify me about" do %>
+    <div class="space-y-4">
+      <div class="flex items-center justify-between gap-4">
+        <div>
+          <label for="notification_preference_monthly_summary" class="text-sm font-medium text-primary"><%= Notification::KINDS["goal_summary"] %></label>
+          <p class="text-sm text-secondary">A short summary of your goals on the 1st of each month.</p>
+        </div>
+        <%= render DS::Toggle.new(id: "notification_preference_monthly_summary", name: "notification_preference[monthly_summary]", checked: @preferences.monthly_summary?) %>
+      </div>
+
+      <%= hidden_field_tag "notification_preference[enabled_kinds][]", "", id: nil %>
+      <% NotificationPreference.toggleable_kinds.each do |kind, label| %>
+        <div class="flex items-center justify-between gap-4">
+          <label for="kind_<%= kind %>" class="text-sm font-medium text-primary"><%= label %></label>
+          <div class="relative inline-block select-none">
+            <%= check_box_tag "notification_preference[enabled_kinds][]", kind, @preferences.kind_enabled?(kind), id: "kind_#{kind}", class: "sr-only peer" %>
+            <%= label_tag "kind_#{kind}", "&nbsp;".html_safe, class: "block w-9 h-5 cursor-pointer rounded-full bg-gray-100 theme-dark:bg-gray-700 transition-colors duration-300 after:content-[''] after:block after:bg-white after:absolute after:rounded-full after:top-0.5 after:left-0.5 after:w-4 after:h-4 after:transition-transform after:duration-300 after:ease-in-out peer-checked:bg-green-600 peer-checked:after:translate-x-4" %>
+          </div>
+        </div>
+      <% end %>
+    </div>
+  <% end %>
+
+  <%= settings_section title: "Stale data", subtitle: "Remind me when an investment account has had no new trades or imports for this many days. A missing monthly SIP triggers it sooner." do %>
+    <div class="max-w-xs">
+      <%= form.number_field :stale_data_days, label: "Days", min: 1, max: 365, step: 1 %>
+    </div>
+  <% end %>
+
+  <div class="flex justify-end">
+    <%= form.submit "Save" %>
+  </div>
+<% end %>

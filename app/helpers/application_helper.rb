@@ -110,6 +110,11 @@ module ApplicationHelper
     number_to_percentage(rate * 100, precision: 1)
   end
 
+  # "Prices as of 4 Nov 2026, 4:15 PM IST" (always IST, the market's clock)
+  def format_prices_as_of(time)
+    MarketData.format_prices_as_of(time)
+  end
+
   def xirr_class(rate)
     return "text-secondary" if rate.nil?
 

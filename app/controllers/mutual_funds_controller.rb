@@ -6,6 +6,9 @@ class MutualFundsController < ApplicationController
     "max" => 25.years
   }.freeze
 
+  # 5 years plus a margin for the weekend or holiday before the start date
+  TRAILING_HISTORY = 5.years + 15.days
+
   PER_PAGE_OPTIONS = [ 10, 20, 30, 50 ].freeze
 
   def index
@@ -22,8 +25,11 @@ class MutualFundsController < ApplicationController
     @scheme = MutualFundScheme.find(params[:id])
     @range = NAV_RANGES.key?(params[:range]) ? params[:range] : "1y"
 
-    history = @scheme.nav_history(since: NAV_RANGES.fetch(@range).ago.to_date)
-    @nav_series = build_series(history)
+    chart_since = NAV_RANGES.fetch(@range).ago.to_date
+    # One fetch covers the chart and the trailing 1Y/3Y/5Y figures (a tracked fund caches it in security_prices)
+    history = @scheme.nav_history(since: [ chart_since, TRAILING_HISTORY.ago.to_date ].min)
+    @trailing_returns = Security::TrailingReturns.from_history(history)
+    @nav_series = build_series(history.select { |date, _| date >= chart_since })
     @investment_accounts = Current.family.accounts.visible.where(accountable_type: "Investment").alphabetically
   end
 

@@ -14,6 +14,14 @@ class ImportMutualFundSchemesJobTest < ActiveJob::TestCase
     assert_equal BigDecimal("245.1234"), security.prices.find_by!(date: Date.new(2026, 11, 1)).price
   end
 
+  test "re-values accounts after the NAVs are stored" do
+    stub_request(:get, Provider::Amfi::NAVALL_URL).to_return(status: 200, body: file_fixture("navall_sample.txt").read)
+
+    with_env_overrides DISABLE_INDIAN_MARKET_DATA: nil do
+      assert_enqueued_with(job: RefreshInvestmentValuesJob) { ImportMutualFundSchemesJob.perform_now }
+    end
+  end
+
   test "leaves existing schemes alone when AMFI is unreachable" do
     stub_request(:get, Provider::Amfi::NAVALL_URL).to_return(status: 503)
 

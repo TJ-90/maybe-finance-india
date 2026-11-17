@@ -10,13 +10,17 @@
 
         <% if holding.amount %>
           <%= tag.p holding.security.amfi? ? "MF · #{holding.ticker}" : holding.ticker, class: "text-secondary text-xs uppercase" %>
+          <% if holding.security.amfi? %>
+            <% trailing = holding.trailing_returns.to_h %>
+            <%= tag.p trailing.map { |years, cagr| "#{years}Y #{format_xirr(cagr)}" }.join(" · "), class: "text-secondary text-xs font-normal", title: "Trailing CAGR from NAV history" %>
+          <% end %>
         <% else %>
           <%= render "missing_price_tooltip" %>
         <% end %>
       </div>
     </div>
 
-    <div class="col-span-2 flex justify-end items-center gap-2">
+    <div class="col-span-1 flex justify-end items-center gap-2">
       <% if holding.weight %>
         <%= render "shared/progress_circle", progress: holding.weight %>
         <%= tag.p number_to_percentage(holding.weight, precision: 1) %>
@@ -48,9 +52,12 @@
       <% end %>
     </div>
 
-    <div class="col-span-1 text-right">
+    <div class="col-span-2 text-right">
       <% xirr = holding.xirr %>
-      <%= tag.p format_xirr(xirr), class: xirr_class(xirr) %>
+      <% returns = holding.returns %>
+      <%= tag.p format_xirr(xirr), class: xirr_class(xirr), title: "XIRR" %>
+      <%= tag.p "1D #{format_xirr(returns.one_day_change_percent)}", class: "text-xs font-normal #{xirr_class(returns.one_day_change_percent)}" %>
+      <%= tag.p "CAGR #{format_xirr(returns.cagr_since_first_purchase)}", class: "text-xs font-normal text-secondary", title: "Price based CAGR since the first purchase; -- when held under a year" %>
     </div>
   </div>
 <% end %>

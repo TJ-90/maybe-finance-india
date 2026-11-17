@@ -62,4 +62,22 @@ class TradeImportTest < ActiveSupport::TestCase
 
     assert_equal "complete", @import.status
   end
+
+  test "names entries after the security when the file has no name column" do
+    aapl = securities(:aapl)
+    Security::Resolver.stubs(:new).returns(stub(resolve: aapl))
+
+    @import.update!(
+      account: accounts(:depository),
+      raw_file_str: "date,ticker,qty,price\n01/01/2024,AAPL,10,150.00\n01/03/2024,AAPL,-4,160.00\n",
+      date_col_label: "date", ticker_col_label: "ticker", qty_col_label: "qty", price_col_label: "price",
+      date_format: "%m/%d/%Y", signage_convention: "inflows_positive"
+    )
+    @import.generate_rows_from_csv
+    @import.reload
+    @import.publish
+
+    names = @import.entries.order(:date).pluck(:name)
+    assert_equal [ "Buy 10.0 shares of AAPL", "Sell 4.0 shares of AAPL" ], names
+  end
 end

@@ -169,4 +169,13 @@ namespace :data_migration do
 
     puts "✅  Balance component migration complete."
   end
+
+  desc "Rename auto-named trade entries that used a raw ticker (AMFI code) to the security's name"
+  # 2026-11-18: mutual fund trades were named "Buy 3.368 900003". They now read
+  # "Buy 3.368 units of <fund name>". Only names that match an old generated pattern exactly are changed;
+  # a name a person typed is never touched.
+  task rename_auto_named_trades: :environment do
+    count = Trade.rename_auto_named!
+    puts "Renamed #{count} trade entries"
+  end
 end

@@ -113,7 +113,7 @@ class BrokerTradebookImport < TradeImport
               account: mapped_account,
               date: row.date_iso,
               amount: amount,
-              name: row.name,
+              name: Trade.build_name(row.qty.to_d.negative? ? "sell" : "buy", row.qty, security),
               currency: currency,
               import: self
             )

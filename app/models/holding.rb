@@ -54,6 +54,16 @@ class Holding < ApplicationRecord
     account.xirr(security: security, terminal_value: amount)
   end
 
+  # Invested, gain, 1-day change and CAGR for this holding (see Holding::Returns)
+  def returns
+    @returns ||= Holding::Returns.new(self)
+  end
+
+  # Trailing 1Y / 3Y / 5Y CAGR of the security's price, for mutual funds (NAV history is what matters there)
+  def trailing_returns
+    security.trailing_returns
+  end
+
   def trades
     account.entries.where(entryable: account.trades.where(security: security)).reverse_chronological
   end

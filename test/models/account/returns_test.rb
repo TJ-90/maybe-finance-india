@@ -79,4 +79,30 @@ class Account::ReturnsTest < ActiveSupport::TestCase
     assert_in_delta 0.10, summary.gain_percent, 1e-9
     assert_in_delta 0.10, summary.xirr, 1e-4
   end
+
+  test "investment summary adds the one day change and when prices were last refreshed" do
+    create_folio_trade @account, @fund, qty: 10, price: 100, date: Date.new(2025, 1, 1)
+    set_price @fund, 100, date: Date.new(2025, 12, 30)
+    set_price @fund, 110, date: Date.new(2026, 1, 1)
+    add_holding @account, @fund, qty: 10, price: 110
+
+    summary = @family.investment_summary(accounts: [ @account ])
+
+    assert_in_delta 0.10, summary.absolute_return, 1e-9
+    assert_in_delta 100, summary.one_day_change.amount, 1e-6
+    assert_in_delta 0.1, summary.one_day_change_percent, 1e-9
+    assert_in_delta 100, @account.one_day_change.amount, 1e-6
+    assert_equal Time.current.to_i, summary.prices_as_of.to_i
+  end
+
+  test "investment summary has no one day change without a previous price" do
+    create_folio_trade @account, @fund, qty: 10, price: 100, date: Date.new(2025, 1, 1)
+    add_holding @account, @fund, qty: 10, price: 110
+
+    summary = @family.investment_summary(accounts: [ @account ])
+
+    assert_nil summary.one_day_change
+    assert_nil summary.one_day_change_percent
+    assert_nil summary.prices_as_of
+  end
 end

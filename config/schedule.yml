@@ -8,10 +8,25 @@ import_market_data:
   cron: "30 18 * * *" # 12:00 AM IST every day (after AMFI NAVs are in, before the Indian trading day)
   class: "ImportMarketDataJob"
   queue: "scheduled"
-  description: "Imports market data daily at 12:00 AM IST (after AMFI NAVs and NSE/BSE close)"
+  description: "Imports market data (FX rates, catch-up prices) daily at 12:00 AM IST, then re-values accounts"
   args:
     mode: "full"
     clear_cache: false
+
+import_exchange_close_prices:
+  cron: "45 10 * * 1-5" # 4:15 PM IST Monday through Friday (NSE/BSE closed at 3:30 PM IST)
+  class: "ImportMarketDataJob"
+  queue: "scheduled"
+  description: "Imports NSE/BSE closing prices at 4:15 PM IST on weekdays, then re-values accounts"
+  args:
+    mode: "full"
+    scope: "exchange_close"
+
+refresh_intraday_prices:
+  cron: "*/15 3-10 * * 1-5" # every 15 minutes, 8:30 AM-3:45 PM IST on weekdays; the job only works 9:15 AM-3:30 PM IST
+  class: "RefreshIntradayPricesJob"
+  queue: "scheduled"
+  description: "Refreshes the latest NSE/BSE prices every 15 minutes while the market is open (INTRADAY_PRICE_REFRESH=false turns it off)"
 
 clean_syncs:
   cron: "0 * * * *" # every hour

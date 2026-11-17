@@ -50,6 +50,14 @@ class Provider::IndianMarkets < Provider
     route(exchange_operating_mic).fetch_security_price(symbol: symbol, exchange_operating_mic: exchange_operating_mic, date: date)
   end
 
+  # Latest traded price, for exchange-listed securities only (mutual funds publish one NAV a day)
+  def fetch_latest_price(symbol:, exchange_operating_mic:)
+    provider = route(exchange_operating_mic)
+    return provider.fetch_security_price(symbol: symbol, exchange_operating_mic: exchange_operating_mic, date: Date.current) unless provider.respond_to?(:fetch_latest_price)
+
+    provider.fetch_latest_price(symbol: symbol, exchange_operating_mic: exchange_operating_mic)
+  end
+
   def fetch_security_prices(symbol:, exchange_operating_mic:, start_date:, end_date:)
     route(exchange_operating_mic).fetch_security_prices(
       symbol: symbol,

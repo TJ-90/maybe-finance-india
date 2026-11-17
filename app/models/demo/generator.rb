@@ -516,7 +516,7 @@ class Demo::Generator
       verb = qty.positive? ? "Buy" : "Sell"
 
       account.entries.create!(
-        name: "#{verb} #{qty.abs} #{spec[:ticker]}",
+        name: Trade.build_name(verb.downcase, qty, @securities.fetch(key)),
         date: date,
         amount: (qty * price).round(2),
         currency: "INR",

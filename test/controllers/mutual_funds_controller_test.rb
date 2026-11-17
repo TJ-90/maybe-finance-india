@@ -82,6 +82,24 @@ class MutualFundsControllerTest < ActionDispatch::IntegrationTest
     assert_match "INF000A01001", response.body
   end
 
+  test "show page shows trailing 1Y, 3Y and 5Y CAGR from NAV history" do
+    scheme = mutual_fund_schemes(:bluechip_direct)
+    provider = mock("provider")
+    Security.stubs(:provider).returns(provider)
+    history = { Date.current => 144, 1.year.ago.to_date => 120, 3.years.ago.to_date => 100 }
+    prices = history.map do |date, nav|
+      Provider::SecurityConcept::Price.new(symbol: scheme.scheme_code, date: date, price: nav, currency: "INR", exchange_operating_mic: "AMFI")
+    end
+    provider.expects(:fetch_security_prices).with { |args| args[:start_date] <= 5.years.ago.to_date }.returns(Provider::Response.new(success?: true, data: prices, error: nil))
+
+    get mutual_fund_url(scheme)
+
+    assert_response :success
+    assert_select "#trailing-returns dd", text: "20.0%"
+    assert_select "#trailing-returns dd", text: "12.9%"
+    assert_select "#trailing-returns dd", text: "--"
+  end
+
   test "show page works without NAV history" do
     Security.stubs(:provider).returns(nil)
 

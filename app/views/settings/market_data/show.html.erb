@@ -29,6 +29,13 @@
   <% end %>
 <% end %>
 
+<%= settings_section title: "Refresh prices", subtitle: "Prices refresh by themselves: NAVs nightly, NSE/BSE closes after the market closes, and live prices every 15 minutes while it is open." do %>
+  <div class="flex items-center justify-between gap-4">
+    <p class="text-sm text-secondary" data-testid="prices-updated-at"><%= format_prices_as_of(@prices_updated_at) || "No prices yet" %></p>
+    <%= button_to "Refresh prices now", refresh_prices_settings_market_data_path, method: :post, class: "text-sm font-medium rounded-lg px-3 py-2 bg-container-inset text-primary cursor-pointer" %>
+  </div>
+<% end %>
+
 <%= settings_section title: "Upload NAVAll.txt", subtitle: "Use this if the server cannot reach AMFI. Download NAVAll.txt from amfiindia.com and upload it here." do %>
   <div class="space-y-4">
     <% if @last_nav_date.present? %>

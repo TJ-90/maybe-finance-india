@@ -112,6 +112,31 @@ class Provider::YahooFinance < Provider
     end
   end
 
+  # The latest traded price (chart meta `regularMarketPrice`, delayed by Yahoo). One request per symbol:
+  # this is the intraday refresh, so callers batch and pace their requests.
+  # Returns a Price dated by the IST day of the last trade.
+  def fetch_latest_price(symbol:, exchange_operating_mic:)
+    with_provider_response do
+      response = client(CHART_URL).get("/v8/finance/chart/#{ERB::Util.url_encode(yahoo_symbol(symbol, exchange_operating_mic))}", {
+        range: "1d",
+        interval: "1d"
+      })
+
+      meta = JSON.parse(response.body).dig("chart", "result", 0, "meta")
+      raise Error, "Yahoo Finance returned no quote for #{symbol}" if meta.nil? || meta["regularMarketPrice"].nil?
+
+      traded_at = meta["regularMarketTime"] ? ActiveSupport::TimeZone[MARKET_TIME_ZONE].at(meta["regularMarketTime"]) : Time.current.in_time_zone(MARKET_TIME_ZONE)
+
+      Price.new(
+        symbol: symbol,
+        date: traded_at.to_date,
+        price: BigDecimal(meta["regularMarketPrice"].to_s),
+        currency: meta["currency"].presence || "INR",
+        exchange_operating_mic: exchange_operating_mic.to_s.upcase
+      )
+    end
+  end
+
   def fetch_security_prices(symbol:, exchange_operating_mic:, start_date:, end_date:)
     with_provider_response do
       result = fetch_chart(symbol, exchange_operating_mic, start_date: start_date.to_date, end_date: end_date.to_date)

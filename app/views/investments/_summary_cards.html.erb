@@ -1,7 +1,9 @@
-<%# locals: (summary:, id: "investment-summary") %>
+<%# locals: (summary:, id: "investment-summary", account: nil) %>
 
 <% xirr = summary.xirr %>
-<dl class="grid grid-cols-2 lg:grid-cols-4 gap-3 text-sm" id="<%= id %>">
+<% one_day = summary.one_day_change %>
+<% prices_as_of = format_prices_as_of(summary.prices_as_of) %>
+<dl class="grid grid-cols-2 lg:grid-cols-5 gap-3 text-sm" id="<%= id %>">
   <div class="rounded-lg bg-container-inset p-3">
     <dt class="text-secondary">Invested</dt>
     <dd class="font-medium text-primary"><%= format_money_compact(summary.invested) %></dd>
@@ -14,13 +16,34 @@
     <dt class="text-secondary">Gain</dt>
     <dd class="font-medium <%= summary.gain.amount.negative? ? "text-destructive" : "text-success" %>">
       <%= format_money_compact(summary.gain) %>
-      <% if summary.gain_percent %>
-        <span class="font-normal">(<%= number_to_percentage(summary.gain_percent * 100, precision: 1) %>)</span>
+      <% if summary.absolute_return %>
+        <span class="font-normal">(<%= number_to_percentage(summary.absolute_return * 100, precision: 1) %>)</span>
       <% end %>
     </dd>
+  </div>
+  <div class="rounded-lg bg-container-inset p-3">
+    <dt class="text-secondary">1-day change</dt>
+    <% if one_day %>
+      <dd class="font-medium <%= xirr_class(one_day.amount) %>">
+        <%= format_money_compact(one_day) %>
+        <% if summary.one_day_change_percent %>
+          <span class="font-normal">(<%= format_xirr(summary.one_day_change_percent) %>)</span>
+        <% end %>
+      </dd>
+    <% else %>
+      <dd class="font-medium text-secondary">--</dd>
+    <% end %>
   </div>
   <div class="rounded-lg bg-container-inset p-3">
     <dt class="text-secondary">XIRR</dt>
     <dd class="font-medium <%= xirr_class(xirr) %>"><%= format_xirr(xirr) %></dd>
   </div>
 </dl>
+
+<div class="flex items-center justify-between gap-3 text-xs text-secondary">
+  <p data-testid="prices-as-of"><%= prices_as_of || "No prices yet" %></p>
+  <%= button_to "Refresh prices now",
+                account ? refresh_prices_account_path(account) : refresh_prices_settings_market_data_path,
+                method: :post,
+                class: "text-secondary hover:text-primary underline cursor-pointer" %>
+</div>

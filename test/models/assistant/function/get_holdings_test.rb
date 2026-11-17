@@ -29,6 +29,26 @@ class Assistant::Function::GetHoldingsTest < ActiveSupport::TestCase
     assert_not_nil result[:portfolio][:xirr_percent]
   end
 
+  test "includes absolute return, 1-day change, CAGR and trailing returns" do
+    fund = Security.create!(ticker: "900555", name: "Orchid Fund", exchange_operating_mic: Security::AMFI_MIC, kind: "mutual_fund")
+    create_folio_trade @account, fund, qty: 100, price: 100, date: 2.years.ago.to_date
+    set_price fund, 100, date: 2.years.ago.to_date
+    set_price fund, 119, date: 1.day.ago.to_date
+    set_price fund, 121, date: Date.current
+    @account.holdings.create!(security: fund, date: Date.current, qty: 100, price: 121, amount: 12_100, currency: "INR")
+
+    result = Assistant::Function::GetHoldings.new(@user).call
+    holding = result[:accounts].find { |a| a[:name] == "Demat" }[:holdings].first
+
+    assert_in_delta 21.0, holding[:absolute_return_percent], 0.1
+    assert_in_delta 10.0, holding[:cagr_since_first_purchase_percent], 0.2
+    assert_in_delta 1.7, holding[:one_day_change_percent], 0.1
+    assert_not_nil holding[:one_day_change]
+    assert_equal %w[1y 3y 5y], holding[:trailing_cagr_percent].keys
+    assert_nil holding[:trailing_cagr_percent]["5y"]
+    assert_match(/\APrices as of .* IST\z/, result[:portfolio][:prices_as_of])
+  end
+
   test "an account without holdings has an empty list" do
     result = Assistant::Function::GetHoldings.new(@user).call
 

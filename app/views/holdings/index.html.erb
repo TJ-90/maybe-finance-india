@@ -16,21 +16,27 @@
     <div class="bg-container-inset rounded-xl p-1">
       <div class="grid grid-cols-12 items-center uppercase text-xs font-medium text-secondary px-4 py-2">
         <%= tag.p t(".name"), class: "col-span-3" %>
-        <%= tag.p t(".weight"), class: "col-span-2 justify-self-end" %>
+        <%= tag.p t(".weight"), class: "col-span-1 justify-self-end" %>
         <%= tag.p t(".average_cost"), class: "col-span-2 justify-self-end" %>
         <%= tag.p t(".holdings"), class: "col-span-2 justify-self-end" %>
         <%= tag.p t(".return"), class: "col-span-2 justify-self-end" %>
-        <%= tag.p "XIRR", class: "col-span-1 justify-self-end" %>
+        <%= tag.p "XIRR / 1D / CAGR", class: "col-span-2 justify-self-end" %>
       </div>
 
       <div class="bg-container rounded-lg shadow-border-xs">
         <%= render "holdings/cash", account: @account %>
         <%= render "shared/ruler" %>
 
-        <% if @account.current_holdings.any? %>
-          <%= render partial: "holdings/holding", collection: @account.current_holdings, spacer_template: "shared/ruler" %>
+        <% holdings = @account.current_holdings_with_returns %>
+        <% if holdings.any? %>
+          <%= render partial: "holdings/holding", collection: holdings, spacer_template: "shared/ruler" %>
         <% end %>
       </div>
+
+      <p class="text-xs text-secondary px-4 py-2" data-testid="holdings-prices-as-of">
+        <%= format_prices_as_of(@account.prices_last_updated_at) || "No prices yet" %>.
+        CAGR is price based since the first purchase and shows -- until a year has passed.
+      </p>
     </div>
   </div>
 <% end %>

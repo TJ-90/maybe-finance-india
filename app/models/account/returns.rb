@@ -32,4 +32,42 @@ module Account::Returns
 
     Xirr.new(flows).rate
   end
+
+  # The account's trades replayed FIFO, once per account instance (what is held, at what cost)
+  def tax_lots
+    @tax_lots ||= Holding::TaxLots.new([ self ], currency: currency)
+  end
+
+  # FIFO cost of the units still held
+  def invested_money
+    Money.new(tax_lots.open_lots.sum(&:cost), currency)
+  end
+
+  # Current holdings that share this account instance, so each holding's returns reuse tax_lots
+  # instead of replaying the trades again
+  def current_holdings_with_returns
+    current_holdings.includes(:security).to_a.each { |holding| holding.association(:account).target = self }
+  end
+
+  # How much the securities moved in value since their previous price (Money), nil when no holding has one
+  def one_day_change
+    changes = current_holdings_with_returns.filter_map { |holding| holding.returns.one_day_change }
+    return nil if changes.empty?
+
+    Money.new(changes.sum(&:amount), currency)
+  end
+
+  # One-day change as a fraction of yesterday's value
+  def one_day_change_percent
+    change = one_day_change
+    return nil if change.nil?
+
+    previous = securities_value - change.amount
+    previous.positive? ? change.amount / previous : nil
+  end
+
+  # When the prices behind the holdings were last written (a Time), nil without any
+  def prices_last_updated_at
+    Security::Price.where(security_id: current_holdings.select(:security_id)).maximum(:updated_at)
+  end
 end

@@ -19,7 +19,7 @@ class Assistant::Function::GetHoldings < Assistant::Function
   end
 
   def call(params = {})
-    accounts = family.accounts_with_investments.includes(:entries).to_a
+    accounts = family.accounts_with_investments.includes(:entries, :household_member).to_a
     summary = family.investment_summary(accounts: accounts)
 
     {
@@ -45,6 +45,7 @@ class Assistant::Function::GetHoldings < Assistant::Function
 
       {
         name: account.name,
+        owner: account.owner_name,
         currency: account.currency,
         holdings: account.current_holdings.includes(:security).map { |holding| holding_data(holding, cost_by_security.fetch(holding.security_id, 0)) }
       }

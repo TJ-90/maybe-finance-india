@@ -61,8 +61,13 @@ class GoalsController < ApplicationController
         :expected_equity_return, :expected_debt_return, :monthly_sip, :sip_step_up_pct,
         :initial_equity_pct, :final_equity_pct, :glide_path_years, :notes,
         :current_age, :retirement_age, :life_expectancy, :monthly_expenses_today,
-        :post_retirement_return
-      )
+        :post_retirement_return, :household_member_id
+      ).tap do |permitted|
+        # Only this family's members; anything else means the whole household
+        if permitted.key?(:household_member_id) && !Current.family.household_members.exists?(id: permitted[:household_member_id])
+          permitted[:household_member_id] = nil
+        end
+      end
     end
 
     # "Use my average expenses" reloads the form with the target filled in from the last six

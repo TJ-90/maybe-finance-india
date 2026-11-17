@@ -116,4 +116,40 @@ class PagesControllerTest < ActionDispatch::IntegrationTest
     assert_select "h2", text: "Test Release"
     # Should not crash even with nil values
   end
+
+  test "dashboard prompts a family without members to set up the household" do
+    get root_path
+
+    assert_select "#household-banner", text: /Set up your household/
+    assert_select "#member-filter", count: 0
+  end
+
+  test "dashboard member filter limits the net worth breakdown and the Investments card" do
+    family = inr_family
+    rahul = family.household_members.create!(name: "Rahul", relationship: "self", residency_status: "nri")
+    asha = family.household_members.create!(name: "Asha", relationship: "spouse", residency_status: "resident")
+    family.accounts.destroy_all
+    cash = family.accounts.create!(name: "NRE", balance: 50_000, currency: "INR", accountable: Depository.new, subtype: "nre", household_member: rahul)
+    investments = create_investment_account(family)
+    investments.update!(household_member: asha, balance: 200_000)
+    fund = create_tax_security("FILTERFUND")
+    create_folio_trade investments, fund, qty: 10, price: 100, date: 1.year.ago.to_date
+    investments.holdings.create!(security: fund, date: Date.current, qty: 10, price: 110, amount: 1100, currency: "INR")
+
+    get root_path
+    assert_select "#household-banner", count: 0
+    assert_select "#member-filter a[aria-current=true]", text: "All"
+    assert_select "#dashboard-investments"
+
+    get root_path(member: rahul.id)
+    assert_select "#member-filter a[aria-current=true]", text: "Rahul"
+    assert_select "#dashboard-investments", count: 0 # Rahul holds no investments
+
+    get root_path(member: asha.id)
+    assert_select "#dashboard-investments"
+
+    get root_path(member: "joint")
+    assert_select "#member-filter a[aria-current=true]", text: "Joint"
+    assert cash.reload.household_member
+  end
 end

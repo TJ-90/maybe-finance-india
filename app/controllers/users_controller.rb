@@ -63,6 +63,8 @@ class UsersController < ApplicationController
         redirect_to root_path
       when "preferences"
         redirect_to settings_preferences_path, notice: notice
+      when "household"
+        redirect_to household_onboarding_path
       when "goals"
         redirect_to goals_onboarding_path
       when "trial"

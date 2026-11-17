@@ -108,8 +108,9 @@ class CasImport < Import
   end
 
   # Used by Import::AccountMapping when "Add as new account" is chosen for a statement investor
-  def create_investor_account!(name)
+  def create_investor_account!(name, owner: nil)
     family.accounts.create_or_find_by!(name: name) do |account|
+      account.household_member = owner
       account.balance = 0
       account.cash_balance = 0
       account.currency = CURRENCY

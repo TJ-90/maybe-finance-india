@@ -9,6 +9,7 @@ class Demo::GeneratorTest < ActiveSupport::TestCase
     @family = User.find_by!(email: "demo-india@example.com").family
 
     assert_household
+    assert_members
     assert_investments
     assert_bank_lines
     assert_planning
@@ -26,6 +27,31 @@ class Demo::GeneratorTest < ActiveSupport::TestCase
       assert_equal %w[epf ppf], @family.accounts.where(accountable_type: "ProvidentFund").pluck(:subtype).sort
       assert @family.accounts.all? { |account| account.currency == "INR" }
       assert_equal [ "active" ], @family.accounts.map(&:status).uniq
+    end
+
+    def assert_members
+      rahul = @family.household_members.find_by!(relationship: "self")
+      asha = @family.household_members.find_by!(relationship: "spouse")
+
+      assert_equal [ "Rahul Sharma", "nri" ], [ rahul.name, rahul.residency_status ]
+      assert_equal [ "Asha Sharma", "resident" ], [ asha.name, asha.residency_status ]
+      assert_equal rahul, @family.users.find_by!(role: "admin").household_member
+      assert_equal %w[nre nro], @family.accounts.where(household_member: rahul, accountable_type: "Depository").pluck(:subtype).sort
+      assert_equal rahul, @family.accounts.find_by!(name: "Zerodha Demat").household_member
+      assert_equal asha, @family.accounts.find_by!(name: "Mutual Funds – Asha").household_member
+      assert_nil @family.accounts.find_by!(name: "HDFC Home Loan").household_member_id
+
+      nri_report = TaxCenter::Report.new(family: @family, accounts: @family.accounts_with_investments.where(household_member: rahul).to_a,
+                                         residency: TaxCenter::Residency.new(member: rahul))
+      assert nri_report.tds_total.positive?, "expected Rahul's sales to carry an estimated TDS"
+      assert @family.accounts_with_investments.where(household_member: asha).any?
+
+      interest = TaxCenter::InterestIncome.new(
+        family: @family, accounts: @family.accounts.where(household_member: rahul).to_a,
+        financial_year_start: Period.financial_year_start(Date.current), residency: TaxCenter::Residency.new(member: rahul)
+      )
+      assert interest.exempt_total.positive?, "expected NRE interest"
+      assert interest.taxable_total.positive?, "expected NRO interest"
     end
 
     def assert_investments

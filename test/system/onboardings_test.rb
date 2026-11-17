@@ -36,6 +36,13 @@ class OnboardingsTest < ApplicationSystemTestCase
     # Submit preferences
     click_button "Complete"
 
+    # Household step comes next, with an explicit Resident / NRI choice and no default
+    assert_current_path household_onboarding_path
+    assert_text "Who is in your household?"
+    assert_no_selector "input[type=radio]:checked"
+    choose "members_0_residency_nri"
+    click_button "Continue"
+
     # Should redirect to goals page
     assert_current_path goals_onboarding_path
     assert_text "What brings you to Kosh?"
@@ -117,8 +124,8 @@ class OnboardingsTest < ApplicationSystemTestCase
 
     click_button "Complete"
 
-    # Wait for redirect to goals page to ensure form was submitted
-    assert_current_path goals_onboarding_path
+    # Wait for redirect to the household step to ensure form was submitted
+    assert_current_path household_onboarding_path
 
     # Verify data was saved
     @family.reload
@@ -161,7 +168,9 @@ class OnboardingsTest < ApplicationSystemTestCase
     select "MM/DD/YYYY", from: "user_family_attributes_date_format"
     click_button "Complete"
 
-    # Should be at goals
+    # Should be at the household step, then goals
+    assert_current_path household_onboarding_path
+    click_on "Skip for now"
     assert_current_path goals_onboarding_path
   end
 

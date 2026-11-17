@@ -210,4 +210,116 @@ class TaxCenterControllerTest < ActionDispatch::IntegrationTest
 
     assert_select "a[href=?]", tax_center_path, text: /Tax/
   end
+
+  # --- household members and residency ---
+
+  def household
+    @nri = @family.household_members.create!(name: "Rahul", relationship: "self", residency_status: "nri")
+    @resident = @family.household_members.create!(name: "Asha", relationship: "spouse", residency_status: "resident", slab_rate: 20)
+    @account.update!(household_member: @nri)
+    @asha_account = create_investment_account(@family, name: "Asha demat")
+    @asha_account.update!(household_member: @resident)
+    create_folio_trade @asha_account, @fund, qty: 50, price: 100, date: Date.new(2023, 1, 10)
+    create_folio_trade @asha_account, @fund, qty: -50, price: 200, date: Date.new(2026, 8, 1)
+  end
+
+  test "without household members the account checkboxes and a setup prompt are shown" do
+    get tax_center_path
+
+    assert_select "[data-testid=household-prompt]"
+    assert_select "select#member_id", count: 0
+    assert_select "input[name='account_ids[]']", minimum: 1
+    assert_select "#tax-filters details[open]"
+  end
+
+  test "the member select replaces the account checkboxes and keeps an advanced disclosure" do
+    household
+
+    get tax_center_path
+
+    assert_select "[data-testid=household-prompt]", count: 0
+    assert_select "select#member_id option", count: 2
+    assert_select "select#member_id option[selected]", text: /Rahul \(NRI\)/
+    assert_select "#tax-filters details summary", text: /Advanced: choose accounts/
+    assert_select "#tax-filters details[open]", count: 0
+    assert_select "[data-testid=residency-notes]", text: /NRI/
+    assert_select "turbo-frame#tax_interest[src]"
+  end
+
+  test "a member's report only uses their own accounts and the NRI sees estimated TDS" do
+    household
+
+    get realized_gains_tax_center_path(member_id: @nri.id)
+
+    assert_response :success
+    assert_select "#tax-redemptions tbody tr", count: 1
+    assert_select "#realized-tds-total"
+    assert_select "#tax-redemptions th", text: /Est\. TDS/
+    assert_select "[data-testid=nri-tds-estimate-note]", text: /estimate/
+
+    get realized_gains_tax_center_path(member_id: @resident.id)
+
+    assert_select "#tax-redemptions tbody tr", count: 1
+    assert_select "#realized-tds-total", count: 0
+    assert_select "#tax-redemptions th", text: /Est\. TDS/, count: 0
+  end
+
+  test "advanced account choice overrides the member's accounts" do
+    household
+
+    get realized_gains_tax_center_path(member_id: @nri.id, account_ids: [ @asha_account.id ])
+
+    assert_select "#tax-redemptions tbody tr", count: 1
+    assert_select "#tax-redemptions", text: /Asha demat|TAXFUND/
+  end
+
+  test "an unknown member falls back to you and the slab rate follows the member" do
+    household
+
+    get realized_gains_tax_center_path(member_id: "nope")
+    assert_select "#tax-realized-gains", text: /slab 30%/
+
+    get realized_gains_tax_center_path(member_id: @resident.id)
+    assert_select "#tax-realized-gains", text: /slab 20%/
+
+    get realized_gains_tax_center_path(member_id: @resident.id, slab: 25)
+    assert_select "#tax-realized-gains", text: /slab 25%/
+  end
+
+  test "harvesting and the calculator show the NRI TDS estimate" do
+    household
+
+    get harvesting_tax_center_path(member_id: @nri.id)
+    assert_select "#ltcg-harvest th", text: /Est\. TDS/
+
+    get calculator_tax_center_path(member_id: @nri.id, holding: "#{@account.id}|#{@fund.id}|1111", units: "100", sale_date: "2026-11-16", price: "200")
+    assert_select "#calculator-tds-amount"
+
+    get calculator_tax_center_path(member_id: @resident.id)
+    assert_select "[data-testid=calculator-tds]", count: 0
+  end
+
+  test "interest income section lists NRE as exempt and NRO as taxable for an NRI" do
+    household
+    nre = @family.accounts.create!(name: "NRE", balance: 0, currency: "INR", accountable: Depository.new, subtype: "nre", household_member: @nri)
+    nro = @family.accounts.create!(name: "NRO", balance: 0, currency: "INR", accountable: Depository.new, subtype: "nro", household_member: @nri)
+    nre.entries.create!(name: "Interest credit", date: Date.new(2026, 6, 30), amount: -5000, currency: "INR", entryable: Transaction.new(kind: "standard"))
+    nro.entries.create!(name: "Interest credit", date: Date.new(2026, 6, 30), amount: -3000, currency: "INR", entryable: Transaction.new(kind: "standard"))
+
+    get interest_tax_center_path(member_id: @nri.id)
+
+    assert_response :success
+    assert_select "#interest-exempt", text: /5,000/
+    assert_select "#interest-taxable", text: /3,000/
+    assert_select "#interest-rows", text: /NRO interest is taxable/
+  end
+
+  test "export adds the TDS column for an NRI" do
+    household
+
+    get export_tax_center_path(member_id: @nri.id, kind: "realized")
+
+    assert_response :success
+    assert_match(/Estimated TDS \(NRI\)/, response.body)
+  end
 end

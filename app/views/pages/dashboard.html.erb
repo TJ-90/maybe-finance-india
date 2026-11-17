@@ -32,9 +32,18 @@
         period: @period
       } %>
     </section>
-    <% if @balance_sheet.india_breakdown.show? %>
+    <% if @household_members.any? %>
       <section>
-        <%= render "pages/dashboard/net_worth_breakdown", breakdown: @balance_sheet.india_breakdown %>
+        <%= render "pages/dashboard/member_filter", members: @household_members, selected: @member_filter %>
+      </section>
+    <% elsif Current.family.accounts.any? %>
+      <section>
+        <%= render "pages/dashboard/household_banner" %>
+      </section>
+    <% end %>
+    <% if @breakdown.show? %>
+      <section>
+        <%= render "pages/dashboard/net_worth_breakdown", breakdown: @breakdown %>
       </section>
     <% end %>
     <% if @upcoming_premiums.any? %>

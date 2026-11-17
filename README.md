@@ -60,8 +60,8 @@ rake demo_data:default
 ```
 
 And visit http://localhost:3000 to see the app. If you loaded the demo data (an Indian household
-with a bank account, card, demat, mutual funds, EPF/PPF, an FD, a home loan, insurance and goals),
-you can log in with:
+of an NRI husband and a resident wife, with NRE/NRO and savings accounts, card, demat, mutual funds, EPF/PPF, an FD, a home loan, insurance and goals),
+you can log in (as Rahul, the NRI) with:
 
 - Email: `user@example.com`
 - Password: `password`

@@ -166,4 +166,41 @@ end
           delete session_path(session)
         end
       end
+
+      test "household step shows required residency radios with no default" do
+        get household_onboarding_url
+
+        assert_response :success
+        assert_select "h1", text: /household/i
+        assert_select "input[type=radio][name='members[0][residency_status]'][required]", count: 2
+        assert_select "input[type=radio][checked]", count: 0
+      end
+
+      test "household step creates you and a spouse and links the login" do
+        assert_difference "@family.household_members.count", 2 do
+          post household_onboarding_url, params: { members: {
+            "0" => { name: "Rahul Sharma", residency_status: "nri" },
+            "1" => { name: "Asha Sharma", relationship: "spouse", residency_status: "resident" },
+            "2" => { name: "", relationship: "child" }
+          } }
+        end
+
+        assert_redirected_to goals_onboarding_url
+        assert_equal "Rahul Sharma", @user.reload.household_member.name
+        assert_equal "nri", @user.household_member.residency_status
+      end
+
+      test "household step refuses a person without a residency choice" do
+        assert_no_difference "@family.household_members.count" do
+          post household_onboarding_url, params: { members: { "0" => { name: "Rahul", residency_status: "" } } }
+        end
+
+        assert_response :unprocessable_entity
+      end
+
+      test "preferences continue to the household step" do
+        patch user_url(@user), params: { user: { set_onboarding_preferences_at: Time.current, redirect_to: "household" } }
+
+        assert_redirected_to household_onboarding_url
+      end
 end

@@ -27,3 +27,7 @@
     <%= mapping.values_count %>
   </span>
 <% end %>
+
+<% if mapping.is_a?(Import::AccountMapping) && mapping.create_when_empty? && mapping.key.present? && !mapping.import.complete? %>
+  <%= render "import/mappings/owner_form", mapping: mapping %>
+<% end %>

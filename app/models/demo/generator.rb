@@ -59,9 +59,10 @@ class Demo::Generator
     end
   end
 
-  # Generate a realistic Indian household: bank, card, demat and mutual fund accounts with two and a
-  # half years of history, EPF/PPF/FD/gold, a home loan, insurance and three goals. Everything is in
-  # INR and all security prices are seeded, so generating (and syncing) never needs the network.
+  # Generate a realistic Indian household: Rahul (an NRI working in Dubai, with NRE and NRO accounts and a
+  # demat) and his resident wife Asha (savings, card, mutual funds, EPF/PPF, an FD, gold) with two and a half
+  # years of history, a joint flat and home loan, insurance and three goals. Everything is in INR and all
+  # security prices are seeded, so generating (and syncing) never needs the network.
   def generate_default_data!(skip_clear: false, email: "user@example.com")
     if skip_clear
       puts "⏭️  Skipping data clearing (appending new family)..."
@@ -74,6 +75,7 @@ class Demo::Generator
       puts "👥 Creating demo family..."
       family = create_family_and_users!("Sharma Household", email, onboarded: true, subscribed: true)
       @family = family
+      create_household_members!(family)
 
       puts "📊 Creating realistic financial data..."
       family.categories.bootstrap!
@@ -171,7 +173,7 @@ class Demo::Generator
       # Admin user
       family.users.create!(
         email: email,
-        first_name: "Asha",
+        first_name: "Rahul",
         last_name: "Sharma",
         role: "admin",
         password: "password",
@@ -181,7 +183,7 @@ class Demo::Generator
       # Member user
       family.users.create!(
         email: "partner_#{email}",
-        first_name: "Rohan",
+        first_name: "Asha",
         last_name: "Sharma",
         role: "member",
         password: "password",
@@ -189,6 +191,21 @@ class Demo::Generator
       )
 
       family
+    end
+
+    # Rahul (you) is an NRI working in Dubai; Asha is a resident. The Tax Center shows both residencies.
+    def create_household_members!(family)
+      @rahul = family.household_members.create!(
+        name: "Rahul Sharma", relationship: "self", residency_status: "nri", date_of_birth: Date.current.prev_year(35) - 60.days,
+        pan_last4: "234F", slab_rate: 30, tax_regime: "new"
+      )
+      @asha = family.household_members.create!(
+        name: "Asha Sharma", relationship: "spouse", residency_status: "resident", date_of_birth: Date.current.prev_year(33) - 90.days,
+        pan_last4: "567K", slab_rate: 20, tax_regime: "new"
+      )
+
+      family.users.find_by!(role: "admin").update!(household_member: @rahul)
+      family.users.find_by!(role: "member").update!(household_member: @asha)
     end
 
     def create_securities!
@@ -243,18 +260,20 @@ class Demo::Generator
     # Accounts
     # ---------------------------------------------------------------------------
     def create_accounts!
-      @hdfc = add_account!(Depository.new, "HDFC Savings Account", subtype: "savings", opening: 450_000)
-      @icici_card = add_account!(CreditCard.new, "ICICI Amazon Pay Credit Card", subtype: "credit_card", opening: 0)
-      @zerodha = add_account!(Investment.new, "Zerodha Demat", subtype: "demat", opening: 600_000)
-      @mf_account = add_account!(Investment.new, "Mutual Funds – Asha", subtype: "mutual_fund", opening: 0)
+      @hdfc = add_account!(Depository.new, "HDFC Savings Account", subtype: "savings", opening: 450_000, owner: @asha)
+      @icici_card = add_account!(CreditCard.new, "ICICI Amazon Pay Credit Card", subtype: "credit_card", opening: 0, owner: @asha)
+      @nre = add_account!(Depository.new, "HDFC NRE Savings", subtype: "nre", opening: 800_000, owner: @rahul)
+      @nro = add_account!(Depository.new, "HDFC NRO Savings", subtype: "nro", opening: 300_000, owner: @rahul)
+      @zerodha = add_account!(Investment.new, "Zerodha Demat", subtype: "demat", opening: 600_000, owner: @rahul)
+      @mf_account = add_account!(Investment.new, "Mutual Funds – Asha", subtype: "mutual_fund", opening: 0, owner: @asha)
 
       @epf = add_account!(
         ProvidentFund.new(opened_on: start_date, monthly_contribution: 21_600, employer_contribution: 20_350, account_number_last4: "4321"),
-        "EPF – Asha", subtype: "epf", opening: 420_000
+        "EPF – Asha", subtype: "epf", opening: 420_000, owner: @asha
       )
       @ppf = add_account!(
         ProvidentFund.new(opened_on: start_date, monthly_contribution: 12_500, account_number_last4: "8765"),
-        "PPF – Asha", subtype: "ppf", opening: 350_000
+        "PPF – Asha", subtype: "ppf", opening: 350_000, owner: @asha
       )
 
       fd_start = months_ago_date(8, 12)
@@ -263,16 +282,17 @@ class Demo::Generator
           interest_rate: 7.1, compounding: "quarterly", payout: "cumulative", principal: 500_000,
           start_date: fd_start, maturity_date: fd_start >> 24, institution_name: "HDFC Bank", auto_renew: false
         ),
-        "HDFC Bank FD", subtype: "fd", opening: 500_000, opening_date: fd_start
+        "HDFC Bank FD", subtype: "fd", opening: 500_000, opening_date: fd_start, owner: @asha
       )
 
-      @gold = add_account!(PreciousMetal.new(weight_grams: 80, purity: "22k", form: "jewellery"), "Gold jewellery", subtype: "gold", opening: 430_000)
+      @gold = add_account!(PreciousMetal.new(weight_grams: 80, purity: "22k", form: "jewellery"), "Gold jewellery", subtype: "gold", opening: 430_000, owner: @asha)
       @flat = add_account!(Property.new(year_built: 2018, area_value: 1250, area_unit: "sqft"), "Flat – Whitefield, Bengaluru", subtype: "residential", opening: 9_800_000)
       @home_loan = add_account!(Loan.new(interest_rate: 8.5, term_months: 240, rate_type: "fixed", initial_balance: 6_200_000), "HDFC Home Loan", subtype: "home", opening: 5_950_000)
     end
 
-    def add_account!(accountable, name, subtype:, opening:, opening_date: start_date)
-      account = @family.accounts.create!(accountable: accountable, name: name, subtype: subtype, balance: opening, cash_balance: opening, currency: "INR")
+    # `owner` is a household member; nil means a joint account (the flat and the home loan)
+    def add_account!(accountable, name, subtype:, opening:, opening_date: start_date, owner: nil)
+      account = @family.accounts.create!(accountable: accountable, name: name, subtype: subtype, balance: opening, cash_balance: opening, currency: "INR", household_member: owner)
       result = Account::OpeningBalanceManager.new(account).set_opening_balance(balance: opening, date: opening_date)
       raise result.error if result.error
 
@@ -297,6 +317,7 @@ class Demo::Generator
         loan_balance = generate_home_loan_payment!(month, loan_balance)
         generate_sip_debits!(month)
         generate_retirement_contributions!(month)
+        generate_nri_flows!(month)
 
         # The previous month's card statement is paid on the 5th
         if (paid_on = day_of(month, 5)) && card_charges.positive?
@@ -386,6 +407,19 @@ class Demo::Generator
       if (date = day_of(month, 9))
         create_transfer!(@hdfc, @ppf, 12_500, "PPF contribution", date)
       end
+    end
+
+    # Rahul's Dubai salary reaches his NRE account every month. Both his NRE and NRO accounts are credited
+    # interest each quarter: exempt on the NRE account, taxable (with TDS) on the NRO account.
+    def generate_nri_flows!(month)
+      if (date = day_of(month, 4))
+        create_bank_transaction!(@nre, -95_000, "SWIFT INWARD REMITTANCE-ACME GULF LLC-SALARY #{date.strftime('%b%Y')}-#{ref(8)}", "Salary", date)
+      end
+
+      return unless [ 3, 6, 9, 12 ].include?(month.month) && (date = day_of(month, 28))
+
+      create_bank_transaction!(@nre, -6_200, "INT.PD:#{(date << 3).strftime('%d-%m-%Y')} TO #{date.strftime('%d-%m-%Y')}", "Interest", date)
+      create_bank_transaction!(@nro, -2_400, "INT.PD:#{(date << 3).strftime('%d-%m-%Y')} TO #{date.strftime('%d-%m-%Y')}", "Interest", date)
     end
 
     # Card spends use the card account; returns this month's total so the bill can be paid next month
@@ -529,20 +563,20 @@ class Demo::Generator
     # ---------------------------------------------------------------------------
     def create_insurance_policies!
       @family.insurance_policies.create!(
-        kind: "term", insurer: "Sample Life Insurance", policy_number: "TERM-DEMO-0001", insured_names: "Asha Sharma",
+        kind: "term", insurer: "Sample Life Insurance", policy_number: "TERM-DEMO-0001", insured_names: "Rahul Sharma",
         currency: "INR", sum_assured: 10_000_000, premium: 24_000, premium_frequency: "yearly",
-        next_premium_due_on: term_due_date, start_date: term_due_date << 36, end_date: term_due_date >> (12 * 27), nominee: "Rohan Sharma"
+        next_premium_due_on: term_due_date, start_date: term_due_date << 36, end_date: term_due_date >> (12 * 27), nominee: "Asha Sharma"
       )
       @family.insurance_policies.create!(
-        kind: "health", insurer: "Sample Health Insurance", policy_number: "HLTH-DEMO-0002", insured_names: "Asha, Rohan, Aarav",
+        kind: "health", insurer: "Sample Health Insurance", policy_number: "HLTH-DEMO-0002", insured_names: "Rahul, Asha, Aarav",
         currency: "INR", sum_assured: 1_000_000, premium: 18_000, premium_frequency: "yearly",
-        next_premium_due_on: health_due_date, start_date: health_due_date << 36, nominee: "Rohan Sharma"
+        next_premium_due_on: health_due_date, start_date: health_due_date << 36, nominee: "Rahul Sharma"
       )
     end
 
     def create_goals!(family)
       retirement = family.goals.create!(
-        name: "Retirement", kind: "retirement", currency: "INR", current_age: 35, retirement_age: 60, life_expectancy: 85,
+        name: "Retirement", kind: "retirement", currency: "INR", household_member: @rahul, current_age: 35, retirement_age: 60, life_expectancy: 85,
         monthly_expenses_today: 85_000, post_retirement_return: 7, monthly_sip: 40_000, sip_step_up_pct: 8,
         initial_equity_pct: 75, final_equity_pct: 30, glide_path_years: 10, target_date: Date.current >> (12 * 25)
       )

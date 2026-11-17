@@ -1,0 +1,8 @@
+<div class="rounded-xl bg-container-inset border border-primary p-4 flex items-center justify-between gap-4" id="household-banner">
+  <div class="space-y-0.5">
+    <p class="text-sm font-medium text-primary">Set up your household</p>
+    <p class="text-sm text-secondary">Add yourself and your family, and say whether each person is a Resident or an NRI. Tax is worked out per person.</p>
+  </div>
+
+  <%= render DS::Link.new(text: "Set up", href: settings_household_members_path, variant: "outline") %>
+</div>

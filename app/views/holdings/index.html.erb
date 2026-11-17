@@ -13,18 +13,15 @@
       <% end %>
     </div>
 
-    <div class="bg-container-inset rounded-xl p-1">
-      <div class="overflow-x-auto">
-      <div class="<%= holdings_grid_classes("uppercase text-xs font-medium text-secondary px-4 py-2") %>">
+    <div class="bg-container-inset rounded-xl p-1 @container">
+      <div class="<%= holdings_grid_classes("max-@md:hidden uppercase text-xs font-medium text-secondary px-3 py-2") %>">
         <%= tag.p t(".name") %>
-        <%= tag.p t(".weight"), class: "justify-self-end" %>
-        <%= tag.p t(".average_cost"), class: "justify-self-end" %>
-        <%= tag.p t(".holdings"), class: "justify-self-end" %>
-        <%= tag.p t(".return"), class: "justify-self-end" %>
-        <%= tag.p "XIRR / 1D / CAGR", class: "justify-self-end" %>
+        <%= tag.p t(".holdings"), class: "text-right" %>
+        <%= tag.p t(".return"), class: "text-right" %>
+        <%= tag.p "XIRR / 1D / CAGR", class: "text-right" %>
       </div>
 
-      <div class="bg-container rounded-lg shadow-border-xs min-w-[52rem]">
+      <div class="bg-container rounded-lg shadow-border-xs">
         <% unless @account.holdings_only? %>
           <%= render "holdings/cash", account: @account %>
           <%= render "shared/ruler" %>
@@ -34,7 +31,6 @@
         <% if holdings.any? %>
           <%= render partial: "holdings/holding", collection: holdings, spacer_template: "shared/ruler" %>
         <% end %>
-      </div>
       </div>
 
       <p class="text-xs text-secondary px-4 py-2" data-testid="holdings-prices-as-of">

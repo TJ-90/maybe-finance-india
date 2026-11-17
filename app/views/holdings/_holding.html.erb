@@ -1,8 +1,8 @@
 <%# locals: (holding:) %>
 
 <%= turbo_frame_tag dom_id(holding) do %>
-  <div class="<%= holdings_grid_classes("text-primary text-sm font-medium p-4") %>">
-    <div class="flex items-center gap-4 min-w-0">
+  <div class="<%= holdings_grid_classes("text-primary text-sm font-medium px-3 py-4") %>">
+    <div class="flex items-center gap-3 min-w-0">
       <%= render "holdings/security_logo", security: holding.security %>
 
       <div class="space-y-0.5 min-w-0">
@@ -10,6 +10,10 @@
 
         <% if holding.amount %>
           <%= tag.p holding.security.amfi? ? "MF · #{holding.ticker}" : holding.ticker, class: "text-secondary text-xs uppercase" %>
+          <%= tag.p [
+                (holding.weight ? "#{number_to_percentage(holding.weight, precision: 1)} of account" : nil),
+                "avg #{format_money(holding.avg_cost)}/#{holding.security.unit_noun_singular}"
+              ].compact.join(" · "), class: "text-secondary text-xs font-normal", data: { testid: "holding-weight-cost" } %>
           <% if holding.security.amfi? %>
             <% trailing = holding.trailing_returns.to_h %>
             <%= tag.p trailing.map { |years, cagr| "#{years}Y #{format_xirr(cagr)}" }.join(" · "), class: "text-secondary text-xs font-normal", title: "Trailing CAGR from NAV history" %>
@@ -20,39 +24,25 @@
       </div>
     </div>
 
-    <div class="flex justify-end items-center gap-2">
-      <% if holding.weight %>
-        <%= render "shared/progress_circle", progress: holding.weight %>
-        <%= tag.p number_to_percentage(holding.weight, precision: 1) %>
-      <% else %>
-        <%= tag.p "--", class: "text-secondary mb-5" %>
-      <% end %>
-    </div>
-
-    <div class="text-right">
-      <%= tag.p format_money holding.avg_cost %>
-      <%= tag.p "per #{holding.security.unit_noun_singular}", class: "font-normal text-secondary" %>
-    </div>
-
-    <div class="text-right">
+    <div class="text-right" data-testid="holding-value">
       <% if holding.amount_money %>
         <%= tag.p format_money holding.amount_money %>
       <% else %>
         <%= tag.p "--", class: "text-secondary" %>
       <% end %>
-      <%= tag.p format_holding_qty(holding), class: "font-normal text-secondary" %>
+      <%= tag.p format_holding_qty(holding), class: "font-normal text-secondary text-xs" %>
     </div>
 
-    <div class="text-right">
+    <div class="text-left @md:text-right" data-testid="holding-return">
       <% if holding.trend %>
         <%= tag.p format_money(holding.trend.value), style: "color: #{holding.trend.color};" %>
-        <%= tag.p "(#{number_to_percentage(holding.trend.percent, precision: 1)})", style: "color: #{holding.trend.color};" %>
+        <%= tag.p "(#{number_to_percentage(holding.trend.percent, precision: 1)})", class: "text-xs", style: "color: #{holding.trend.color};" %>
       <% else %>
-        <%= tag.p "--", class: "text-secondary mb-4" %>
+        <%= tag.p "--", class: "text-secondary" %>
       <% end %>
     </div>
 
-    <div class="text-right">
+    <div class="text-right" data-testid="holding-xirr">
       <% xirr = holding.xirr %>
       <% returns = holding.returns %>
       <%= tag.p format_xirr(xirr), class: xirr_class(xirr), title: "XIRR" %>

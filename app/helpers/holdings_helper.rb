@@ -1,8 +1,10 @@
 module HoldingsHelper
   # One grid template for the holdings header, the cash row and every holding row, so the columns line up.
-  # The name column is wide enough to read a fund name on two lines; the numeric columns never go below
-  # a readable width. Below the container width the table scrolls sideways instead of squeezing the name.
-  HOLDINGS_GRID_CLASSES = "grid grid-cols-[minmax(13rem,3fr)_repeat(5,minmax(6.5rem,1fr))] gap-x-4 items-center min-w-[52rem]".freeze
+  # Four columns: name (takes the slack, weight and average cost sit under it), value and quantity, total
+  # return, XIRR. It sizes off the container (not the viewport), so it fits the narrow main column that
+  # is left when both sidebars are open. Below @md the row stacks into two lines: name and value on top,
+  # return and XIRR underneath.
+  HOLDINGS_GRID_CLASSES = "grid grid-cols-2 @md:grid-cols-[minmax(0,1fr)_6.5rem_5.5rem_5rem] gap-x-3 gap-y-2 items-start".freeze
 
   def holdings_grid_classes(extra = nil)
     [ HOLDINGS_GRID_CLASSES, extra ].compact.join(" ")

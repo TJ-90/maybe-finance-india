@@ -108,7 +108,8 @@ class HoldingsControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_match "4903.9 units", response.body
-    assert_match "per unit", response.body
+    assert_match "/unit", response.body
+    assert_match "of account", response.body
     assert_no_match(/\bshares\b/, response.body.gsub(/<script.*?<\/script>/m, ""))
     assert_no_match "Brokerage cash", response.body
   end

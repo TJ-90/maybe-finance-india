@@ -17,7 +17,7 @@
       <div class="divide-y divide-alpha-black-100">
         <% rows.each do |row| %>
           <%= form_with url: update_category_tax_center_path(security_id: row.security.id, **shared_params), method: :patch, class: "grid grid-cols-1 md:grid-cols-12 gap-2 items-end py-3" do |form| %>
-            <div class="md:col-span-4">
+            <div class="md:col-span-3 min-w-0">
               <p class="text-sm font-medium text-primary"><%= row.security.display_name %></p>
               <p class="text-xs text-secondary">
                 <%= row.security.ticker %>
@@ -29,12 +29,12 @@
               </p>
             </div>
 
-            <div class="md:col-span-3 space-y-1">
+            <div class="md:col-span-5 space-y-1 min-w-0">
               <%= form.label :tax_category, "Tax category", for: "tax_category_#{row.security.id}", class: "block text-xs text-secondary" %>
-              <%= form.select :tax_category, options_for_select(tax_category_options, row.tax_category), { include_blank: "Unclassified" }, { id: "tax_category_#{row.security.id}", class: "form-field__input text-sm border border-secondary rounded-lg w-full" } %>
+              <%= form.select :tax_category, options_for_select(tax_category_options, row.tax_category), { include_blank: "Unclassified" }, { id: "tax_category_#{row.security.id}", title: TaxCenterHelper::CATEGORY_LABELS[row.tax_category.to_s], class: "form-field__input text-sm border border-secondary rounded-lg w-full" } %>
             </div>
 
-            <div class="md:col-span-3 space-y-1">
+            <div class="md:col-span-2 space-y-1 min-w-0">
               <%= form.label :asset_class, "Asset class", for: "asset_class_#{row.security.id}", class: "block text-xs text-secondary" %>
               <%= form.select :asset_class, options_for_select(tax_asset_class_options, row.asset_class), { include_blank: "Unclassified" }, { id: "asset_class_#{row.security.id}", class: "form-field__input text-sm border border-secondary rounded-lg w-full" } %>
             </div>

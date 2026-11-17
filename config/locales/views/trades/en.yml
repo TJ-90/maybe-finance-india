@@ -6,7 +6,7 @@ en:
       account_prompt: Search account
       amount: Amount
       holding: Stock, ETF or mutual fund
-      price: Price per share
+      price: Price per unit / share
       qty: Quantity
       submit: Add transaction
       ticker_placeholder: Search by name or symbol (NSE, BSE, mutual funds)

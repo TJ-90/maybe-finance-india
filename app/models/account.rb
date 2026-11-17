@@ -27,6 +27,8 @@ class Account < ApplicationRecord
 
   has_one_attached :logo
 
+  before_validation :apply_cash_tracking_default, on: :create
+
   delegated_type :accountable, types: Accountable::TYPES, dependent: :destroy
 
   accepts_nested_attributes_for :accountable, update_only: true
@@ -147,6 +149,13 @@ class Account < ApplicationRecord
     accountable_class.long_subtype_label_for(subtype) || accountable_class.display_name
   end
 
+  # A holdings-only account (mutual fund, NPS, ULIP, or any investment account the user marked as
+  # "does not hold cash") has no cash: trades do not move money in or out of it, cash stays 0 and
+  # the balance is the market value of the holdings. The money for purchases comes from outside.
+  def holdings_only?
+    accountable_type == "Investment" && accountable.present? && !accountable.tracks_cash?
+  end
+
   # The balance type determines which "component" of balance is being tracked.
   # This is primarily used for balance related calculations and updates.
   #
@@ -165,4 +174,13 @@ class Account < ApplicationRecord
       raise "Unknown account type: #{accountable_type}"
     end
   end
+
+  private
+    # Cash-less subtypes (mutual fund, NPS, ULIP) are always holdings-only when created
+    def apply_cash_tracking_default
+      return unless accountable.is_a?(Investment)
+
+      accountable.tracks_cash = false unless Investment.tracks_cash_by_default?(subtype)
+      self.cash_balance = 0 if holdings_only?
+    end
 end

@@ -36,14 +36,16 @@ class TradeImport < Import
     end
   end
 
-  # Used by Import::AccountMapping when "Add as new account" is chosen: trades need an investment account
+  # Used by Import::AccountMapping when "Add as new account" is chosen: trades need an investment account.
+  # The account is holdings-only (no cash): a tradebook or order history lists the purchases but not the
+  # money that funded them, so tracking cash would drive it negative by everything ever bought.
   def create_investor_account!(name, owner: nil)
     family.accounts.create_or_find_by!(name: name) do |new_account|
       new_account.balance = 0
       new_account.cash_balance = 0
       new_account.currency = family.currency
-      new_account.accountable = Investment.new
-      new_account.subtype = "demat"
+      new_account.accountable = Investment.new(tracks_cash: false)
+      new_account.subtype = respond_to?(:preset) && preset&.mutual_fund? ? "mutual_fund" : "demat"
       new_account.import = self
       new_account.household_member = owner
     end

@@ -267,7 +267,9 @@ class Demo::Generator
       @nre = add_account!(Depository.new, "HDFC NRE Savings", subtype: "nre", opening: 800_000, owner: @rahul)
       @nro = add_account!(Depository.new, "HDFC NRO Savings", subtype: "nro", opening: 300_000, owner: @rahul)
       @zerodha = add_account!(Investment.new, "Zerodha Demat", subtype: "demat", opening: 600_000, owner: @rahul)
-      @mf_account = add_account!(Investment.new, "Mutual Funds – Asha", subtype: "mutual_fund", opening: 0, owner: @asha)
+      # Holdings-only (mutual fund subtype): the SIP transfers from the bank are real money movements and stay
+      # on the bank side, the MF account's balance is just the value of its units, so nothing is counted twice.
+      @mf_account = add_account!(Investment.new(tracks_cash: false), "Mutual Funds – Asha", subtype: "mutual_fund", opening: 0, owner: @asha)
 
       @epf = add_account!(
         ProvidentFund.new(opened_on: start_date, monthly_contribution: 21_600, employer_contribution: 20_350, account_number_last4: "4321"),

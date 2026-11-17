@@ -20,7 +20,9 @@ class Balance::BaseCalculator
     end
 
     def derive_cash_balance_on_date_from_total(total_balance:, date:)
-      if account.balance_type == :investment
+      if account.holdings_only?
+        0
+      elsif account.balance_type == :investment
         total_balance - holdings_value_for_date(date)
       elsif account.balance_type == :cash
         total_balance
@@ -73,6 +75,10 @@ class Balance::BaseCalculator
       if account.balance_type == :non_cash && account.accountable_type == "Loan"
         non_cash_inflows = txn_inflow_sum.abs
         non_cash_outflows = txn_outflow_sum
+      elsif account.holdings_only?
+        # No cash: a buy or sell only moves value between the (outside) payer and the holdings.
+        non_cash_outflows = trade_cash_inflow_sum.abs
+        non_cash_inflows = trade_cash_outflow_sum
       elsif account.balance_type != :non_cash
         cash_inflows = txn_inflow_sum.abs + trade_cash_inflow_sum.abs
         cash_outflows = txn_outflow_sum + trade_cash_outflow_sum
@@ -93,7 +99,7 @@ class Balance::BaseCalculator
     def derive_cash_balance(cash_balance, date)
       entries = sync_cache.get_entries(date)
 
-      if account.balance_type == :non_cash
+      if account.balance_type == :non_cash || account.holdings_only?
         0
       else
         cash_balance + signed_entry_flows(entries)

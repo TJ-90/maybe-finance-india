@@ -50,7 +50,7 @@
       <% end %>
 
       <%= render partial: permitted_import_configuration_path(@import), locals: { import: @import } %>
-      <%= render "imports/table", headers: @import.csv_headers, rows: @import.csv_sample, caption: "Sample data from your uploaded CSV" %>
+      <%= render "imports/table", headers: @import.csv_headers, rows: @import.csv_sample, caption: "Sample data from your uploaded file" %>
     </div>
   </div>
 <% end %>

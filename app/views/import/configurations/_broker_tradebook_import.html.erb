@@ -24,6 +24,16 @@
   <% end %>
 
   <% if preset.present? %>
+    <p class="text-xs text-secondary" data-testid="holdings-only-note">
+      <% if import.account&.holdings_only? || import.account.nil? %>
+        A new account made by this import holds only the investments (no cash): a tradebook or order history lists purchases but not the
+        deposits that paid for them, so tracking cash would show a large negative balance. Its balance is the market value of the holdings.
+      <% else %>
+        This account tracks cash. A tradebook lists purchases but not the deposits that paid for them, so its cash balance can go negative
+        unless you also record those deposits. You can turn cash tracking off in the account's settings.
+      <% end %>
+    </p>
+
     <%= styled_form_with model: import, url: import_configuration_path(import), scope: :import, method: :patch, class: "space-y-4" do |form| %>
       <%= form.hidden_field :broker_preset, value: preset.key %>
 

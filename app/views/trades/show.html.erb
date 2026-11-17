@@ -36,7 +36,7 @@
 
           <%= f.fields_for :entryable do |ef| %>
             <%= ef.money_field :price,
-                  label: t(".cost_per_share_label"),
+                  label: "Cost per #{trade.security.unit_noun_singular}",
                   disable_currency: true,
                   auto_submit: true,
                   min: 0,

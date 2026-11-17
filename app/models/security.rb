@@ -48,6 +48,19 @@ class Security < ApplicationRecord
     @mutual_fund_scheme ||= MutualFundScheme.find_by(scheme_code: ticker)
   end
 
+  # Mutual funds and ETFs are held in units, stocks in shares
+  def units?
+    amfi? || kind_mutual_fund? || kind_etf?
+  end
+
+  def unit_noun
+    units? ? "units" : "shares"
+  end
+
+  def unit_noun_singular
+    units? ? "unit" : "share"
+  end
+
   # Human friendly name. Mutual fund tickers are numeric scheme codes, so fall back to the scheme name.
   def display_name
     name.presence || mutual_fund_scheme&.name || ticker

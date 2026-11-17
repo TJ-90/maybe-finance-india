@@ -156,7 +156,8 @@ class Import < ApplicationRecord
   end
 
   def csv_sample
-    @csv_sample ||= parsed_csv.first(2)
+    # Exports often leave blank lines under the header; they would show as empty rows
+    @csv_sample ||= parsed_csv.reject { |row| row.fields.all?(&:blank?) }.first(2)
   end
 
   def dry_run

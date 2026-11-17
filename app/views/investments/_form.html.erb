@@ -4,4 +4,19 @@
   <%= form.select :subtype,
                  Investment::SUBTYPES.map { |k, v| [v[:long], k] },
                  { label: true, prompt: t("investments.form.subtype_prompt"), include_blank: t("investments.form.none") } %>
+
+  <%= form.fields_for :accountable do |investment_form| %>
+    <div class="space-y-1">
+      <label class="flex items-center gap-2 text-sm font-medium text-primary">
+        <%= investment_form.check_box :tracks_cash, class: "checkbox checkbox--light" %>
+        This account holds cash
+      </label>
+      <p class="text-xs text-secondary">
+        Turn this on for a demat or brokerage account where you deposit money and buy from the balance.
+        Leave it off when purchases are paid from your bank account (mutual funds, NPS, ULIP, or an account
+        built from an order history): the account then shows only the value of its holdings, with no cash.
+        Mutual fund, NPS and ULIP accounts never hold cash.
+      </p>
+    </div>
+  <% end %>
 <% end %>

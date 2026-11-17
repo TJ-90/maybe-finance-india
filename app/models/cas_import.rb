@@ -107,14 +107,15 @@ class CasImport < Import
     end
   end
 
-  # Used by Import::AccountMapping when "Add as new account" is chosen for a statement investor
+  # Used by Import::AccountMapping when "Add as new account" is chosen for a statement investor.
+  # Holdings-only: a statement lists purchases, not the bank debits that paid for them.
   def create_investor_account!(name, owner: nil)
     family.accounts.create_or_find_by!(name: name) do |account|
       account.household_member = owner
       account.balance = 0
       account.cash_balance = 0
       account.currency = CURRENCY
-      account.accountable = Investment.new
+      account.accountable = Investment.new(tracks_cash: false)
       account.subtype = ACCOUNT_SUBTYPE
       account.import = self
     end

@@ -178,4 +178,21 @@ namespace :data_migration do
     count = Trade.rename_auto_named!
     puts "Renamed #{count} trade entries"
   end
+
+  desc "Re-sync holdings-only investment accounts after the tracks_cash migration"
+  # 2026-11-17: investment accounts that do not hold cash (mutual fund, NPS, ULIP, imported order histories)
+  # used to show a large negative "brokerage cash". The migration marks them holdings-only; this task
+  # recalculates their balances so cash becomes 0 and the balance equals the value of the holdings.
+  task resync_holdings_only_accounts: :environment do
+    scope = Account.joins("INNER JOIN investments ON investments.id = accounts.accountable_id AND accounts.accountable_type = 'Investment'")
+                   .where(investments: { tracks_cash: false })
+
+    count = 0
+    scope.find_each do |account|
+      account.sync_later
+      count += 1
+    end
+
+    puts "Queued a re-sync for #{count} holdings-only account(s)"
+  end
 end

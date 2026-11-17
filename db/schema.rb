@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2026_11_17_120001) do
+ActiveRecord::Schema[7.2].define(version: 2026_11_17_150000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pgcrypto"
   enable_extension "plpgsql"
@@ -90,6 +90,23 @@ ActiveRecord::Schema[7.2].define(version: 2026_11_17_120001) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.index ["addressable_type", "addressable_id"], name: "index_addresses_on_addressable"
+  end
+
+  create_table "ai_provider_settings", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.uuid "family_id", null: false
+    t.string "provider", default: "openai", null: false
+    t.text "api_key"
+    t.string "base_url"
+    t.string "chat_model"
+    t.string "fast_model"
+    t.boolean "openrouter_attribution", default: true, null: false
+    t.boolean "enabled", default: true, null: false
+    t.string "last_test_status"
+    t.string "last_test_message"
+    t.datetime "last_tested_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["family_id"], name: "index_ai_provider_settings_on_family_id", unique: true
   end
 
   create_table "api_keys", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
@@ -1051,6 +1068,7 @@ ActiveRecord::Schema[7.2].define(version: 2026_11_17_120001) do
   add_foreign_key "accounts", "plaid_accounts"
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
+  add_foreign_key "ai_provider_settings", "families"
   add_foreign_key "api_keys", "users"
   add_foreign_key "balances", "accounts", on_delete: :cascade
   add_foreign_key "budget_categories", "budgets"

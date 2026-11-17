@@ -10,6 +10,7 @@ nav_sections = [
       { label: "API Key", path: settings_api_key_path, icon: "key" },
       { label: "Market data", path: settings_market_data_path, icon: "trending-up" },
       { label: "Notifications", path: settings_notifications_path, icon: "bell" },
+      { label: "AI", path: settings_ai_provider_path, icon: "sparkles", if: Current.user.admin? },
       { label: t(".self_hosting_label"), path: settings_hosting_path, icon: "database", if: self_hosted? },
       { label: t(".billing_label"), path: settings_billing_path, icon: "circle-dollar-sign", if: !self_hosted? && stripe_configured? },
       { label: t(".accounts_label"), path: accounts_path, icon: "layers" },

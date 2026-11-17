@@ -1,0 +1,120 @@
+<%= content_for :page_title, "AI" %>
+
+<%
+  providers = {
+    "openai" => { title: "OpenAI", blurb: "api.openai.com" },
+    "openrouter" => { title: "OpenRouter", blurb: "One key, many models" },
+    "openai_compatible" => { title: "OpenAI-compatible", blurb: "Ollama, LM Studio, Groq, Together, vLLM" }
+  }
+  defaults = AiProviderSetting::DEFAULT_MODELS.transform_values { |models| { chat: models[:chat], fast: models[:fast] } }
+  env_config = LlmConfig.from_env
+%>
+
+<% if @setting.errors.any? %>
+  <%= render DS::Alert.new(message: @setting.errors.full_messages.to_sentence, variant: :error) %>
+<% end %>
+
+<%= styled_form_with model: @setting, scope: :ai_provider_setting, url: settings_ai_provider_path, method: :patch, class: "space-y-4",
+      data: { controller: "ai-provider", ai_provider_defaults_value: defaults.to_json, ai_provider_suggestions_value: AiProviderSetting::MODEL_SUGGESTIONS.to_json } do |form| %>
+
+  <%= settings_section title: "AI provider", subtitle: "Connect the assistant and auto-categorization to your own account with a provider. Assistant questions and the data it looks up are sent to the provider you choose." do %>
+    <div class="space-y-4">
+      <% if env_config && !@setting.usable? %>
+        <p class="text-sm text-secondary" id="env-fallback">
+          No provider is saved here, so this server's environment settings are used (<%= AiProviderSetting::PROVIDERS[env_config.provider] %>, model <%= env_config.chat_model %>).
+        </p>
+      <% end %>
+
+      <fieldset class="grid grid-cols-1 md:grid-cols-3 gap-2">
+        <legend class="sr-only">Provider</legend>
+        <% providers.each do |value, info| %>
+          <label class="flex items-start gap-3 p-3 rounded-lg border border-secondary bg-container cursor-pointer has-[:checked]:bg-container-inset has-[:checked]:shadow-border-xs">
+            <%= form.radio_button :provider, value, class: "mt-1", checked: @setting.provider == value,
+                  data: { ai_provider_target: "radio", action: "change->ai-provider#update" } %>
+            <span>
+              <span class="block text-sm font-medium text-primary"><%= info[:title] %></span>
+              <span class="block text-xs text-secondary"><%= info[:blurb] %></span>
+            </span>
+          </label>
+        <% end %>
+      </fieldset>
+
+      <div class="space-y-1">
+        <% if @setting.api_key? %>
+          <p class="text-sm text-primary" id="saved-key">Saved key ending in &bull;&bull;&bull;&bull;<%= @setting.api_key_hint %></p>
+        <% end %>
+        <%= form.password_field :api_key,
+              label: @setting.api_key? ? "Replace key" : "API key",
+              value: nil,
+              autocomplete: "off",
+              placeholder: @setting.api_key? ? "Leave blank to keep the saved key" : "Paste your API key" %>
+        <p class="text-xs text-secondary" data-ai-provider-target="panel" data-providers="openai_compatible">A key is optional for local servers that do not check one.</p>
+      </div>
+
+      <div data-ai-provider-target="panel" data-providers="openai_compatible" class="<%= "hidden" unless @setting.openai_compatible? %>">
+        <%= form.text_field :base_url, label: "Base URL", placeholder: "http://localhost:11434/v1", autocomplete: "off",
+              label_tooltip: "https is required, except for localhost" %>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <%= form.text_field :chat_model, label: "Chat model", list: "ai-model-suggestions", autocomplete: "off",
+              placeholder: AiProviderSetting::DEFAULT_MODELS.dig(@setting.provider, :chat) || "Required" %>
+        <%= form.text_field :fast_model, label: "Fast model (categorization)", list: "ai-model-suggestions", autocomplete: "off",
+              placeholder: AiProviderSetting::DEFAULT_MODELS.dig(@setting.provider, :fast) || "Required" %>
+      </div>
+      <datalist id="ai-model-suggestions" data-ai-provider-target="suggestions">
+        <% @setting.model_suggestions.each do |name| %><option value="<%= name %>"></option><% end %>
+      </datalist>
+      <p class="text-xs text-secondary">Model names are free text. The chat model answers your questions, the fast model handles bulk categorization.</p>
+
+      <div data-ai-provider-target="panel" data-providers="openrouter" class="flex items-center justify-between gap-4 <%= "hidden" unless @setting.openrouter? %>">
+        <div>
+          <label for="ai_provider_setting_openrouter_attribution" class="text-sm font-medium text-primary">Identify this app to OpenRouter</label>
+          <p class="text-sm text-secondary">Sends the app name (<%= product_name %>) in the X-Title header. No personal data.</p>
+        </div>
+        <%= render DS::Toggle.new(id: "ai_provider_setting_openrouter_attribution", name: "ai_provider_setting[openrouter_attribution]", checked: @setting.openrouter_attribution?) %>
+      </div>
+
+      <div class="flex items-center justify-between gap-4">
+        <div>
+          <label for="ai_provider_setting_enabled" class="text-sm font-medium text-primary">Use this provider</label>
+          <p class="text-sm text-secondary">When off, the server's environment settings (if any) are used instead.</p>
+        </div>
+        <%= render DS::Toggle.new(id: "ai_provider_setting_enabled", name: "ai_provider_setting[enabled]", checked: @setting.enabled?) %>
+      </div>
+
+      <%= form.submit "Save" %>
+    </div>
+  <% end %>
+<% end %>
+
+<%= settings_section title: "Test connection" do %>
+  <div class="flex items-center justify-between gap-4">
+    <div class="text-sm">
+      <% if @setting.last_test_status.present? %>
+        <p class="<%= @setting.last_test_status == "ok" ? "text-success" : "text-destructive" %>" id="last-test"><%= @setting.last_test_message %></p>
+        <p class="text-xs text-secondary">Last tested <%= l(@setting.last_tested_at.in_time_zone(Current.family.timezone.presence || "Asia/Kolkata"), format: :short) %></p>
+      <% else %>
+        <p class="text-secondary">Checks the saved key and endpoint with a cheap request. Save your changes first.</p>
+      <% end %>
+    </div>
+    <%= button_to "Test connection", test_connection_settings_ai_provider_path, method: :post, class: "text-sm font-medium rounded-lg px-3 py-2 bg-container-inset text-primary cursor-pointer shrink-0" %>
+  </div>
+
+  <% if @setting.persisted? && @setting.api_key? %>
+    <div class="mt-4 pt-4 border-t border-alpha-black-100">
+      <%= button_to "Remove key", remove_key_settings_ai_provider_path, method: :delete,
+            class: "text-sm font-medium text-destructive cursor-pointer",
+            form: { data: { turbo_confirm: "Remove the saved API key? The assistant stops working until you add one." } } %>
+    </div>
+  <% end %>
+<% end %>
+
+<%= settings_section title: "Where to get a key" do %>
+  <ul class="text-sm text-secondary space-y-2 list-disc pl-5">
+    <li><span class="text-primary font-medium">OpenAI:</span> create a key at <a class="underline" href="https://platform.openai.com/api-keys" target="_blank" rel="noopener noreferrer">platform.openai.com/api-keys</a>.</li>
+    <li><span class="text-primary font-medium">OpenRouter:</span> create a key at <a class="underline" href="https://openrouter.ai/keys" target="_blank" rel="noopener noreferrer">openrouter.ai/keys</a>. OpenRouter forwards requests to the model vendor you pick.</li>
+    <li><span class="text-primary font-medium">Local servers:</span> Ollama listens at <code>http://localhost:11434/v1</code>. Choose OpenAI-compatible and enter the model you pulled. A server on another machine needs an https URL.</li>
+  </ul>
+  <p class="text-sm text-secondary mt-3">Using ChatGPT Plus/Pro or Codex? Those subscriptions don't include API access. Create an API key at platform.openai.com, or use OpenRouter.</p>
+<% end %>

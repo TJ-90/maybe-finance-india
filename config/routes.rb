@@ -67,6 +67,10 @@ Rails.application.routes.draw do
       post :refresh_prices, on: :collection
     end
     resource :notifications, only: %i[show update]
+    resource :ai_provider, only: %i[show update], controller: "ai_providers" do
+      post :test_connection, on: :collection
+      delete :remove_key, on: :collection
+    end
     resource :billing, only: :show
     resource :security, only: :show
     resource :api_key, only: [ :show, :new, :create, :destroy ]

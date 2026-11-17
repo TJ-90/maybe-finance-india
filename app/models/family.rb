@@ -29,6 +29,7 @@ class Family < ApplicationRecord
   has_many :holdings, through: :accounts
 
   has_many :insurance_policies, dependent: :destroy
+  has_one :ai_provider_setting, dependent: :destroy
   has_many :goals, dependent: :destroy
   has_many :notifications, dependent: :destroy
   has_many :tags, dependent: :destroy
@@ -156,5 +157,14 @@ class Family < ApplicationRecord
 
   def self_hoster?
     Rails.application.config.app_mode.self_hosted?
+  end
+
+  # The LLM connection this family uses (saved setting first, then instance ENV fallbacks), or nil
+  def llm_config
+    LlmConfig.resolve(self)
+  end
+
+  def ai_chat_model
+    llm_config&.chat_model || AiProviderSetting::DEFAULT_MODELS.dig("openai", :chat)
   end
 end

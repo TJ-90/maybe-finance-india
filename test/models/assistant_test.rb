@@ -12,6 +12,7 @@ class AssistantTest < ActiveSupport::TestCase
     )
     @assistant = Assistant.for_chat(@chat)
     @provider = mock
+    @provider.stubs(:chat_model).returns("gpt-4.1")
   end
 
   test "instructions use the product name and India context" do

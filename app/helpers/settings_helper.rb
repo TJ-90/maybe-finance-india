@@ -7,6 +7,7 @@ module SettingsHelper
     { name: "API Key", path: :settings_api_key_path },
     { name: "Market data", path: :settings_market_data_path },
     { name: "Notifications", path: :settings_notifications_path },
+    { name: "AI", path: :settings_ai_provider_path, condition: :ai_settings_visible? },
     { name: "Billing", path: :settings_billing_path, condition: :billing_visible? },
     { name: "Accounts", path: :accounts_path },
     { name: "Imports", path: :imports_path },
@@ -61,6 +62,10 @@ module SettingsHelper
   end
 
   private
+    def ai_settings_visible?
+      Current.user&.admin?
+    end
+
     def billing_visible?
       !self_hosted? && stripe_configured?
     end

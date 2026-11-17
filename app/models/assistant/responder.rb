@@ -62,12 +62,13 @@ class Assistant::Responder
     def get_llm_response(streamer:, function_results: [], previous_response_id: nil)
       response = llm.chat_response(
         message.content,
-        model: message.ai_model,
+        model: llm.chat_model || message.ai_model,
         instructions: instructions,
         functions: function_tool_caller.function_definitions,
         function_results: function_results,
         streamer: streamer,
-        previous_response_id: previous_response_id
+        previous_response_id: previous_response_id,
+        history: history
       )
 
       unless response.success?
@@ -75,6 +76,11 @@ class Assistant::Responder
       end
 
       response.data
+    end
+
+    # Earlier turns of this chat, for providers that keep no server-side conversation state
+    def history
+      @history ||= message.chat.conversation_history_before(message)
     end
 
     def emit(event_name, payload = nil)

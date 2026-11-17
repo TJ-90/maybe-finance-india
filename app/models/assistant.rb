@@ -17,17 +17,20 @@ class Assistant
   end
 
   def respond_to(message)
+    llm = get_model_provider(message.ai_model)
+    raise "No AI provider is configured. Add one in Settings > AI." if llm.nil?
+
     assistant_message = AssistantMessage.new(
       chat: chat,
       content: "",
-      ai_model: message.ai_model
+      ai_model: llm.chat_model || message.ai_model
     )
 
     responder = Assistant::Responder.new(
       message: message,
       instructions: instructions,
       function_tool_caller: function_tool_caller,
-      llm: get_model_provider(message.ai_model)
+      llm: llm
     )
 
     latest_response_id = chat.latest_assistant_response_id

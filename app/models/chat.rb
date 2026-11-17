@@ -65,6 +65,15 @@ class Chat < ApplicationRecord
     assistant.respond_to(message)
   end
 
+  # [{ role:, content: }] for the user and assistant messages before `message`, oldest first
+  def conversation_history_before(message)
+    messages.where(type: [ "UserMessage", "AssistantMessage" ])
+            .where("messages.created_at < ?", message.created_at)
+            .ordered
+            .select { |m| m.content.present? }
+            .map { |m| { role: m.role, content: m.content } }
+  end
+
   def conversation_messages
     if debug_mode?
       messages

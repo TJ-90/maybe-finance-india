@@ -4,14 +4,15 @@ class Provider::Openai < Provider
   # Subclass so errors caught in this provider are raised as Provider::Openai::Error
   Error = Class.new(Provider::Error)
 
-  MODELS = %w[gpt-4.1]
+  attr_reader :chat_model, :fast_model
 
-  def initialize(access_token)
-    @client = ::OpenAI::Client.new(access_token: access_token)
-  end
-
-  def supports_model?(model)
-    MODELS.include?(model)
+  # `config` (an LlmConfig) carries the models and endpoint. A bare access token still works and
+  # means "api.openai.com with the default models".
+  def initialize(access_token, chat_model: "gpt-4.1", fast_model: "gpt-4.1-mini", config: nil)
+    @access_token = access_token
+    @client = config ? config.client : ::OpenAI::Client.new(access_token: access_token)
+    @chat_model = chat_model
+    @fast_model = fast_model
   end
 
   def auto_categorize(transactions: [], user_categories: [])
@@ -21,7 +22,8 @@ class Provider::Openai < Provider
       AutoCategorizer.new(
         client,
         transactions: transactions,
-        user_categories: user_categories
+        user_categories: user_categories,
+        model: fast_model
       ).auto_categorize
     end
   end
@@ -33,13 +35,14 @@ class Provider::Openai < Provider
       AutoMerchantDetector.new(
         client,
         transactions: transactions,
-        user_merchants: user_merchants
+        user_merchants: user_merchants,
+        model: fast_model
       ).auto_detect_merchants
     end
   end
 
-  def chat_response(prompt, model:, instructions: nil, functions: [], function_results: [], streamer: nil, previous_response_id: nil)
-    with_provider_response do
+  def chat_response(prompt, model:, instructions: nil, functions: [], function_results: [], streamer: nil, previous_response_id: nil, history: [])
+    with_provider_response(error_transformer: error_transformer) do
       chat_config = ChatConfig.new(
         functions: functions,
         function_results: function_results
@@ -66,7 +69,7 @@ class Provider::Openai < Provider
         input: chat_config.build_input(prompt),
         instructions: instructions,
         tools: chat_config.tools,
-        previous_response_id: previous_response_id,
+        previous_response_id: usable_previous_response_id(previous_response_id),
         stream: stream_proxy
       })
 
@@ -82,5 +85,19 @@ class Provider::Openai < Provider
   end
 
   private
-    attr_reader :client
+    attr_reader :client, :access_token
+
+    # Response ids are specific to the Responses API. An id saved while another provider was in use
+    # (e.g. a Chat Completions id) would make OpenAI reject the request.
+    def usable_previous_response_id(id)
+      id.to_s.start_with?("resp_") ? id : nil
+    end
+
+    def error_transformer
+      ->(error) do
+        message = Provider::LlmErrors.scrub(error.message, access_token)
+        details = error.respond_to?(:response) ? Provider::LlmErrors.scrub(error.response&.dig(:body).to_s, access_token) : nil
+        Error.new(message, details: details.presence)
+      end
+    end
 end

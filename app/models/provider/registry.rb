@@ -18,6 +18,20 @@ class Provider::Registry
       raise Error.new("Provider '#{name}' not found in registry")
     end
 
+    # The LLM provider for a family: its saved AI settings first, then the instance ENV fallbacks (see LlmConfig).
+    # This is the single place an LLM provider object is built. Returns nil when nothing is configured.
+    def llm_provider(family = nil)
+      config = LlmConfig.resolve(family)
+      return nil if config.nil?
+
+      case config.api_style
+      when :responses
+        Provider::Openai.new(config.api_key, chat_model: config.chat_model, fast_model: config.fast_model, config: config)
+      else
+        Provider::OpenaiCompatible.new(config)
+      end
+    end
+
     def plaid_provider_for_region(region)
       region.to_sym == :us ? plaid_us : plaid_eu
     end
@@ -84,12 +98,9 @@ class Provider::Registry
         Provider::Github.new
       end
 
+      # Instance-level LLM provider (no family): the ENV / Setting fallbacks only
       def openai
-        access_token = ENV.fetch("OPENAI_ACCESS_TOKEN", Setting.openai_access_token)
-
-        return nil unless access_token.present?
-
-        Provider::Openai.new(access_token)
+        llm_provider(nil)
       end
   end
 
